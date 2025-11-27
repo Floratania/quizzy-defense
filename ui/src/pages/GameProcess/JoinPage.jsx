@@ -1,0 +1,161 @@
+import React, { useEffect, useState } from "react";
+import {
+    Container,
+    Paper,
+    Title,
+    Text,
+    TextInput,
+    Button,
+    Stack,
+    Box,
+} from "@mantine/core";
+import { IconHash, IconUser, IconLogin } from "@tabler/icons-react";
+import { useNavigate } from "react-router";
+import { notifications } from "@mantine/notifications";
+import { socket } from "../../ws/socket.js";
+import { gameService } from "../../services/gameService.js";
+
+export default function JoinPage() {
+    const [roomCode, setRoomCode] = useState("");
+    const [nickname, setNickname] = useState("");
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
+    // --- SOCKET LISTENERS ---
+    useEffect(() => {
+        const onSuccess = (data) => {
+            setLoading(false);
+            localStorage.setItem("sessionId", data.sessionId);
+            localStorage.setItem("playerId", data.playerId);
+            localStorage.setItem("nickname", nickname);
+
+            navigate("/player");
+        };
+
+        const onError = (msg) => {
+            setLoading(false);
+            notifications.show({
+                title: "Помилка",
+                message: msg,
+                color: "red",
+            });
+        };
+
+        socket.on("joined_successfully", onSuccess);
+        socket.on("join_error", onError);
+
+        return () => {
+            socket.off("joined_successfully", onSuccess);
+            socket.off("join_error", onError);
+        };
+    }, [nickname, navigate]);
+
+    // --- JOIN HANDLER ---
+    const handleJoin = () => {
+        if (!roomCode.trim() || !nickname.trim()) {
+            notifications.show({
+                title: "Дані не заповнені",
+                message: "Введіть код кімнати та нікнейм",
+                color: "red",
+            });
+            return;
+        }
+
+        setLoading(true);
+        gameService.joinSession({ roomCode, nickname });
+    };
+
+    // Submit on Enter
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter") handleJoin();
+    };
+
+    return (
+        <Box
+            style={{
+                minHeight: "100vh",
+                background: "linear-gradient(135deg, #dbeafe 0%, #e9d5ff 50%, #fce7f3 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "2rem"
+            }}
+        >
+            <Container size={480}>
+                <Stack spacing="xl" align="center">
+                    <Paper
+                        shadow="xl"
+                        radius="xl"
+                        p={40}
+                        style={{
+                            width: "100%",
+                            background: "white",
+                            border: "1px solid #e0e7ff"
+                        }}
+                    >
+                        <Stack spacing="lg">
+                            <div style={{ textAlign: "center" }}>
+                                <Title order={2} style={{ color: "#1f2937", marginBottom: 8 }}>
+                                    Join Game
+                                </Title>
+                                <Text color="dimmed" size="sm">
+                                    Enter room code and your nickname to start playing
+                                </Text>
+                            </div>
+
+                            <Stack spacing="md">
+                                <TextInput
+                                    size="lg"
+                                    placeholder="Enter room code"
+                                    icon={<IconHash size={20} />}
+                                    value={roomCode}
+                                    onChange={(e) => setRoomCode(e.target.value)}
+                                    onKeyDown={handleKeyPress}
+                                    radius="lg"
+                                    styles={{
+                                        input: {
+                                            border: "2px solid #e5e7eb",
+                                            "&:focus": { borderColor: "#93c5fd" }
+                                        }
+                                    }}
+                                />
+
+                                <TextInput
+                                    size="lg"
+                                    placeholder="Enter your nickname"
+                                    icon={<IconUser size={20} />}
+                                    value={nickname}
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    onKeyDown={handleKeyPress}
+                                    radius="lg"
+                                    styles={{
+                                        input: {
+                                            border: "2px solid #e5e7eb",
+                                            "&:focus": { borderColor: "#93c5fd" }
+                                        }
+                                    }}
+                                />
+                            </Stack>
+
+                            <Button
+                                size="lg"
+                                radius="lg"
+                                variant="gradient"
+                                gradient={{ from: "blue", to: "violet" }}
+                                leftSection={<IconLogin size={20} />}
+                                onClick={handleJoin}
+                                loading={loading}
+                                disabled={!roomCode.trim() || !nickname.trim()}
+                                fullWidth
+                                style={{ marginTop: 8 }}
+                            >
+                                Join Game
+                            </Button>
+
+                        </Stack>
+                    </Paper>
+                </Stack>
+            </Container>
+        </Box>
+    );
+}

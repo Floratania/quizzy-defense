@@ -1,0 +1,12 @@
+api/node_modules
+api/dist
+api/.env
+
+ui/node_modules
+ui/dist
+ui/.env
+
+# Global
+.DS_Store
+.idea
+.vscode

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import {Quiz} from "@/quizzes/entities/quiz.entity";
 import {GamePlayer} from "@/game-players/entities/game-player.entity";
+import {User} from "@/users/entities/user.entity";
 
 export enum GameSessionStatus {
     WAITING = 'WAITING',
@@ -37,6 +38,13 @@ export class GameSession {
         default: GameSessionStatus.WAITING,
     })
     status: GameSessionStatus;
+
+    @ManyToOne(() => User, (user) => user.gameSessions, {nullable: false})
+    @JoinColumn({ name: 'user_id' })
+    user: User;
+
+    @Column({name: 'user_id'})
+    userId: number;
 
     @OneToMany(() => GamePlayer, (p) => p.session)
     players: GamePlayer[];

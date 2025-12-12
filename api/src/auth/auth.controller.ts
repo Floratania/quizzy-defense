@@ -4,7 +4,7 @@ import {
     Controller,
     Get,
     HttpCode,
-    Post,
+    Post, Query,
     Req,
     Res,
     UnauthorizedException, UseGuards,
@@ -17,12 +17,14 @@ import * as authTypes from "@/auth/types/auth.types";
 import {AuthGuard} from "@/guards/auth.guard";
 import * as authTypes_1 from "@/auth/types/auth.types";
 import {UsersService} from "@/users/users.service";
+import {GoogleOAuthService} from "@/auth/google-oauth/google-oauth.service";
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly authService: AuthService,
         private readonly usersService: UsersService,
+        private readonly googleOAuthService: GoogleOAuthService,
     ) {
     }
 
@@ -99,32 +101,32 @@ export class AuthController {
         };
     }
 
-    // @Get('google')
-    // googleLogin(@Res() res: Response) {
-    //     const url = this.googleOAuthService.getAuthUrl();
-    //     return res.redirect(url);
-    // }
-    //
-    // @Get('google/callback')
-    // async googleCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
-    //     if (!code) throw new UnauthorizedException('No code provided');
-    //
-    //     const { accessToken, refreshToken } = await this.authService.loginWithGoogle(code);
-    //
-    //     res.cookie('refreshToken', refreshToken, {
-    //         httpOnly: true,
-    //         sameSite: 'strict',
-    //         maxAge: 30 * 24 * 60 * 60 * 1000,
-    //     });
-    //
-    //     res.cookie('accessToken', accessToken, {
-    //         httpOnly: true,
-    //         sameSite: 'strict',
-    //         maxAge: 15 * 60 * 1000,
-    //     });
-    //
-    //     return res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
-    // }
-    //
+    @Get('google')
+    googleLogin(@Res() res: Response) {
+        const url = this.googleOAuthService.getAuthUrl();
+        return res.redirect(url);
+    }
+
+    @Get('google/callback')
+    async googleCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
+        if (!code) throw new UnauthorizedException('No code provided');
+
+        const { accessToken, refreshToken } = await this.authService.loginWithGoogle(code);
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000,
+        });
+
+        return res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+    }
+
 
 }

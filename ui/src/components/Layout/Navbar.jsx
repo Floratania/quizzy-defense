@@ -21,7 +21,7 @@ const Navbar = () => {
                 width: '100%',
                 background: 'white',
                 borderBottom: '1px solid #e0e7ff',
-                padding: '0.75rem 1.5rem',   // <-- ось тут ти контролюєш відстань від країв
+                padding: '0.75rem 1.5rem',
             }}
         >
             <Group justify="space-between" w="100%">
@@ -51,16 +51,16 @@ const Navbar = () => {
 
                 {user ? (
                     <Group gap="sm">
-                        <Button variant="subtle" color="gray" onClick={() => navigate('/dashboard')}>
-                            Dashboard
+                        <Button variant="subtle" color="gray" onClick={() => navigate('/admin')}>
+                            Кабінет
                         </Button>
                         <Button variant="gradient" gradient={{ from: 'blue', to: 'violet' }} onClick={handleLogout}>
-                            Logout
+                            Вийти
                         </Button>
                     </Group>
                 ) : (
-                    <Button variant="gradient" gradient={{ from: 'blue', to: 'violet' }} onClick={() => navigate('/auth')}>
-                        Sign in
+                    <Button radius={10} variant="gradient" gradient={{ from: 'blue', to: 'violet' }} onClick={() => navigate('/auth')}>
+                        Увійти
                     </Button>
                 )}
             </Group>

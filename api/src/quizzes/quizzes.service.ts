@@ -23,7 +23,7 @@ export class QuizzesService {
         const quiz = this.quizRepository.create({
             title: dto.title,
             description: dto.description,
-            userId: userId, // або userId: dto.userId
+            userId: userId,
             questions: dto.questions?.map(q => this.questionRepository.create({
                 text: q.text,
                 mediaUrl: q.mediaUrl || null,

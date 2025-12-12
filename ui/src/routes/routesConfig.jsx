@@ -13,7 +13,9 @@ import CreateEditQuizPage from "../components/Dashboard/QuizManagement/CreateEdi
 import QuizList from "../components/Dashboard/QuizManagement/QuizList.jsx";
 import QuizSessionStatistics from "../components/Dashboard/Statistics.jsx";
 import QuizReportsList from "../components/Dashboard/QuizReportsList.jsx";
-import Question from "../components/Question/Test.jsx";
+import QuestionScreenTest from "../components/QuestionScreenTest.jsx";
+import QuestionMock from "../components/QuestionMick.jsx";
+import KahootGameScreen from "../pages/Test.jsx";
 
 const router = createBrowserRouter([
     {
@@ -29,31 +31,33 @@ const router = createBrowserRouter([
                     </GuestGuard>
                 ),
             },
-            {
-                path: 'dashboard', element: (
-                    <ProtectedRoute>
-                        <AdminDashboard/>
-                    </ProtectedRoute>
-                )
-            },
             {path: 'panel2', Component: QuizCreator},
             {path: 'host/:quizId', Component: HostPage},
             {path: 'player', Component: PlayerPage},
             {path: 'join', Component: JoinPage},
             {path: 'manage', Component: CreateEditQuizPage},
             {path: 'stats', Component: QuizSessionStatistics},
-            {path: 'test', Component: Question},
+            {path: 'test', Component: KahootGameScreen},
+            {path: 'question-test', Component: QuestionMock},
             {
                 path: "admin",
-                Component: AdminDashboard,
+                element: (
+                    <ProtectedRoute>
+                        <AdminDashboard/>
+                    </ProtectedRoute>
+                ),
                 children: [
-                    {path: "quizzes", Component: QuizList},
-                    {path: "quizzes/new", Component: CreateEditQuizPage},
-                    {path: "quizzes/:id/edit", Component: CreateEditQuizPage},
-                    {path: 'reports', Component: QuizReportsList},
+                    {
+                        index: true,
+                        element: <QuizList/>,
+                    },
+                    { path: "quizzes", Component: QuizList },
+                    { path: "quizzes/new", Component: CreateEditQuizPage },
+                    { path: "quizzes/:id/edit", Component: CreateEditQuizPage },
+                    { path: "reports/:id", Component: QuizSessionStatistics },
+                    { path: "reports", Component: QuizReportsList },
                 ]
             }
-
         ],
     },
 ]);

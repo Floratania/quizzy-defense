@@ -3,6 +3,8 @@ import {IconClock, IconUsers} from "@tabler/icons-react";
 import React from "react";
 import {TimerBadge} from "../Question/TimerBadge.jsx";
 import {AnswerGrid} from "../Question/AnswerGrid.jsx";
+import {HostAnswerCard} from "./HostAnswerCard.jsx";
+import {HostAnswerGrid} from "./HostAnswerGrid.jsx";
 
 export default function Question({question, players, currentQuestionIndex}) {
     const answeredCount = players.filter(p => p.hasAnswered).length;
@@ -22,7 +24,7 @@ export default function Question({question, players, currentQuestionIndex}) {
                     <Group position="apart">
                         <Group>
                             <Badge size="lg" variant="light" color="blue">
-                                Question {currentQuestionIndex}
+                                Питання {currentQuestionIndex}
                             </Badge>
                             <Badge
                                 size="lg"
@@ -40,7 +42,7 @@ export default function Question({question, players, currentQuestionIndex}) {
                     <Paper shadow="xl" radius="xl" p={40} style={{ background: "white" }}>
                         <Stack spacing="lg">
                             <Badge size="md" color="blue.3" variant="light">
-                                Question {currentQuestionIndex}
+                                Питання {currentQuestionIndex}
                             </Badge>
                             <Title order={2} style={{ fontSize: "2.5rem", color: "#1f2937" }}>
                                 {question.text}
@@ -49,17 +51,15 @@ export default function Question({question, players, currentQuestionIndex}) {
                     </Paper>
 
                     {/* Answers Grid */}
-                    <AnswerGrid
+                    <HostAnswerGrid
                         answers={question.answers}
-                        selectedAnswer={null}
-                        onSelect={null}   // or omit entirely
                     />
 
                     {/* Progress Bar */}
                     <Paper shadow="sm" radius="lg" p="md" style={{ background: "white" }}>
                         <Stack spacing="xs">
                             <Group position="apart">
-                                <Text weight={600}>Players Answered</Text>
+                                <Text weight={600}>Гравці відповіли</Text>
                                 <Text color="dimmed" size="sm">
                                     {answeredCount} / {players.length}
                                 </Text>
@@ -80,7 +80,7 @@ export default function Question({question, players, currentQuestionIndex}) {
                         <Title order={3} mb="md" style={{ color: "#1f2937" }}>
                             <Group spacing="xs">
                                 <IconUsers size={24} />
-                                Live Players
+                                Активні гравці
                             </Group>
                         </Title>
                         <Grid>
@@ -105,11 +105,11 @@ export default function Question({question, players, currentQuestionIndex}) {
                                             </Text>
                                             {player.hasAnswered ? (
                                                 <Badge size="xs" color="green" variant="light">
-                                                    Answered
+                                                    Відповів
                                                 </Badge>
                                             ) : (
                                                 <Badge size="xs" color="gray" variant="light">
-                                                    Waiting...
+                                                    Очікування...
                                                 </Badge>
                                             )}
                                         </Stack>

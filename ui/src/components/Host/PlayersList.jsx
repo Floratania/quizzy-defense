@@ -36,7 +36,7 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                         <Center>
                             <Stack spacing="xs" align="center">
                                 <Text size="lg" weight={600} color="dimmed">
-                                    Join with code
+                                    Приєднуйтесь за кодом
                                 </Text>
 
                                 <Group spacing="xs">
@@ -59,15 +59,15 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                                                 leftSection={<IconCopy size={16} />}
                                                 onClick={copy}
                                             >
-                                                {copied ? "Copied!" : "Copy"}
+                                                {copied ? "Скопійовано!" : "Копіювати"}
                                             </Button>
                                         )}
                                     </CopyButton>
                                 </Group>
 
-                                <Text color="dimmed" size="sm">
-                                    Players join at:<br/>
-                                    <strong>yourapp.com/play</strong>
+                                <Text color="dimmed" size="sm" ta="center">
+                                    Гравці приєднуються тут:<br/>
+                                    <strong>quizzy.com/join</strong>
                                 </Text>
                             </Stack>
                         </Center>
@@ -77,9 +77,9 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                         {/* HEADER */}
                         <Group position="apart">
                             <div>
-                                <Title order={2}>Waiting for Players</Title>
+                                <Title order={2}>Очікування гравців</Title>
                                 <Text color="dimmed" size="sm">
-                                    Session ID: {sessionId || "Loading..."}
+                                    ID Сесії: {sessionId || "Завантаження..."}
                                 </Text>
                             </div>
 
@@ -89,7 +89,7 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                                 gradient={{ from: "blue.4", to: "purple.4" }}
                                 leftSection={<IconUsers size={16} />}
                             >
-                                {players?.length} Players
+                                {players?.length} Гравців
                             </Badge>
                         </Group>
 
@@ -121,7 +121,7 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                             <Center py="xl">
                                 <Stack spacing="sm" align="center">
                                     <Loader variant="dots" size="lg" />
-                                    <Text color="dimmed">Waiting for players to join...</Text>
+                                    <Text color="dimmed">Очікуємо приєднання гравців...</Text>
                                 </Stack>
                             </Center>
                         )}
@@ -131,13 +131,13 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                             size="lg"
                             radius="lg"
                             variant="gradient"
-                            gradient={{ from: "blue.4", to: "purple.4" }}
+                            gradient={{ from: "blue", to: "violet" }}
                             leftSection={<IconPlayerPlay size={20} />}
                             onClick={startGame}
                             disabled={players?.length === 0}
                             fullWidth
                         >
-                            Start Game
+                            Розпочати гру
                         </Button>
                     </Stack>
                 </Paper>

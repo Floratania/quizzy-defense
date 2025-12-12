@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     MantineProvider,
     Title,
@@ -20,7 +20,7 @@ import {
     Tabs,
     Divider,
     ActionIcon,
-    Accordion
+    Accordion, Loader
 } from '@mantine/core';
 import {
     IconTrophy,
@@ -35,6 +35,8 @@ import {
     IconMedal,
     IconArrowLeft
 } from '@tabler/icons-react';
+import {useParams} from "react-router-dom";
+import {useSessionReports} from "../../hooks/useSessionReports.js";
 
 // Mock data
 const mockSessionData = {
@@ -286,12 +288,74 @@ const mockSessionData = {
 };
 
 export default function QuizSessionStatistics() {
+    const { id } = useParams();
+    const { handleGetById } = useSessionReports();
+
+    const [report, setReport] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!id) {
+            setIsLoading(false);
+            return;
+        }
+
+        let isMounted = true;
+
+        const loadReport = async () => {
+            try {
+                const data = await handleGetById(id);
+                if (isMounted) {
+                    setReport(data);
+                }
+            } catch (e) {
+                console.error("Failed to load session report", e);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadReport();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [id]);
+
+    // -------- GUARDS --------
+
+    if (isLoading) {
+        return (
+            <MantineProvider>
+                <Center h="100vh">
+                    <Loader />
+                </Center>
+            </MantineProvider>
+        );
+    }
+
+    if (!report) {
+        return (
+            <MantineProvider>
+                <Center h="100vh">
+                    <Text c="dimmed">No statistics available for this session</Text>
+                </Center>
+            </MantineProvider>
+        );
+    }
+
+    // -------- RENDER --------
+
     return (
-        <MantineProvider theme={{
-            colorScheme: 'light',
-            primaryColor: 'blue',
-        }}>
-            <StatisticsContent data={mockSessionData} />
+        <MantineProvider
+            theme={{
+                colorScheme: "light",
+                primaryColor: "blue",
+            }}
+        >
+            <StatisticsContent data={report} />
         </MantineProvider>
     );
 }
@@ -318,14 +382,14 @@ function StatisticsContent({ data }) {
             <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <Group justify="space-between" mb="lg">
                     <Box>
-                        <Text size="sm" c="dimmed" mb="xs">Quiz Session</Text>
+                        <Text size="sm" c="dimmed" mb="xs">Сесія вікторини</Text>
                         <Title order={2}>{data.quiz.title}</Title>
                         <Text size="sm" c="dimmed" mt="xs">
-                            Session: {data.sessionId} • {new Date(data.createdAt).toLocaleString()}
+                            Сесія: {data.sessionId} • {new Date(data.createdAt).toLocaleString()}
                         </Text>
                     </Box>
                     <Button leftSection={<IconArrowLeft size={16} />} variant="light">
-                        Back to Dashboard
+                        Повернутися до панелі
                     </Button>
                 </Group>
 
@@ -335,7 +399,7 @@ function StatisticsContent({ data }) {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Total Players
+                                        Всього гравців
                                     </Text>
                                     <Text size="xl" fw={700}>{data.summary.totalPlayers}</Text>
                                 </Box>
@@ -351,7 +415,7 @@ function StatisticsContent({ data }) {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Global Accuracy
+                                        Глобальна точність
                                     </Text>
                                     <Text size="xl" fw={700}>{Math.round(data.summary.globalAccuracy * 100)}%</Text>
                                 </Box>
@@ -367,7 +431,7 @@ function StatisticsContent({ data }) {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Avg Answer Time
+                                        Сер. час відповіді
                                     </Text>
                                     <Text size="xl" fw={700}>{formatTime(data.summary.avgAnswerTime)}</Text>
                                 </Box>
@@ -383,7 +447,7 @@ function StatisticsContent({ data }) {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Total Answers
+                                        Всього відповідей
                                     </Text>
                                     <Text size="xl" fw={700}>{data.summary.totalAnswers}</Text>
                                 </Box>
@@ -398,17 +462,17 @@ function StatisticsContent({ data }) {
 
             {/* Leaderboard */}
             <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Title order={3} mb="md">Final Leaderboard</Title>
+                <Title order={3} mb="md">Фінальний рейтинг</Title>
                 <Table highlightOnHover>
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th>Rank</Table.Th>
-                            <Table.Th>Player</Table.Th>
-                            <Table.Th>Score</Table.Th>
-                            <Table.Th>Correct</Table.Th>
-                            <Table.Th>Accuracy</Table.Th>
-                            <Table.Th>Avg Time</Table.Th>
-                            <Table.Th>Actions</Table.Th>
+                            <Table.Th>Місце</Table.Th>
+                            <Table.Th>Гравець</Table.Th>
+                            <Table.Th>Бали</Table.Th>
+                            <Table.Th>Правильно</Table.Th>
+                            <Table.Th>Точність</Table.Th>
+                            <Table.Th>Сер. час</Table.Th>
+                            <Table.Th>Дії</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -463,7 +527,7 @@ function StatisticsContent({ data }) {
                                             setActiveTab('players');
                                         }}
                                     >
-                                        View Details
+                                        Переглянути деталі
                                     </Button>
                                 </Table.Td>
                             </Table.Tr>
@@ -474,7 +538,7 @@ function StatisticsContent({ data }) {
 
             {/* Question Difficulty */}
             <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Title order={3} mb="md">Question Performance</Title>
+                <Title order={3} mb="md">Ефективність питань</Title>
                 <Stack gap="xs">
                     {data.summary.perQuestionAccuracy.map((q, idx) => {
                         const question = data.questions[idx];
@@ -483,15 +547,15 @@ function StatisticsContent({ data }) {
                             <Paper key={q.questionId} p="md" withBorder>
                                 <Group justify="space-between" mb="xs">
                                     <Group>
-                                        <Badge size="sm">Q{idx + 1}</Badge>
-                                        <Text fw={600}>{question?.text || `Question ${idx + 1}`}</Text>
+                                        <Badge size="sm">П{idx + 1}</Badge>
+                                        <Text fw={600}>{question?.text || `Питання ${idx + 1}`}</Text>
                                     </Group>
                                     <Group gap="xs">
                                         <Badge
                                             color={accuracy >= 70 ? 'teal' : accuracy >= 50 ? 'orange' : 'red'}
                                             variant="light"
                                         >
-                                            {accuracy}% correct
+                                            {accuracy}% правильно
                                         </Badge>
                                         {question?.avgAnswerTime && (
                                             <Badge variant="light" color="gray">
@@ -516,7 +580,7 @@ function StatisticsContent({ data }) {
     const PlayersTab = () => (
         <Stack gap="xl">
             <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Title order={3} mb="md">Player Details</Title>
+                <Title order={3} mb="md">Деталі гравця</Title>
 
                 {selectedPlayer ? (
                     <Stack gap="lg">
@@ -530,11 +594,11 @@ function StatisticsContent({ data }) {
                                         <Title order={2}>{selectedPlayer.nickname}</Title>
                                         {getMedalIcon(selectedPlayer.place)}
                                     </Group>
-                                    <Text c="dimmed">Rank #{selectedPlayer.place} • Score: {selectedPlayer.score.toLocaleString()}</Text>
+                                    <Text c="dimmed">Ранг #{selectedPlayer.place} • Бали: {selectedPlayer.score.toLocaleString()}</Text>
                                 </Box>
                             </Group>
                             <Button variant="light" onClick={() => setSelectedPlayer(null)}>
-                                Back to List
+                                Повернутися до списку
                             </Button>
                         </Group>
 
@@ -542,7 +606,7 @@ function StatisticsContent({ data }) {
                             <Grid.Col span={{ base: 6, md: 3 }}>
                                 <Paper p="md" withBorder ta="center">
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb="xs">
-                                        Correct Answers
+                                        Правильні відповіді
                                     </Text>
                                     <Text size="xl" fw={700} c="teal">
                                         {selectedPlayer.correctCount}/{data.summary.totalQuestions}
@@ -552,7 +616,7 @@ function StatisticsContent({ data }) {
                             <Grid.Col span={{ base: 6, md: 3 }}>
                                 <Paper p="md" withBorder ta="center">
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb="xs">
-                                        Accuracy
+                                        Точність
                                     </Text>
                                     <Text size="xl" fw={700} c="blue">
                                         {Math.round(selectedPlayer.accuracy * 100)}%
@@ -562,7 +626,7 @@ function StatisticsContent({ data }) {
                             <Grid.Col span={{ base: 6, md: 3 }}>
                                 <Paper p="md" withBorder ta="center">
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb="xs">
-                                        Avg Time
+                                        Середній час
                                     </Text>
                                     <Text size="xl" fw={700} c="orange">
                                         {formatTime(selectedPlayer.avgAnswerTime)}
@@ -572,7 +636,7 @@ function StatisticsContent({ data }) {
                             <Grid.Col span={{ base: 6, md: 3 }}>
                                 <Paper p="md" withBorder ta="center">
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb="xs">
-                                        Total Score
+                                        Всього очок
                                     </Text>
                                     <Text size="xl" fw={700} c="violet">
                                         {selectedPlayer.score.toLocaleString()}
@@ -583,28 +647,28 @@ function StatisticsContent({ data }) {
 
                         {selectedPlayer.answers.length > 0 && (
                             <>
-                                <Divider label="Answer Breakdown" labelPosition="center" />
+                                <Divider label="Розподіл відповідей" labelPosition="center" />
                                 <Stack gap="xs">
                                     {selectedPlayer.answers.map((answer, idx) => (
                                         <Paper key={idx} p="md" withBorder>
                                             <Group justify="space-between">
                                                 <Box style={{ flex: 1 }}>
                                                     <Group mb="xs">
-                                                        <Badge size="sm">Q{idx + 1}</Badge>
+                                                        <Badge size="sm">П{idx + 1}</Badge>
                                                         <Text fw={600}>{answer.questionText}</Text>
                                                     </Group>
                                                     <Group>
                                                         {answer.correct ? (
                                                             <Badge color="teal" leftSection={<IconCheck size={12} />}>
-                                                                Correct
+                                                                Правильно
                                                             </Badge>
                                                         ) : (
                                                             <Badge color="red" leftSection={<IconX size={12} />}>
-                                                                Incorrect
+                                                                Неправильно
                                                             </Badge>
                                                         )}
                                                         <Text size="sm" c="dimmed">
-                                                            Answer: {answer.selectedAnswerText}
+                                                            Відповідь: {answer.selectedAnswerText}
                                                         </Text>
                                                     </Group>
                                                 </Box>
@@ -649,20 +713,20 @@ function StatisticsContent({ data }) {
                                         </Group>
                                         <Text fw={700} size="lg">{player.nickname}</Text>
                                         <Badge size="lg" variant="light">
-                                            {player.score.toLocaleString()} pts
+                                            {player.score.toLocaleString()} очок
                                         </Badge>
                                         <Group gap="xl">
                                             <Box ta="center">
-                                                <Text size="xs" c="dimmed">Accuracy</Text>
+                                                <Text size="xs" c="dimmed">Точність</Text>
                                                 <Text fw={700}>{Math.round(player.accuracy * 100)}%</Text>
                                             </Box>
                                             <Box ta="center">
-                                                <Text size="xs" c="dimmed">Correct</Text>
+                                                <Text size="xs" c="dimmed">Правильно</Text>
                                                 <Text fw={700}>{player.correctCount}/{data.summary.totalQuestions}</Text>
                                             </Box>
                                         </Group>
                                         <Button size="xs" variant="light" fullWidth>
-                                            View Details
+                                            Переглянути деталі
                                         </Button>
                                     </Stack>
                                 </Paper>
@@ -677,7 +741,7 @@ function StatisticsContent({ data }) {
     const QuestionsTab = () => (
         <Stack gap="xl">
             <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Title order={3} mb="md">Question Analysis</Title>
+                <Title order={3} mb="md">Аналіз питань</Title>
 
                 <Accordion>
                     {data.questions.map((question, idx) => {
@@ -687,7 +751,7 @@ function StatisticsContent({ data }) {
                                 <Accordion.Control>
                                     <Group justify="space-between" pr="md">
                                         <Group>
-                                            <Badge>Q{idx + 1}</Badge>
+                                            <Badge>П{idx + 1}</Badge>
                                             <Text fw={600}>{question.text}</Text>
                                         </Group>
                                         <Group gap="xs">
@@ -705,7 +769,7 @@ function StatisticsContent({ data }) {
                                 <Accordion.Panel>
                                     <Stack gap="md">
                                         <Paper p="md" withBorder>
-                                            <Text size="sm" fw={600} mb="sm">Answer Distribution</Text>
+                                            <Text size="sm" fw={600} mb="sm">Розподіл відповідей</Text>
                                             <Stack gap="xs">
                                                 {question.answerStats.map((answer) => {
                                                     const isCorrect = answer.answerId === question.correctAnswerId;
@@ -735,14 +799,14 @@ function StatisticsContent({ data }) {
 
                                         {question.playerBreakdown.length > 0 && (
                                             <Paper p="md" withBorder>
-                                                <Text size="sm" fw={600} mb="sm">Player Responses</Text>
+                                                <Text size="sm" fw={600} mb="sm">Відповіді гравців</Text>
                                                 <Table>
                                                     <Table.Thead>
                                                         <Table.Tr>
-                                                            <Table.Th>Player</Table.Th>
-                                                            <Table.Th>Result</Table.Th>
-                                                            <Table.Th>Time</Table.Th>
-                                                            <Table.Th>Points</Table.Th>
+                                                            <Table.Th>Гравець</Table.Th>
+                                                            <Table.Th>Результат</Table.Th>
+                                                            <Table.Th>Час</Table.Th>
+                                                            <Table.Th>Бали</Table.Th>
                                                         </Table.Tr>
                                                     </Table.Thead>
                                                     <Table.Tbody>
@@ -759,11 +823,11 @@ function StatisticsContent({ data }) {
                                                                 <Table.Td>
                                                                     {pb.correct ? (
                                                                         <Badge color="teal" size="sm" leftSection={<IconCheck size={12} />}>
-                                                                            Correct
+                                                                            Правильно
                                                                         </Badge>
                                                                     ) : (
                                                                         <Badge color="red" size="sm" leftSection={<IconX size={12} />}>
-                                                                            Wrong
+                                                                            Неправильно
                                                                         </Badge>
                                                                     )}
                                                                 </Table.Td>
@@ -794,13 +858,13 @@ function StatisticsContent({ data }) {
             <Tabs value={activeTab} onChange={setActiveTab}>
                 <Tabs.List>
                     <Tabs.Tab value="overview" leftSection={<IconChartBar size={16} />}>
-                        Overview
+                        Огляд
                     </Tabs.Tab>
                     <Tabs.Tab value="players" leftSection={<IconUsers size={16} />}>
-                        Players
+                        Гравці
                     </Tabs.Tab>
                     <Tabs.Tab value="questions" leftSection={<IconList size={16} />}>
-                        Questions
+                        Питання
                     </Tabs.Tab>
                 </Tabs.List>
 

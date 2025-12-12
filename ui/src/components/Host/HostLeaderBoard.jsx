@@ -19,7 +19,7 @@ export default function HostLeaderBoard({ leaderboard, nextQuestion, isGameFinis
                                        gradient={{ from: "amber.3", to: "amber.5" }}>
                                 <IconTrophy size={28} />
                             </ThemeIcon>
-                            <Title order={1}>Leaderboard</Title>
+                            <Title order={1}>Таблиця лідерів</Title>
                         </Group>
 
                         <LeaderboardList leaderboard={leaderboard} />
@@ -33,7 +33,7 @@ export default function HostLeaderBoard({ leaderboard, nextQuestion, isGameFinis
                                 onClick={nextQuestion}
                                 fullWidth
                             >
-                                Next Question
+                                Наступне питання
                             </Button>
                         )}
                     </Stack>

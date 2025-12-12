@@ -22,6 +22,11 @@ export class GamePlayersService {
         });
     }
 
+    async getPlayers(sessionId: string) {
+        return await this.playersRepo.find({
+            where: { session_id: sessionId }
+        });
+    }
 
     async joinSession(roomCode: string, nickname: string, socketId: string) {
         const session = await this.sessionsRepo.findOne({

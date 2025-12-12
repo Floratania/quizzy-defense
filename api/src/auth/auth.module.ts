@@ -5,9 +5,10 @@ import {TypeOrmModule} from "@nestjs/typeorm";
 import {User} from "@/users/entities/user.entity";
 import {RefreshToken} from "@/auth/entities/refresh-token.entity";
 import {UsersService} from "@/users/users.service";
+import {GoogleOAuthModule} from "@/auth/google-oauth/google-oauth.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([User, RefreshToken])],
+    imports: [TypeOrmModule.forFeature([User, RefreshToken]), GoogleOAuthModule],
     controllers: [AuthController],
     providers: [AuthService, UsersService],
 })

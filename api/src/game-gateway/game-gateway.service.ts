@@ -19,6 +19,9 @@ export class GameFlowService {
         private readonly gateway: GameGateway,
     ) {}
 
+    private questionTimers: Record<string, NodeJS.Timeout> = {};
+
+
     async hostJoin(client: Socket, sessionId: string) {
         client.join(sessionId);
         client.emit('host_joined', { ok: true });
@@ -64,8 +67,12 @@ export class GameFlowService {
                 timeLimit: question.timeLimit,
             });
 
-            setTimeout(() => this.finishQuestion(sessionId, question.id), question.timeLimit * 1000);
+            this.questionTimers[sessionId] = setTimeout(() => {
+                this.finishQuestion(sessionId, question.id);
+            }, question.timeLimit * 1000);
+
         }, 1000);
+
     }
 
     async submitAnswer(clientId: string, dto: CreatePlayerAnswerDto) {
@@ -82,8 +89,22 @@ export class GameFlowService {
             playerId: result.playerId,
         });
 
+        const players = await this.players.getPlayers(result.sessionId);
+        const answers = await this.answers.getAnswersForQuestion(
+            result.sessionId,
+            dto.questionId,
+        );
+
+        if (answers.length === players.length) {
+            clearTimeout(this.questionTimers[result.sessionId]);
+            delete this.questionTimers[result.sessionId];
+
+            await this.finishQuestion(result.sessionId, dto.questionId);
+        }
+
         return result;
     }
+
 
     async finishQuestion(sessionId: string, questionId: string) {
         const stats = await this.answers.getQuestionStats(sessionId, questionId);
@@ -95,16 +116,19 @@ export class GameFlowService {
 
             this.gateway.server.to(sessionId).emit('leaderboard', leaderboard);
 
-            setTimeout(async () => {
-                const next = await this.sessions.peekNextQuestion(sessionId);
-                if (!next) return this.finishGame(sessionId);
-            }, 3000);
-
         }, 3000);
     }
 
+
     async nextQuestion(sessionId: string) {
         await this.sessions.increaseQuestionIndex(sessionId);
+
+        const next = await this.sessions.getCurrentQuestion(sessionId);
+
+        if (!next) {
+            return this.finishGame(sessionId);
+        }
+
         return this.startQuestion(sessionId);
     }
 

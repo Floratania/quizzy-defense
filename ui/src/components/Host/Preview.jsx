@@ -25,13 +25,13 @@ export default function Preview({preview}) {
                             variant="gradient"
                             gradient={{ from: "blue.3", to: "purple.3" }}
                         >
-                            Get Ready!
+                            Приготуйтесь!
                         </Badge>
                         <Title order={1} style={{ fontSize: "3rem", color: "#1f2937" }}>
                             {preview.text}
                         </Title>
                         <Text size="lg" color="dimmed">
-                            Question starting soon...
+                            Питання скоро розпочнеться...
                         </Text>
                     </Stack>
                 </Paper>

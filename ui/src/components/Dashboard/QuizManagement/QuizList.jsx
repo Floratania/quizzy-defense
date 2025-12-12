@@ -30,6 +30,7 @@ import { useNavigate } from "react-router";
 
 export default function QuizList() {
 
+
     const { quizzes, deleteQuiz } = useQuizzes();
     const navigate = useNavigate();
 
@@ -60,7 +61,7 @@ export default function QuizList() {
                         <Group justify="space-between">
                             <Box>
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                    Total Quizzes
+                                    Всі Вікторини
                                 </Text>
                                 <Text size="xl" fw={700}>{quizzes.length}</Text>
                             </Box>
@@ -76,7 +77,7 @@ export default function QuizList() {
                         <Group justify="space-between">
                             <Box>
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                    Published
+                                    Активні
                                 </Text>
                                 <Text size="xl" fw={700}>{15}</Text>
                             </Box>
@@ -92,7 +93,7 @@ export default function QuizList() {
                         <Group justify="space-between">
                             <Box>
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                    Total Plays
+                                    Усього Проходжень
                                 </Text>
                                 <Text size="xl" fw={700}>{100}</Text>
                             </Box>
@@ -108,7 +109,7 @@ export default function QuizList() {
                         <Group justify="space-between">
                             <Box>
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                    Avg Score
+                                    Середній Результат
                                 </Text>
                                 <Text size="xl" fw={700}>{12}%</Text>
                             </Box>
@@ -123,23 +124,23 @@ export default function QuizList() {
             {/* Quiz List */}
             <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <Group justify="space-between" mb="md">
-                    <Title order={3}>My Quizzes</Title>
+                    <Title order={3}>Мої Вікторини</Title>
                     <Button
                         leftSection={<IconPlus size={16}/>}
                         variant="gradient"
                         gradient={{ from: 'blue', to: 'violet' }}
                         onClick={handleCreateQuiz}
                     >
-                        Create Quiz
+                        Створити Вікторину
                     </Button>
                 </Group>
 
                 <Table highlightOnHover>
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th>Title</Table.Th>
-                            <Table.Th>Created</Table.Th>
-                            <Table.Th>Actions</Table.Th>
+                            <Table.Th>Назва</Table.Th>
+                            <Table.Th>Створено</Table.Th>
+                            <Table.Th>Дії</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
 

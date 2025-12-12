@@ -1,7 +1,7 @@
 import { Grid } from "@mantine/core";
-import { AnswerCard } from "./AnswerCard.jsx";
+import { AnswerCardBase } from "./AnswerCardBase.jsx";
 
-export function AnswerGrid({ answers, selectedAnswer, onSelect }) {
+export function AnswerGrid({ answers, selectedAnswer, onSelect, hideText = false }) {
     const count = answers.length;
 
     const getSpan = (idx) => {
@@ -26,12 +26,13 @@ export function AnswerGrid({ answers, selectedAnswer, onSelect }) {
                         md: getSpan(idx),
                     }}
                 >
-                    <AnswerCard
+                    <AnswerCardBase
                         answer={answer}
                         index={idx}
                         selected={selectedAnswer === answer.id}
                         disabled={!!selectedAnswer && selectedAnswer !== answer.id}
                         onSelect={onSelect}
+                        hideText={hideText}
                     />
                 </Grid.Col>
             ))}

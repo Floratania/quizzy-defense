@@ -6,6 +6,7 @@ import {AnswerResultScreen} from "../components/PlayerPage/AnswerResultScreen.js
 import {QuestionScreen} from "../components/PlayerPage/QuestionScreen.jsx";
 import {PreviewScreen} from "../components/PlayerPage/PreviewScreen.jsx";
 import {WaitingScreen} from "../components/PlayerPage/WaitingScreen.jsx";
+import LeaderboardScreen from "../components/LeaderboardScreen.jsx";
 
 const PlayerPageContent = () => {
     const { player, nickname, sessionId } = usePlayerGameContext();
@@ -32,9 +33,13 @@ const PlayerPageContent = () => {
         );
     }
 
-    // Render appropriate screen based on game state
     if (player.leaderboard) {
-        return <PlayerLeaderboard leaderboard={player.leaderboard} />;
+        return <LeaderboardScreen
+            mode="player"
+            leaderboard={player.leaderboard}
+            highlightNickname={nickname}
+        />
+            ;
     }
 
     if (player.answerResult) {
@@ -46,7 +51,7 @@ const PlayerPageContent = () => {
     }
 
     if (player.preview) {
-        return <PreviewScreen preview={player.preview} />;
+        return <PreviewScreen />;
     }
 
     return <WaitingScreen nickname={nickname} />;

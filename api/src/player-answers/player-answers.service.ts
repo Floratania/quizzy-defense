@@ -11,21 +11,19 @@ export class PlayerAnswersService {
     constructor(
         @InjectRepository(PlayerAnswer)
         private readonly answersRepo: Repository<PlayerAnswer>,
-
         @InjectRepository(GamePlayer)
         private readonly playersRepo: Repository<GamePlayer>,
-
         @InjectRepository(Question)
         private readonly questionsRepo: Repository<Question>,
-
         @InjectRepository(Answer)
         private readonly answersRepo2: Repository<Answer>,
-    ) {}
+    ) {
+    }
 
     async submitAnswer(playerSocketId: string, questionId: string, answerId: string, timeTaken: number) {
         // 1. Find player
         const player = await this.playersRepo.findOne({
-            where: { socketId: playerSocketId },
+            where: {socketId: playerSocketId},
             relations: ['session'],
         });
 
@@ -33,7 +31,7 @@ export class PlayerAnswersService {
 
         // 2. Validate question
         const question = await this.questionsRepo.findOne({
-            where: { id: questionId },
+            where: {id: questionId},
             relations: ['answers'],
         });
 
@@ -41,7 +39,7 @@ export class PlayerAnswersService {
 
         // 3. Validate answer
         const selectedAnswer = await this.answersRepo2.findOne({
-            where: { id: answerId },
+            where: {id: answerId},
         });
 
         if (!selectedAnswer) throw new NotFoundException('Answer not found');
@@ -80,7 +78,7 @@ export class PlayerAnswersService {
             player,
             player_id: player.id,
             question,
-            question_id : questionId,
+            question_id: questionId,
             selectedAnswer,
             selectedAnswerId: answerId,
             timeTaken,
@@ -103,23 +101,54 @@ export class PlayerAnswersService {
     }
 
     async getQuestionStats(sessionId: string, questionId: string) {
-        const answers = await this.answersRepo.find({
-            where: { question_id: questionId },
-            relations: ["player", "selectedAnswer"]
+        const question = await this.questionsRepo.findOne({
+            where: { id: questionId },
+            relations: ["answers"],
         });
 
-        const stats = {
-            total: answers.length,
-            correct: answers.filter(a => a.selectedAnswer?.isCorrect).length,
-            byAnswer: {} as Record<string, number>,
-        };
+        if (!question) {
+            throw new NotFoundException("Question not found");
+        }
+
+        const answers = await this.answersRepo.find({
+            where: {
+                question_id: questionId,
+                player: { session_id: sessionId },
+            },
+            relations: ["player", "selectedAnswer"],
+        });
+
+        const totalAnswers = answers.length;
+
+        const countMap: Record<string, number> = {};
 
         answers.forEach(a => {
-            const id = a.selectedAnswerId || "none";
-            stats.byAnswer[id] = (stats.byAnswer[id] || 0) + 1;
+            const id = a.selectedAnswerId ?? "none";
+            countMap[id] = (countMap[id] || 0) + 1;
         });
 
-        return stats;
+        const resultAnswers = question.answers.map(answer => ({
+            id: answer.id,
+            text: answer.text,
+            isCorrect: answer.isCorrect,
+            count: countMap[answer.id] || 0,
+        }));
+
+        return {
+            questionId,
+            totalAnswers,
+            answers: resultAnswers,
+        };
+    }
+
+    async getAnswersForQuestion(sessionId: string, questionId: string) {
+        return this.answersRepo.find({
+            where: {
+                question_id: questionId,
+                player: { session_id: sessionId }
+            },
+            relations: ["player", "selectedAnswer"],
+        });
     }
 
 }

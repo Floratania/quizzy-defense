@@ -19,7 +19,7 @@ const Hero = () => {
                         leftSection={<IconSparkles size={16}/>}
                         style={{border: "1px solid #e3f2fd"}}
                     >
-                        Live quiz platform
+                        Live-вікторини тут!
                     </Badge>
 
                     <Title
@@ -33,11 +33,11 @@ const Hero = () => {
                             lineHeight: 1.2,
                         }}
                     >
-                        Quiz together,<br/>learn better
+                        Знання, змагання, емоції.<br/>Все в одному квізі
                     </Title>
 
                     <Text size="xl" c="dimmed" ta="center" maw={600}>
-                        Create engaging quizzes and play with friends in real-time. Simple, fast, and fun.
+                        Прокачайте будь-яку подію! Живі ігри, повне залучення учасників та чітка статистика одразу на екрані.
                     </Text>
 
                     <Group>
@@ -48,14 +48,14 @@ const Hero = () => {
                             rightSection={<IconArrowRight size={20}/>}
                             onClick={() => navigate("join")}
                         >
-                            Join Room
+                            Я вже знаю код
                         </Button>
 
                         <Button size="lg" variant="default" onClick={() => {
                             if (user) navigate("dashboard")
                             else navigate("auth")
                         }}>
-                            Get started
+                            Розпочати
                         </Button>
                     </Group>
 

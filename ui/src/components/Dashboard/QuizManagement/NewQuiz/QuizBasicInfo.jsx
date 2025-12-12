@@ -16,13 +16,13 @@ export const QuizBasicInfo = () => {
             style={{ background: "white", border: "1px solid #e0e7ff" }}
         >
             <Title order={3} mb="lg" style={{ color: "#1f2937" }}>
-                Quiz Information
+                Інформація про Вікторину
             </Title>
 
             <Stack gap="md">
                 <TextInput
-                    label="Quiz Title"
-                    placeholder="Enter quiz title (max 100 characters)"
+                    label="Назва Вікторини"
+                    placeholder="Введіть назву вікторини (до 100 символів)"
                     value={title}
                     onChange={(e) =>
                         updateFormData({ title: e.target.value.slice(0, 100) })
@@ -38,8 +38,8 @@ export const QuizBasicInfo = () => {
                 />
 
                 <Textarea
-                    label="Description"
-                    placeholder="Enter quiz description (max 100 characters)"
+                    label="Опис"
+                    placeholder="Введіть опис вікторини (до 100 символів)"
                     rows={3}
                     value={description}
                     onChange={(e) =>

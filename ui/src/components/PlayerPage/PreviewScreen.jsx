@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Container, Paper, Title, Text, Stack, ThemeIcon } from '@mantine/core';
 import { IconBolt } from '@tabler/icons-react';
 
-export const PreviewScreen = ({ preview }) => {
+export const PreviewScreen = () => {
     return (
         <Box
             style={{
@@ -11,7 +11,7 @@ export const PreviewScreen = ({ preview }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "2rem"
+                padding: "2rem",
             }}
         >
             <Container size="md">
@@ -19,7 +19,10 @@ export const PreviewScreen = ({ preview }) => {
                     shadow="xl"
                     radius="xl"
                     p={60}
-                    style={{ background: "white", textAlign: "center" }}
+                    style={{
+                        background: "white",
+                        textAlign: "center",
+                    }}
                 >
                     <Stack spacing="xl" align="center">
                         <ThemeIcon
@@ -31,12 +34,15 @@ export const PreviewScreen = ({ preview }) => {
                             <IconBolt size={40} />
                         </ThemeIcon>
 
-                        <Title order={1} style={{ fontSize: '3rem', color: '#1f2937' }}>
-                            {preview.text || 'Get Ready!'}
+                        <Title
+                            order={1}
+                            style={{ fontSize: '3rem', color: '#1f2937' }}
+                        >
+                            Get Ready!
                         </Title>
 
                         <Text size="xl" c="dimmed">
-                            Next question starting soon...
+                            Next question is starting...
                         </Text>
 
                         <div style={{ width: '100%', maxWidth: 300 }}>
@@ -45,14 +51,14 @@ export const PreviewScreen = ({ preview }) => {
                                     height: 4,
                                     background: '#e5e7eb',
                                     borderRadius: 999,
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
                                 }}
                             >
                                 <Box
                                     style={{
                                         height: '100%',
                                         background: 'linear-gradient(90deg, #93c5fd 0%, #c084fc 100%)',
-                                        animation: 'pulse 1.5s ease-in-out infinite'
+                                        animation: 'pulse 1.5s ease-in-out infinite',
                                     }}
                                 />
                             </Box>

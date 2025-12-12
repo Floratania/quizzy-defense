@@ -3,20 +3,24 @@ import {
     Post,
     Body,
     Param,
-    Get,
+    Get, UseGuards, Req,
 } from '@nestjs/common';
 import { GameSessionsService } from './game-sessions.service';
 import { CreateGameSessionDto } from './dto/create-game-session.dto';
+import {AuthGuard} from "@/guards/auth.guard";
+import * as authTypes from "@/auth/types/auth.types";
 
 @Controller('game-sessions')
 export class GameSessionsController {
     constructor(private readonly service: GameSessionsService) {}
 
+    @UseGuards(AuthGuard)
     @Post()
-    create(@Body() dto: CreateGameSessionDto) {
-        return this.service.create(dto);
+    create(@Body() dto: CreateGameSessionDto, @Req() req: authTypes.AuthenticatedRequest) {
+        return this.service.create(dto, req.user.id);
     }
 
+    @UseGuards(AuthGuard)
     @Post(':id/start')
     start(@Param('id') id: string) {
         return this.service.start(id);

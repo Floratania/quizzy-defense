@@ -9,6 +9,8 @@ import HostLeaderBoard from "../../components/Host/HostLeaderBoard.jsx";
 import { useSession } from "../../hooks/useSession.js";
 import { useGameHost } from "../../hooks/useGameHost.js";
 import { Box, Loader, Stack, Text } from "@mantine/core";
+import Result from "../../components/Host/Result.jsx";
+import LeaderboardScreen from "../../components/LeaderboardScreen.jsx";
 
 
 export default function HostPage() {
@@ -58,7 +60,7 @@ export default function HostPage() {
             >
                 <Stack spacing="md" align="center">
                     <Loader size="xl" variant="dots" color="blue.3" />
-                    <Text size="lg" color="dimmed">Initializing game...</Text>
+                    <Text size="lg" color="dimmed">Ініціалізація гри...</Text>
                 </Stack>
             </Box>
         );
@@ -84,12 +86,18 @@ export default function HostPage() {
 
     // ---------- Render UI ----------
 
+    if (results) {
+        return <Result results={results} />;
+    }
+
+
     if (leaderboard && !isGameFinished) {
         return (
-            <HostLeaderBoard
+            <LeaderboardScreen
+                mode="host"
                 leaderboard={leaderboard}
-                nextQuestion={nextQuestion}
-                isGameFinished={false}
+                onNext={nextQuestion}
+                isGameFinished={isGameFinished}
             />
         );
     }

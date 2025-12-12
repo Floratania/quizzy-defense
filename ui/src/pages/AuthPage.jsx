@@ -62,12 +62,12 @@ const AuthPage = () => {
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text',
                     }}>
-                        {isLogin ? 'Welcome Back' : 'Join Aurora'}
+                        {isLogin ? 'З поверненням!' : 'Приєднатись до Quizzy'}
                     </Title>
                     <Text c="dimmed" size="sm" ta="center" maw={400}>
                         {isLogin
-                            ? 'Sign in to continue your journey with us'
-                            : 'Create your account and start your amazing journey'}
+                            ? 'Увійдіть, щоб продовжити користування сервісом'
+                            : 'Створіть свій акаунт і розпочніть неймовірну подорож'}
                     </Text>
                 </Stack>
             </Center>
@@ -84,6 +84,7 @@ const AuthPage = () => {
                 <Stack gap="lg">
                     <Group grow>
                         <Button
+                            onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`)}
                             variant="light"
                             color="violet"
                             leftSection={<IconBrandGoogle size={18} />}
@@ -105,7 +106,7 @@ const AuthPage = () => {
                     <Divider
                         label={
                             <Text size="sm" c="dimmed" fw={500}>
-                                or continue with email
+                                або скористайтеся поштою
                             </Text>
                         }
                         labelPosition="center"
@@ -121,8 +122,8 @@ const AuthPage = () => {
                             {(styles) => (
                                 <div style={styles}>
                                     <TextInput
-                                        label="Full Name"
-                                        placeholder="John Doe"
+                                        label="Псевдонім"
+                                        placeholder="griotte"
                                         leftSection={<IconUser size={18} stroke={1.5} />}
                                         value={formData.name}
                                         onChange={(e) =>
@@ -164,7 +165,7 @@ const AuthPage = () => {
                         />
 
                         <PasswordInput
-                            label="Password"
+                            label="Пароль"
                             placeholder="••••••••"
                             leftSection={<IconLock size={18} stroke={1.5} />}
                             value={formData.password}
@@ -191,7 +192,7 @@ const AuthPage = () => {
                                     underline="never"
                                     fw={500}
                                 >
-                                    Forgot password?
+                                    Забули пароль?
                                 </Anchor>
                             </Group>
                         )}
@@ -217,14 +218,14 @@ const AuthPage = () => {
                                 }
                             }}
                         >
-                            {isLogin ? 'Sign In' : 'Create Account'}
+                            {isLogin ? 'Увійти' : 'Зареєструватися'}
                         </Button>
                     </Stack>
                 </Stack>
 
                 <Center mt="xl">
                     <Text size="sm" c="dimmed">
-                        {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                        {isLogin ? "Вперше тут? " : 'Маєте акаунт? '}
                         <Anchor
                             size="sm"
                             component="button"
@@ -237,7 +238,7 @@ const AuthPage = () => {
                                 setFormData({ name: '', email: '', password: '' });
                             }}
                         >
-                            {isLogin ? 'Sign up' : 'Sign in'}
+                            {isLogin ? 'Зареєструватися' : 'Увійти'}
                         </Anchor>
                     </Text>
                 </Center>

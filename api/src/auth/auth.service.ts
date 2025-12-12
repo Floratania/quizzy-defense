@@ -9,6 +9,8 @@ import {RefreshToken} from './entities/refresh-token.entity';
 import {v4 as uuidv4} from 'uuid';
 import {User} from '@/users/entities/user.entity';
 import {TokenClaims} from './types/auth.types';
+import {GoogleOAuthService} from "@/auth/google-oauth/google-oauth.service";
+import {UsersService} from "@/users/users.service";
 
 @Injectable()
 export class AuthService {
@@ -17,6 +19,8 @@ export class AuthService {
         @InjectRepository(RefreshToken)
         private readonly refreshTokenRepository: Repository<RefreshToken>,
         private readonly jwtService: JwtService,
+        private readonly googleOAuthService: GoogleOAuthService,
+        private readonly userService: UsersService,
     ) {
     }
 
@@ -139,50 +143,43 @@ export class AuthService {
         await this.refreshTokenRepository.delete({token});
     }
 
-    // async createGoogleUser(data: { name: string; email: string; picture: string }): Promise<User> {
-    //     const newUser = this.userRepository.create({
-    //         name: data.name,
-    //         email: data.email,
-    //         password: '',
-    //         role: UserRole.USER,
-    //         phone: '',
-    //         picture: data.picture,
-    //     });
-    //
-    //     return this.userRepository.save(newUser);
-    // }
-    //
-    // async loginWithGoogle(code: string) {
-    //     const tokens = await this.googleOAuthService.getTokens(code);
-    //     const profile = await this.googleOAuthService.getUserInfo(tokens.id_token, tokens.access_token);
-    //
-    //     let user = await this.userService.findUserByEmail(profile.email);
-    //     if (!user) {
-    //         user = await this.createGoogleUser({
-    //             name: profile.name,
-    //             email: profile.email,
-    //             picture: profile.picture,
-    //         });
-    //     } else {
-    //         user.name = profile.name;
-    //         user.picture = profile.picture;
-    //         await this.updateUser(user);
-    //     }
-    //
-    //     const claims: TokenClaims = {
-    //         id: user.id,
-    //         email: user.email,
-    //         name: user.name,
-    //         role: user.role,
-    //         picture: user.picture,
-    //     };
-    //
-    //     return this.generateJwtTokens(claims);
-    // }
-    //
-    // async updateUser(user: User): Promise<User> {
-    //     return this.userRepository.save(user);
-    // }
+    async createGoogleUser(data: { name: string; email: string }): Promise<User> {
+        const newUser = this.userRepository.create({
+            name: data.name,
+            email: data.email,
+            password: '',
+        });
+
+        return this.userRepository.save(newUser);
+    }
+
+    async loginWithGoogle(code: string) {
+        const tokens = await this.googleOAuthService.getTokens(code);
+        const profile = await this.googleOAuthService.getUserInfo(tokens.id_token, tokens.access_token);
+
+        let user = await this.userService.findUserByEmail(profile.email);
+        if (!user) {
+            user = await this.createGoogleUser({
+                name: profile.name,
+                email: profile.email
+            });
+        } else {
+            user.name = profile.name
+            await this.updateUser(user);
+        }
+
+        const claims: TokenClaims = {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+        };
+
+        return this.generateJwtTokens(claims);
+    }
+
+    async updateUser(user: User): Promise<User> {
+        return this.userRepository.save(user);
+    }
     // async forgotPassword(email: string): Promise<{ message: string }> {
     //     const user = await this.userService.findUserByEmail(email);
     //

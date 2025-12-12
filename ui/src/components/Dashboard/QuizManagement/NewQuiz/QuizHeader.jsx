@@ -40,11 +40,11 @@ export const QuizHeader = () => {
 
                     <Box>
                         <Title order={2} style={{ color: "#1f2937" }}>
-                            {isEdit ? "Edit Quiz" : "Create New Quiz"}
+                            {isEdit ? "Редагування Вікторини" : "Створення Вікторини"}
                         </Title>
 
                         <Text c="dimmed" size="sm">
-                            {formData.questionsData.length} questions added
+                            додано {formData.questionsData.length} запитан(ь/я)
                         </Text>
                     </Box>
                 </Group>
@@ -56,7 +56,7 @@ export const QuizHeader = () => {
                         onClick={handleBack}
                         disabled={saving}
                     >
-                        Cancel
+                        Скасувати
                     </Button>
 
                     <Button
@@ -65,7 +65,7 @@ export const QuizHeader = () => {
                         onClick={handleSubmit}
                         disabled={formData.questionsData.length === 0 || saving}
                     >
-                        {isEdit ? "Update Quiz" : "Create Quiz"}
+                        {isEdit ? "Зберегти зміни" : "Створити вікторину"}
                     </Button>
                 </Group>
             </Group>

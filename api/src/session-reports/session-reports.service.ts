@@ -40,7 +40,6 @@ export class SessionReportsService {
 
         if (!session) throw new NotFoundException('Session not found');
 
-        // 1. Load all data
         const players = await this.playersRepo.find({
             where: { session_id: sessionId },
         });
@@ -55,25 +54,21 @@ export class SessionReportsService {
             relations: ['answers'],
         });
 
-        // Index maps
         const mapQuestions = Object.fromEntries(questions.map(q => [q.id, q]));
         const mapPlayers = Object.fromEntries(players.map(p => [p.id, p]));
 
-        // Group answers by player
         const answersByPlayer = {};
         for (const ans of answers) {
             if (!answersByPlayer[ans.player_id]) answersByPlayer[ans.player_id] = [];
             answersByPlayer[ans.player_id].push(ans);
         }
 
-        // Group answers by question
         const answersByQuestion = {};
         for (const ans of answers) {
             if (!answersByQuestion[ans.question_id]) answersByQuestion[ans.question_id] = [];
             answersByQuestion[ans.question_id].push(ans);
         }
 
-        // ----- SUMMARY -----
         const totalPlayers = players.length;
         const totalQuestions = questions.length;
         const totalAnswers = answers.length;
@@ -101,7 +96,6 @@ export class SessionReportsService {
             }),
         };
 
-        // ----- PLAYERS -----
         const playerStats = players.map((p) => {
             const ans = answersByPlayer[p.id] || [];
 
@@ -130,13 +124,11 @@ export class SessionReportsService {
             };
         });
 
-        // Sort players by score
         playerStats.sort((a, b) => b.score - a.score);
         playerStats.forEach((p, i) => {
             (p as any).place = i + 1;
         });
 
-        // ----- QUESTIONS -----
         const questionStats = questions.map((q) => {
             const arr = answersByQuestion[q.id] || [];
 
@@ -183,7 +175,6 @@ export class SessionReportsService {
             };
         });
 
-        // ----- SAVE REPORT -----
         const report = this.reportsRepo.create({
             sessionId,
             summary,
@@ -197,28 +188,63 @@ export class SessionReportsService {
     }
 
     async getReportBySessionId(sessionId: string) {
-        return this.reportsRepo.findOne({
+        const report = await this.reportsRepo.findOne({
             where: { sessionId },
+            relations: {
+                session: {
+                    quiz: true,
+                },
+            },
         });
+
+        if (!report) return null;
+
+        return {
+            sessionId: report.sessionId,
+            quiz: {
+                id: report.session.quiz.id,
+                title: report.session.quiz.title,
+            },
+            summary: report.summary,
+            players: report.players,
+            questions: report.questions,
+            createdAt: report.createdAt,
+        };
     }
 
-    /**
-     * Повернути список всіх звітів, але тільки summary
-     */
+
+
+
     async getAllSummaries() {
-        // Можна виводити pagination/limit, але min версія проста
-        const reports = await this.reportsRepo.find({
-            select: {
-                id: true,
-                sessionId: true,
-                summary: true,
-                createdAt: true,
-            },
-            order: {
-                createdAt: 'DESC',
-            },
-        });
+        const reports = await this.reportsRepo
+            .createQueryBuilder('report')
+            .innerJoin('report.session', 'session')
+            .innerJoin('session.quiz', 'quiz')
+            .select([
+                'report.sessionId',
+                'report.summary',
+                'report.createdAt',
+                'session.status',
+                'quiz.id',
+                'quiz.title',
+            ])
+            .orderBy('report.createdAt', 'DESC')
+            .getMany();
 
-        return reports;
+        return reports.map((report) => ({
+            sessionId: report.sessionId,
+            quiz: {
+                id: report.session.quiz.id,
+                title: report.session.quiz.title,
+            },
+            summary: {
+                totalPlayers: report.summary.totalPlayers,
+                globalAccuracy: report.summary.globalAccuracy,
+                avgAnswerTime: report.summary.avgAnswerTime,
+            },
+            createdAt: report.createdAt,
+            status: report.session.status,
+        }));
     }
+
 }

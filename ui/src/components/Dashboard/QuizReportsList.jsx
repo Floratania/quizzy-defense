@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     MantineProvider,
     Title,
@@ -27,6 +27,9 @@ import {
     IconTrophy,
     IconChevronRight
 } from '@tabler/icons-react';
+import {useQuizzes} from "../../hooks/useQuizzes.js";
+import {useSessionReports} from "../../hooks/useSessionReports.js";
+import {useNavigate} from "react-router";
 
 // Mock sessions data
 const mockSessions = [
@@ -158,11 +161,20 @@ export default function QuizReportsList() {
 function ReportsListContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [sessions, setSessions] = useState(mockSessions);
+    const { reports, isLoading } = useSessionReports();
+    const [sessions, setSessions] = useState([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (reports) {
+            setSessions(reports);
+        }
+    }, [reports]);
+
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
+        return date.toLocaleDateString('uk-UA', {
             month: 'short',
             day: 'numeric',
             year: 'numeric',
@@ -173,7 +185,7 @@ function ReportsListContent() {
 
     const formatTime = (ms) => {
         const seconds = Math.floor(ms / 1000);
-        return `${seconds}s`;
+        return `${seconds}сек.`;
     };
 
     const filteredSessions = sessions.filter(session => {
@@ -188,13 +200,17 @@ function ReportsListContent() {
     const totalPlayers = sessions.reduce((sum, s) => sum + s.summary.totalPlayers, 0);
     const avgAccuracy = Math.round((sessions.reduce((sum, s) => sum + s.summary.globalAccuracy, 0) / sessions.length) * 100);
 
+    const handleViewStats = (sessionId) => {
+        navigate(`/admin/reports/${sessionId}`);
+    };
+
     return (
         <Container size="xl" py="xl">
             <Stack gap="xl">
                 {/* Header */}
                 <Box>
-                    <Title order={1} mb="xs">Quiz Session Reports</Title>
-                    <Text c="dimmed">View detailed statistics and analytics for all your quiz sessions</Text>
+                    <Title order={1} mb="xs">Звіти Проведених Сесій</Title>
+                    <Text c="dimmed">Перегляньте детальну статистику та аналітику для всіх ваших сесій вікторин.</Text>
                 </Box>
 
                 {/* Summary Cards */}
@@ -204,7 +220,7 @@ function ReportsListContent() {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Total Sessions
+                                        Усього сесій
                                     </Text>
                                     <Text size="xl" fw={700}>{totalSessions}</Text>
                                 </Box>
@@ -218,7 +234,7 @@ function ReportsListContent() {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Total Players
+                                        Усього гравців
                                     </Text>
                                     <Text size="xl" fw={700}>{totalPlayers}</Text>
                                 </Box>
@@ -232,7 +248,7 @@ function ReportsListContent() {
                             <Group justify="space-between">
                                 <Box>
                                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                                        Avg Accuracy
+                                        Середня точність
                                     </Text>
                                     <Text size="xl" fw={700}>{avgAccuracy}%</Text>
                                 </Box>
@@ -246,20 +262,20 @@ function ReportsListContent() {
                 <Card shadow="sm" padding="md" radius="md" withBorder>
                     <Group>
                         <TextInput
-                            placeholder="Search by quiz name or session ID..."
+                            placeholder="Пошук за назвою вікторини або ID сесії..."
                             leftSection={<IconSearch size={16} />}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{ flex: 1 }}
                         />
                         <Select
-                            placeholder="Status"
+                            placeholder="Статус"
                             value={filterStatus}
                             onChange={setFilterStatus}
                             data={[
-                                { value: 'all', label: 'All Sessions' },
-                                { value: 'completed', label: 'Completed' },
-                                { value: 'in-progress', label: 'In Progress' }
+                                { value: 'all', label: 'Усі сесії' },
+                                { value: 'completed', label: 'Завершено' },
+                                { value: 'in-progress', label: 'У процесі' }
                             ]}
                             style={{ width: 180 }}
                         />
@@ -271,24 +287,18 @@ function ReportsListContent() {
                     <Table highlightOnHover>
                         <Table.Thead>
                             <Table.Tr>
-                                <Table.Th>Session</Table.Th>
-                                <Table.Th>Quiz</Table.Th>
-                                <Table.Th>Date</Table.Th>
-                                <Table.Th>Players</Table.Th>
-                                <Table.Th>Accuracy</Table.Th>
-                                <Table.Th>Avg Time</Table.Th>
-                                <Table.Th>Status</Table.Th>
-                                <Table.Th>Action</Table.Th>
+                                <Table.Th>Вікторина</Table.Th>
+                                <Table.Th>Дата</Table.Th>
+                                <Table.Th>Гравці</Table.Th>
+                                <Table.Th>Точність</Table.Th>
+                                <Table.Th>Середній час</Table.Th>
+                                <Table.Th>Статус</Table.Th>
+                                <Table.Th>Дія</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
                             {filteredSessions.map((session) => (
                                 <Table.Tr key={session.sessionId}>
-                                    <Table.Td>
-                                        <Text size="sm" c="dimmed" ff="monospace">
-                                            {session.sessionId}
-                                        </Text>
-                                    </Table.Td>
                                     <Table.Td>
                                         <Text fw={600}>{session.quiz.title}</Text>
                                     </Table.Td>
@@ -334,12 +344,9 @@ function ReportsListContent() {
                                             size="xs"
                                             variant="light"
                                             rightSection={<IconChevronRight size={14} />}
-                                            onClick={() => {
-                                                console.log('View session:', session.sessionId);
-                                                alert(`Opening session: ${session.sessionId}\n\nThis would navigate to the detailed statistics page.`);
-                                            }}
+                                            onClick={() => handleViewStats(session.sessionId)}
                                         >
-                                            View Report
+                                            Переглянути
                                         </Button>
                                     </Table.Td>
                                 </Table.Tr>
@@ -360,15 +367,15 @@ function ReportsListContent() {
                         <Card shadow="sm" padding="lg" radius="md" withBorder>
                             <Group justify="space-between" mb="md">
                                 <Box>
-                                    <Text size="sm" fw={600}>Most Popular Quiz</Text>
-                                    <Text size="xs" c="dimmed">Based on total plays</Text>
+                                    <Text size="sm" fw={600}>Найпопулярніша вікторина</Text>
+                                    <Text size="xs" c="dimmed">На основі загальної кількості проходжень</Text>
                                 </Box>
                                 <IconTrophy size={24} color="gold" />
                             </Group>
-                            <Text fw={700} size="lg" mb="xs">Math Quiz for Kids</Text>
+                            <Text fw={700} size="lg" mb="xs">Математична вікторина для дітей</Text>
                             <Group gap="xs">
-                                <Badge variant="light">22 players total</Badge>
-                                <Badge variant="light" color="teal">71% avg accuracy</Badge>
+                                <Badge variant="light">Усього гравців: 22</Badge>
+                                <Badge variant="light" color="teal">71% середня точність</Badge>
                             </Group>
                         </Card>
                     </Grid.Col>
@@ -377,15 +384,15 @@ function ReportsListContent() {
                         <Card shadow="sm" padding="lg" radius="md" withBorder>
                             <Group justify="space-between" mb="md">
                                 <Box>
-                                    <Text size="sm" fw={600}>Recent Activity</Text>
-                                    <Text size="xs" c="dimmed">Last 7 days</Text>
+                                    <Text size="sm" fw={600}>Остання активність</Text>
+                                    <Text size="xs" c="dimmed">За останні 7 днів</Text>
                                 </Box>
                                 <IconCalendar size={24} color="gray" />
                             </Group>
-                            <Text fw={700} size="lg" mb="xs">8 Sessions Completed</Text>
+                            <Text fw={700} size="lg" mb="xs">8 Сесій Завершено</Text>
                             <Group gap="xs">
                                 <Badge variant="light">104 players</Badge>
-                                <Badge variant="light" color="blue">69% avg accuracy</Badge>
+                                <Badge variant="light" color="blue">69% середня точність</Badge>
                             </Group>
                         </Card>
                     </Grid.Col>

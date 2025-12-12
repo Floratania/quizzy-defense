@@ -10,14 +10,11 @@ export function useGamePlayer(sessionId, playerId) {
     const [leaderboard, setLeaderboard] = useState(null);
     const [gameFinished, setGameFinished] = useState(false);
 
-    // підключення гравця (на випадок рефрешу)
     useEffect(() => {
         if (!sessionId || !playerId) return;
 
         connectionService.ensureConnected();
 
-        // якщо ти реалізуєш на бекенді rejoin, можна:
-        // socket.emit("rejoin_player", { sessionId, playerId });
 
         const handlePreview = (data) => {
             setPreview(data);

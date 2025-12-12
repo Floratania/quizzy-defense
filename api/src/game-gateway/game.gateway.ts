@@ -6,12 +6,8 @@ import {
     ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { GamePlayersService } from '@/game-players/game-players.service';
-import { GameSessionsService } from '@/game-sessions/game-sessions.service';
 import { JoinSessionDto } from './dto/join-session.dto';
 import {CreatePlayerAnswerDto} from "@/player-answers/dto/create-player-answer.dto";
-import {PlayerAnswersService} from "@/player-answers/player-answers.service";
-import {SessionReportsService} from "@/session-reports/session-reports.service";
 import {GameFlowService} from "@/game-gateway/game-gateway.service";
 
 @WebSocketGateway({

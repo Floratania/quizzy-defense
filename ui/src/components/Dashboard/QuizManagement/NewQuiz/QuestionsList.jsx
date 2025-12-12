@@ -22,13 +22,13 @@ import { useQuizContext } from "../../../../context/QuizContext.jsx";
 
 // Уніфікований мапінг типів
 const questionTypes = {
-    quiz: "Multiple Choice",
-    "multiple_choice": "Multiple Choice",
-    "true-false": "True/False",
-    "true_false": "True/False",
-    boolean: "True/False",
-    "text-input": "Text Input",
-    "open_text": "Text Input"
+    quiz: "Вибір з варіантів",
+    "multiple_choice": "Вибір з варіантів",
+    "true-false": "Правда/Неправда",
+    "true_false": "Правда/Неправда",
+    boolean: "Правда/Неправда",
+    "text-input": "Текстова відповідь",
+    "open_text": "Відкрите запитання"
 };
 
 export const QuestionsList = () => {
@@ -46,7 +46,7 @@ export const QuestionsList = () => {
             style={{ background: "white", border: "1px solid #e0e7ff" }}
         >
             <Title order={3} mb="lg" style={{ color: "#1f2937" }}>
-                Questions ({questions.length})
+                Запитання ({questions.length})
             </Title>
 
             <Stack gap="md">
@@ -66,7 +66,7 @@ export const QuestionsList = () => {
                                     variant="gradient"
                                     gradient={{ from: "blue.3", to: "purple.3" }}
                                 >
-                                    Q{idx + 1}
+                                    З{idx + 1}
                                 </Badge>
 
                                 <Badge size="md" color="gray" variant="light">
@@ -76,14 +76,14 @@ export const QuestionsList = () => {
                                 <Group gap="xs">
                                     <IconClock size={14} color="gray" />
                                     <Text size="sm" c="dimmed">
-                                        {q.timeLimit}s
+                                        {q.timeLimit}сек.
                                     </Text>
                                 </Group>
 
                                 <Group gap="xs">
                                     <IconStar size={14} color="gold" />
                                     <Text size="sm" c="dimmed">
-                                        {q.points} pts
+                                        {q.points} балів
                                     </Text>
                                 </Group>
                             </Group>

@@ -7,9 +7,9 @@ import { IconPhoto, IconClock, IconStar, IconPlus } from '@tabler/icons-react';
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
 
 const questionTypes = [
-    { label: 'Multiple Choice', value: 'multiple_choice' },
-    { label: 'True/False', value: 'true_false' },
-    { label: 'Text Input', value: 'open_text' }
+    { label: 'Вибір з варіантів', value: 'multiple_choice' },
+    { label: 'Правда/Неправда', value: 'true_false' },
+    { label: 'Текстове запитання', value: 'open_text' }
 ];
 
 const answerColors = ['blue', 'teal', 'yellow', 'red', 'violet', 'pink'];
@@ -151,13 +151,13 @@ export const AddQuestionForm = () => {
 
     return (
         <Card shadow="md" padding="xl" radius="lg" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
-            <Title order={3} mb="lg">Add New Question</Title>
+            <Title order={3} mb="lg">Нове питання</Title>
 
             <Stack gap="lg">
 
                 {/* TYPE SELECT */}
                 <Select
-                    label="Question Type"
+                    label="Тип питання"
                     data={questionTypes}
                     value={currentQuestion.type}
                     onChange={handleQuestionTypeChange}
@@ -166,8 +166,8 @@ export const AddQuestionForm = () => {
 
                 {/* QUESTION TEXT */}
                 <TextInput
-                    label="Question"
-                    placeholder="Enter your question (max 100 characters)"
+                    label="Питання"
+                    placeholder="Введіть ваше запитання (до 100 символів)"
                     value={currentQuestion.text}
                     onChange={(e) => updateCurrentQuestion({ text: e.target.value.slice(0, 100) })}
                     maxLength={100}
@@ -180,11 +180,11 @@ export const AddQuestionForm = () => {
 
                 {/* QUESTION IMAGE */}
                 <Box>
-                    <Text size="sm" fw={500} mb="xs">Question Image (Optional)</Text>
+                    <Text size="sm" fw={500} mb="xs">Зображення (Необов'язково)</Text>
                     {currentQuestion.imagePreview ? (
                         <Paper p="md" withBorder radius="md">
                             <Group justify="space-between" mb="xs">
-                                <Text size="sm" c="dimmed">Preview</Text>
+                                <Text size="sm" c="dimmed">Попередній Перегляд</Text>
                                 <CloseButton
                                     onClick={() =>
                                         updateCurrentQuestion({
@@ -199,7 +199,7 @@ export const AddQuestionForm = () => {
                         </Paper>
                     ) : (
                         <FileInput
-                            placeholder="Upload image"
+                            placeholder="Додати фото"
                             leftSection={<IconPhoto size={16} />}
                             accept="image/*"
                             onChange={handleQuestionImageUpload}
@@ -211,7 +211,7 @@ export const AddQuestionForm = () => {
                 <Grid>
                     <Grid.Col span={6}>
                         <NumberInput
-                            label="Time Limit (seconds)"
+                            label="Обмеження часу (секунд)"
                             value={currentQuestion.timeLimit}
                             onChange={(v) => updateCurrentQuestion({ timeLimit: v })}
                             min={5}
@@ -222,7 +222,7 @@ export const AddQuestionForm = () => {
 
                     <Grid.Col span={6}>
                         <NumberInput
-                            label="Points"
+                            label="Бали"
                             value={currentQuestion.points}
                             onChange={(v) => updateCurrentQuestion({ points: v })}
                             min={100}
@@ -236,7 +236,7 @@ export const AddQuestionForm = () => {
                 {/* TEXT INPUT QUESTION */}
                 {currentQuestion.type === 'open_text' && (
                     <TextInput
-                        label="Correct Answer"
+                        label="Правильна відповідь"
                         value={currentQuestion.answers[0]}
                         onChange={(e) =>
                             updateCurrentQuestion({
@@ -252,7 +252,7 @@ export const AddQuestionForm = () => {
                         {/* NUMBER OF ANSWERS (ONLY MCQ) */}
                         {currentQuestion.type === 'multiple_choice' && (
                             <NumberInput
-                                label="Number of Answers"
+                                label="Кількість відповідей"
                                 value={currentQuestion.numberOfAnswers}
                                 onChange={handleNumberOfAnswersChange}
                                 min={2}
@@ -276,7 +276,7 @@ export const AddQuestionForm = () => {
                                                 />
 
                                                 <TextInput
-                                                    placeholder={`Answer ${idx + 1}`}
+                                                    placeholder={`Відповідь ${idx + 1}`}
                                                     value={answer}
                                                     onChange={(e) => {
                                                         const updated = [...currentQuestion.answers];
@@ -292,7 +292,7 @@ export const AddQuestionForm = () => {
                                             {currentQuestion.answerImagePreviews[idx] ? (
                                                 <Box>
                                                     <Group justify="space-between" mb="xs">
-                                                        <Text size="xs" c="dimmed">Image</Text>
+                                                        <Text size="xs" c="dimmed">Зображення</Text>
                                                         <CloseButton
                                                             size="xs"
                                                             onClick={() => {
@@ -319,7 +319,7 @@ export const AddQuestionForm = () => {
                                                 </Box>
                                             ) : (
                                                 <FileInput
-                                                    placeholder="Add image"
+                                                    placeholder="Додати Зображення"
                                                     accept="image/*"
                                                     leftSection={<IconPhoto size={14} />}
                                                     onChange={(file) =>
@@ -344,7 +344,7 @@ export const AddQuestionForm = () => {
                     size="lg"
                     fullWidth
                 >
-                    Add Question to Quiz
+                    Додати запитання
                 </Button>
             </Stack>
         </Card>

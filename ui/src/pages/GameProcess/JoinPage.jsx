@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import {
     Container,
     Paper,
@@ -9,11 +9,11 @@ import {
     Stack,
     Box,
 } from "@mantine/core";
-import { IconHash, IconUser, IconLogin } from "@tabler/icons-react";
-import { useNavigate } from "react-router";
-import { notifications } from "@mantine/notifications";
-import { socket } from "../../ws/socket.js";
-import { gameService } from "../../services/gameService.js";
+import {IconHash, IconUser, IconLogin} from "@tabler/icons-react";
+import {useNavigate} from "react-router";
+import {notifications} from "@mantine/notifications";
+import {socket} from "../../ws/socket.js";
+import {gameService} from "../../services/gameService.js";
 
 export default function JoinPage() {
     const [roomCode, setRoomCode] = useState("");
@@ -62,7 +62,7 @@ export default function JoinPage() {
         }
 
         setLoading(true);
-        gameService.joinSession({ roomCode, nickname });
+        gameService.joinSession({roomCode, nickname});
     };
 
     // Submit on Enter
@@ -94,20 +94,20 @@ export default function JoinPage() {
                         }}
                     >
                         <Stack spacing="lg">
-                            <div style={{ textAlign: "center" }}>
-                                <Title order={2} style={{ color: "#1f2937", marginBottom: 8 }}>
-                                    Join Game
+                            <div style={{textAlign: "center"}}>
+                                <Title order={2} style={{color: "#1f2937", marginBottom: 8}}>
+                                    Приєднатися до гри
                                 </Title>
                                 <Text color="dimmed" size="sm">
-                                    Enter room code and your nickname to start playing
+                                    Введіть код кімнати та нікнейм, щоб розпочати гру
                                 </Text>
                             </div>
 
                             <Stack spacing="md">
                                 <TextInput
                                     size="lg"
-                                    placeholder="Enter room code"
-                                    icon={<IconHash size={20} />}
+                                    placeholder="Введіть код кімнати"
+                                    icon={<IconHash size={20}/>}
                                     value={roomCode}
                                     onChange={(e) => setRoomCode(e.target.value)}
                                     onKeyDown={handleKeyPress}
@@ -115,15 +115,15 @@ export default function JoinPage() {
                                     styles={{
                                         input: {
                                             border: "2px solid #e5e7eb",
-                                            "&:focus": { borderColor: "#93c5fd" }
+                                            "&:focus": {borderColor: "#93c5fd"}
                                         }
                                     }}
                                 />
 
                                 <TextInput
                                     size="lg"
-                                    placeholder="Enter your nickname"
-                                    icon={<IconUser size={20} />}
+                                    placeholder="Введіть нікнейм"
+                                    icon={<IconUser size={20}/>}
                                     value={nickname}
                                     onChange={(e) => setNickname(e.target.value)}
                                     onKeyDown={handleKeyPress}
@@ -131,7 +131,7 @@ export default function JoinPage() {
                                     styles={{
                                         input: {
                                             border: "2px solid #e5e7eb",
-                                            "&:focus": { borderColor: "#93c5fd" }
+                                            "&:focus": {borderColor: "#93c5fd"}
                                         }
                                     }}
                                 />
@@ -141,15 +141,15 @@ export default function JoinPage() {
                                 size="lg"
                                 radius="lg"
                                 variant="gradient"
-                                gradient={{ from: "blue", to: "violet" }}
-                                leftSection={<IconLogin size={20} />}
+                                gradient={{from: "blue", to: "violet"}}
+                                leftSection={<IconLogin size={20}/>}
                                 onClick={handleJoin}
                                 loading={loading}
                                 disabled={!roomCode.trim() || !nickname.trim()}
                                 fullWidth
-                                style={{ marginTop: 8 }}
+                                style={{marginTop: 8}}
                             >
-                                Join Game
+                                Приєднатися до гри
                             </Button>
 
                         </Stack>

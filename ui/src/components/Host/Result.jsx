@@ -15,7 +15,7 @@ export default function Result({results}) {
                 <Stack spacing="xl">
                     <Paper shadow="xl" radius="xl" p="xl" style={{ background: "white" }}>
                         <Title order={2} mb="xl" style={{ color: "#1f2937" }}>
-                            Question Results
+                            Результати питання
                         </Title>
 
                         <Stack spacing="md">
@@ -37,7 +37,7 @@ export default function Result({results}) {
                                                     <Text weight={600}>{answer.text}</Text>
                                                 </Group>
                                                 <Badge color={answer.isCorrect ? "green" : "gray"}>
-                                                    {answer.count} answers
+                                                    {answer.count} відповідей
                                                 </Badge>
                                             </Group>
                                             <Progress

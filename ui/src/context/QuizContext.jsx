@@ -290,7 +290,7 @@ export function QuizProvider({ children }) {
             answers: (["matching", "ordering", "fill_blank"].includes(q.type) ? [] : q.answers).map((text, idx) => ({
                 text: text || "",
                 mediaUrl: q.answerImageUrls?.[idx] || null,
-                isCorrect: q.correctAnswers.includes(idx),
+                isCorrect: q.type === 'open_text' || q.correctAnswers.includes(idx),
             })),
         })),
     });
@@ -326,7 +326,12 @@ export function QuizProvider({ children }) {
             const blankCount = currentQuestion.text.split('___').length - 1;
             if (blankCount < 2 || blankCount > 8 || blankCount !== currentQuestion.fillBlankItems.length
                 || currentQuestion.fillBlankItems.some((item) => !item.text.trim())) return false;
-        } else if (currentQuestion.type !== "text-input" && currentQuestion.type !== "open_text") {
+        } else if (currentQuestion.type === 'open_text') {
+            if (!currentQuestion.answers.length || currentQuestion.answers.some((answer) => !answer.trim())) {
+                notifications.show({ color: 'red', message: 'Заповніть усі варіанти відповіді або видаліть порожні.' });
+                return false;
+            }
+        } else if (currentQuestion.type !== "text-input") {
             const filled = currentQuestion.answers
                 .slice(0, currentQuestion.numberOfAnswers)
                 .every(a => a.trim());

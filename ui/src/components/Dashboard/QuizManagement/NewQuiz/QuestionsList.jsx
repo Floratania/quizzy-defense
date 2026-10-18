@@ -137,6 +137,12 @@ export const QuestionsList = () => {
                         )}
 
                         {/* ANSWERS */}
+                        {q.type === 'open_text' && (
+                            <Box mb="md">
+                                <Text size="sm" fw={500}>Прийнятні варіанти відповіді:</Text>
+                                {q.answers.map((answer, index) => <Text key={index} size="sm" c="teal.8">✓ {answer}</Text>)}
+                            </Box>
+                        )}
                         {!['text-input', 'open_text', 'fill_blank', 'matching', 'ordering'].includes(q.type) && (
                             <Grid>
                                 {q.answers.slice(0, q.numberOfAnswers).map((answer, i) => (

@@ -295,15 +295,36 @@ export const AddQuestionForm = () => {
 
                 {/* TEXT INPUT QUESTION */}
                 {currentQuestion.type === 'open_text' && (
-                    <TextInput
-                        label={currentQuestion.type === 'fill_blank' ? 'Пропущене слово або фраза' : 'Правильна відповідь'}
-                        value={currentQuestion.answers[0]}
-                        onChange={(e) =>
-                            updateCurrentQuestion({
-                                answers: [e.target.value.slice(0, 100)],
-                            })
-                        }
-                    />
+                    <Stack gap="sm">
+                        <Text fw={500}>Правильні варіанти відповіді</Text>
+                        <Text size="sm" c="dimmed">Достатньо будь-якого з цих варіантів. Регістр літер і пробіли на початку та в кінці не враховуються.</Text>
+                        {currentQuestion.answers.map((answer, idx) => (
+                            <Group key={idx} align="end" wrap="nowrap">
+                                <TextInput
+                                    label={`Варіант ${idx + 1}`}
+                                    value={answer}
+                                    maxLength={100}
+                                    required
+                                    style={{ flex: 1 }}
+                                    onChange={(event) => updateCurrentQuestion({
+                                        answers: currentQuestion.answers.map((item, index) => index === idx ? event.target.value.slice(0, 100) : item),
+                                    })}
+                                />
+                                <CloseButton
+                                    aria-label={`Видалити варіант ${idx + 1}`}
+                                    disabled={currentQuestion.answers.length <= 1}
+                                    onClick={() => {
+                                        const answers = currentQuestion.answers.filter((_, index) => index !== idx);
+                                        updateCurrentQuestion({ answers, numberOfAnswers: answers.length, correctAnswers: answers.map((_, index) => index) });
+                                    }}
+                                />
+                            </Group>
+                        ))}
+                        <Button variant="light" leftSection={<IconPlus size={16} />} onClick={() => {
+                            const answers = [...currentQuestion.answers, ''];
+                            updateCurrentQuestion({ answers, numberOfAnswers: answers.length, correctAnswers: answers.map((_, index) => index) });
+                        }}>Додати варіант відповіді</Button>
+                    </Stack>
                 )}
 
                 {currentQuestion.type === 'matching' && (

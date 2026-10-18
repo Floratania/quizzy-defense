@@ -48,7 +48,7 @@ export const QuestionScreen = ({ question }) => {
                 hint={question.type === 'true_false' ? 'Оберіть правильне твердження' : 'Оберіть одну правильну відповідь'}
                 endsAt={question.endsAt} timeLimit={question.practice ? null : question.timeLimit}
             >
-                <Box h={question.answers.length <= 2 ? 230 : 410} maw={820} w="100%" mx="auto">
+                <Box maw={820} w="100%" mx="auto">
                     <PlayerAnswerGrid
                         answers={question.answers}
                         selectedAnswer={selectedAnswer}
@@ -69,7 +69,7 @@ export const QuestionScreen = ({ question }) => {
                     {question.answers.map((answer) => {
                         const selected = selectedAnswers.includes(answer.id);
                         return (
-                            <Grid.Col key={answer.id} span={{ base: 12, sm: 6 }}>
+                            <Grid.Col key={answer.id} span={12}>
                                 <Paper
                                     withBorder p="lg" radius="md"
                                     onClick={() => !submitted && toggleAnswer(answer.id)}

@@ -9,8 +9,8 @@ export function useSessionIntegrity({ enabled, finished, sessionId, playerId }) 
         let pending = [];
         try { pending = JSON.parse(sessionStorage.getItem(key) || '[]'); } catch { /* unavailable storage */ }
         if (!Array.isArray(pending)) pending = [];
+        pending = pending.filter((event) => event && event.reason !== 'blur');
         let ready = false;
-        let blurred = false;
         let away = false;
         const persist = () => { try { sessionStorage.setItem(key, JSON.stringify(pending.slice(-40))); } catch { /* best effort */ } };
         const report = (hidden, reason) => {
@@ -26,17 +26,13 @@ export function useSessionIntegrity({ enabled, finished, sessionId, playerId }) 
             persist();
         };
         const disconnect = () => { ready = false; };
-        const visibility = () => report(document.hidden || blurred, 'visibility');
-        const blur = () => { blurred = true; report(true, 'blur'); };
-        const focus = () => {
-            blurred = false; report(document.hidden, 'blur');
-            if (!socket.connected) connectionService.ensureConnected().catch(() => {});
+        const visibility = () => {
+            report(document.hidden, 'visibility');
+            if (!document.hidden && !socket.connected) connectionService.ensureConnected().catch(() => {});
         };
         const hide = () => report(true, 'pagehide');
-        const show = () => { blurred = false; report(document.hidden, 'visibility'); };
+        const show = visibility;
         document.addEventListener('visibilitychange', visibility);
-        window.addEventListener('blur', blur);
-        window.addEventListener('focus', focus);
         window.addEventListener('pagehide', hide);
         window.addEventListener('pageshow', show);
         socket.on('session_resumed', flush);
@@ -46,7 +42,6 @@ export function useSessionIntegrity({ enabled, finished, sessionId, playerId }) 
         if (socket.connected) socket.emit('resume_session', { sessionId, playerId, resumeToken: localStorage.getItem('resumeToken') });
         return () => {
             document.removeEventListener('visibilitychange', visibility);
-            window.removeEventListener('blur', blur); window.removeEventListener('focus', focus);
             window.removeEventListener('pagehide', hide); window.removeEventListener('pageshow', show);
             socket.off('session_resumed', flush); socket.off('question_started', flush); socket.off('disconnect', disconnect);
         };

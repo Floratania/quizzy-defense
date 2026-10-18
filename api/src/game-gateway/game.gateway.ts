@@ -38,11 +38,11 @@ export class GameGateway {
     }
     @SubscribeMessage('integrity_event')
     async integrity(@ConnectedSocket() client: Socket, @MessageBody() dto?: { hidden?: boolean; reason?: string }) {
-        if (typeof dto?.hidden !== 'boolean') return;
+        if (typeof dto?.hidden !== 'boolean' || dto.reason === 'blur') return;
         const event = await this.players.recordIntegrityEvent(client.id, dto.hidden);
         if (event) {
             this.server.to(`host:${event.sessionId}`).emit('integrity_updated', event);
-            await this.flow.logSessionEvent(event.playerId, dto.reason === 'blur' ? 'FOCUS_LOST' : 'TAB_HIDDEN');
+            await this.flow.logSessionEvent(event.playerId, 'TAB_HIDDEN');
         }
     }
 

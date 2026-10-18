@@ -138,7 +138,7 @@ export default function HostPage() {
                                 <Paper key={item.playerId} withBorder p="md">
                                     <Group justify="space-between" mb="xs">
                                         <Text fw={600}>{item.nickname}</Text>
-                                        <Badge color="orange" variant="light">Виходи / фокус: {players.find((p) => p.id === item.playerId)?.integrityEvents || 0}</Badge>
+                                        <Badge color="orange" variant="light">Виходи з вкладки: {players.find((p) => p.id === item.playerId)?.integrityEvents || 0}</Badge>
                                         <Badge color={item.completed ? 'green' : 'blue'}>{item.completed ? 'Завершено' : `${item.current}/${item.total}`}</Badge>
                                     </Group>
                                     <Progress value={item.percent} color={item.completed ? 'green' : 'blue'} size="lg" animated />
@@ -226,5 +226,5 @@ export default function HostPage() {
     );
     };
 
-    return <><Container size="xl" py="xs"><Text size="xs" c="dimmed">{session.settings?.trackTabSwitches ? 'Фіксація виходів і втрати фокуса ввімкнена. Події — у журналі нижче.' : 'Фіксація виходів вимкнена для цього сеансу. Увімкніть її в налаштуваннях квізу перед наступним запуском.'}</Text></Container>{renderSession()}<Container size="xl"><SessionEventLog events={host.sessionEvents} /></Container></>;
+    return <><Container size="xl" py="xs"><Text size="xs" c="dimmed">{session.settings?.trackTabSwitches ? 'Фіксація виходів із вкладки ввімкнена. Події — у журналі нижче.' : 'Фіксація виходів вимкнена для цього сеансу. Увімкніть її в налаштуваннях квізу перед наступним запуском.'}</Text></Container>{renderSession()}<Container size="xl"><SessionEventLog events={host.sessionEvents} /></Container></>;
 }

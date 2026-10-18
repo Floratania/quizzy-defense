@@ -28,14 +28,14 @@ export function PlayerAnswerCard({
                 cursor: clickable ? "pointer" : "default",
                 background: `linear-gradient(135deg, ${colorStyle.gradient[0]}, ${colorStyle.gradient[1]})`,
                 width: '100%',
-                height: '100%',
+                minHeight: 64,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 overflow: "hidden",
                 transform: selected ? "scale(0.98)" : "scale(1)",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                border: selected ? "8px solid white" : "none",
+                border: selected ? "3px solid #1e293b" : "3px solid transparent",
                 opacity: disabled && !selected ? 0.4 : 1,
                 position: 'relative',
                 boxShadow: selected
@@ -67,7 +67,7 @@ export function PlayerAnswerCard({
                     padding: '1rem'
                 }}
             >
-                <Box style={{ fontSize: 'clamp(18px, 2.5vw, 32px)', lineHeight: 1.25, fontWeight: 700, overflowWrap: 'break-word', hyphens: 'manual' }}>{answer.text}</Box>
+                <Box style={{ fontSize: 'clamp(18px, 2vw, 24px)', lineHeight: 1.25, fontWeight: 700, overflowWrap: 'break-word', hyphens: 'manual' }}>{answer.text}</Box>
             </Box>
 
             {/* Subtle shine effect on hover */}

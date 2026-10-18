@@ -100,13 +100,13 @@ let playerBoards=0;tb.socket.on('leaderboard',()=>playerBoards++);
 let resultCount=0;host.on('question_results',()=>resultCount++);
 const started=[ta,tb,silent].map(p=>event(p.socket,'question_started'));const result=event(host,'question_results'),board=event(host,'leaderboard'),silentTimeout=event(silent.socket,'answer_received');
 host.emit('start_game',{sessionId:timed.id});const questions=await Promise.all(started);assert.notEqual(questions[0].id,questions[1].id);
-const integrity=event(host,'integrity_updated');ta.socket.emit('integrity_event',{hidden:true,reason:'blur'});assert.equal((await integrity).integrityEvents,1);ta.socket.emit('integrity_event',{hidden:false});
+const integrity=event(host,'integrity_updated');ta.socket.emit('integrity_event',{hidden:true,reason:'visibility'});assert.equal((await integrity).integrityEvents,1);ta.socket.emit('integrity_event',{hidden:false});
 const accepted=[ta,tb].map(p=>event(p.socket,'answer_received'));[ta,tb].forEach((p,i)=>p.socket.emit('submit_answer',{questionId:questions[i].id,response:{text:'Київ'},timeTaken:0}));for(const answer of await Promise.all(accepted))assert.equal(answer.correct,true);
 assert.equal((await silentTimeout).timedOut,true);assert.equal((await result).roundClosed,true);await board;await new Promise(r=>setTimeout(r,100));assert.equal(resultCount,1);assert.equal(playerBoards,1);
 const next=event(tb.socket,'question_started');host.emit('next_question',{sessionId:timed.id});host.emit('next_question',{sessionId:timed.id});const nextQuestion=await next;assert.notEqual(nextQuestion.id,questions[1].id);
 const finished=event(host,'game_finished');await finished;assert.equal(resultCount,2);
 const timedReport=await call('/session-reports/'+timed.id,'GET',null,token('owner'));assert.equal(timedReport.players.length,3);
-console.log('Personalized Classic: different answers accepted; silent-player timeout; one round result; duplicate Next ignored; final round completed; focus event persisted');
+console.log('Personalized Classic: different answers accepted; silent-player timeout; one round result; duplicate Next ignored; final round completed; tab exit persisted');
 
 } finally {sockets.forEach(s=>s.disconnect());}
 await call('/quizzes/'+id,'DELETE',null,token('owner'));

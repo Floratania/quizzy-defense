@@ -39,9 +39,9 @@ export default function Question({question, players, currentQuestionIndex, teamL
                         <TimerBadge timeLimit={question.timeLimit} endsAt={question.endsAt} />
                     </Group>
 
-                    {question.personalized && <Paper withBorder p="sm"><Text size="sm">Учасники отримують різні питання. Нижче — приклад одного варіанта; відповіді перевіряються за особистим питанням кожного.</Text></Paper>}
+                    {question.personalized && <Paper withBorder p="sm"><Text size="sm">Учасники отримують різні питання. Відповіді перевіряються за особистим питанням кожного.</Text></Paper>}
                     {/* Question Card */}
-                    <Paper shadow="xl" radius="xl" p={40} style={{ background: "white" }}>
+                    {!question.personalized && <Paper shadow="xl" radius="xl" p={40} style={{ background: "white" }}>
                         <Stack spacing="lg">
                             <Badge size="md" color="blue.3" variant="light">
                                 Питання {currentQuestionIndex}
@@ -51,7 +51,7 @@ export default function Question({question, players, currentQuestionIndex, teamL
                             </div>
                             {question.mediaUrl && <Image src={question.mediaUrl} alt={question.text} radius="md" mah={320} fit="contain" />}
                         </Stack>
-                    </Paper>
+                    </Paper>}
 
 
                     {teamLeaderboard.length > 0 && (

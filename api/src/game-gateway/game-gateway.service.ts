@@ -91,7 +91,10 @@ export class GameFlowService {
             }
             const question = await this.sessions.getCurrentQuestion(sessionId);
             client.emit('game_started');
-            if (question) client.emit('question_started', { ...this.toPlayableQuestion(question), endsAt: this.roundDeadlines.get(sessionId), currentQuestionIndex: session.currentQuestionIndex + 1, personalized: Boolean(session.quiz.questionSelection || session.quiz.shuffleQuestions) });
+            if (question) {
+                const personalized = Boolean(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT);
+                client.emit('question_started', { ...(personalized ? { timeLimit: question.timeLimit } : this.toPlayableQuestion(question)), endsAt: this.roundDeadlines.get(sessionId), currentQuestionIndex: session.currentQuestionIndex + 1, personalized });
+            }
         }
     }
 
@@ -163,7 +166,7 @@ export class GameFlowService {
 
         if (session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT) {
             const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
-            this.gateway.server.to(sessionId).except(playerSockets).emit('question_preview', { text: question.text, mediaUrl: question.mediaUrl });
+            this.gateway.server.to(sessionId).except(playerSockets).emit('question_preview', { text: 'Учасники отримують індивідуальні питання', personalized: true });
             for (const player of session.players) {
                 const playerQuestion = playerQuestions.get(player.id);
                 if (player.socketId && playerQuestion && !player.eliminatedAt) {
@@ -186,7 +189,7 @@ export class GameFlowService {
                 const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
                 this.gateway.server.to(sessionId).except(playerSockets).emit(
                     'question_started',
-                    { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), timeLimit: roundTimeLimit, endsAt, personalized: true, currentQuestionIndex: session.currentQuestionIndex + 1 },
+                    { ...(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT ? {} : this.toPlayableQuestion(question, session.quiz.shuffleAnswers)), timeLimit: roundTimeLimit, endsAt, personalized: Boolean(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT), currentQuestionIndex: session.currentQuestionIndex + 1 },
                 );
                 for (const player of session.players) {
                     const playerQuestion = playerQuestions.get(player.id);

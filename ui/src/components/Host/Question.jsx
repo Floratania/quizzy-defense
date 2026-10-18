@@ -101,7 +101,6 @@ export default function Question({question, players, currentQuestionIndex, teamL
                                 <Grid.Col key={player.id} span={6} md={4} lg={3}>
                                     <Card shadow="sm" radius="lg" p="md">
                                         <Stack spacing="xs" align="center">
-                                            <Badge variant="light" color="orange">Виходи з вкладки: {player.integrityEvents || 0}</Badge>
                                             <Avatar
                                                 size="md"
                                                 radius="xl"

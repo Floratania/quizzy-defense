@@ -18,6 +18,7 @@ import {AuthGuard} from "@/guards/auth.guard";
 import * as authTypes_1 from "@/auth/types/auth.types";
 import {UsersService} from "@/users/users.service";
 import {GoogleOAuthService} from "@/auth/google-oauth/google-oauth.service";
+import {randomBytes, timingSafeEqual} from 'node:crypto';
 
 @Controller('auth')
 export class AuthController {
@@ -106,12 +107,27 @@ export class AuthController {
 
     @Get('google')
     googleLogin(@Res() res: Response) {
-        const url = this.googleOAuthService.getAuthUrl();
+        const state = randomBytes(32).toString('hex');
+        const url = this.googleOAuthService.getAuthUrl(state);
+        res.cookie('googleOAuthState', state, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/auth/google/callback',
+            maxAge: 10 * 60 * 1000,
+        });
         return res.redirect(url);
     }
 
     @Get('google/callback')
-    async googleCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
+    async googleCallback(@Query('code') code: string, @Query('state') state: string, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        const expectedState = req.cookies?.googleOAuthState;
+        res.clearCookie('googleOAuthState', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/auth/google/callback' });
+        if (typeof state !== 'string' || typeof expectedState !== 'string'
+            || !/^[a-f0-9]{64}$/.test(state) || !/^[a-f0-9]{64}$/.test(expectedState)
+            || !timingSafeEqual(Buffer.from(state), Buffer.from(expectedState))) {
+            throw new UnauthorizedException('Invalid Google OAuth state');
+        }
         if (!code) throw new UnauthorizedException('No code provided');
 
         const { accessToken, refreshToken } = await this.authService.loginWithGoogle(code);

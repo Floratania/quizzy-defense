@@ -24,4 +24,14 @@ describe('AuthService', () => {
     expect(result).toEqual({id: 1, name: 'Test Teacher', email: 'teacher@example.test', role: 'TEACHER'});
     expect(result).not.toHaveProperty('password');
   });
+  it('rejects an unverified Google email before linking an account', async () => {
+    const findUserByEmail = jest.fn();
+    const google = {
+      getTokens: async () => ({ access_token: 'test-access-token' }),
+      getUserInfo: async () => ({ email: 'teacher@example.test', email_verified: false }),
+    };
+    const auth = new AuthService({} as never, {} as never, {} as never, google as never, { findUserByEmail } as never);
+    await expect(auth.loginWithGoogle('test-code')).rejects.toThrow('Google email is not verified');
+    expect(findUserByEmail).not.toHaveBeenCalled();
+  });
 });

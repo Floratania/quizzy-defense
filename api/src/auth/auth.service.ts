@@ -156,7 +156,10 @@ export class AuthService {
 
     async loginWithGoogle(code: string) {
         const tokens = await this.googleOAuthService.getTokens(code);
-        const profile = await this.googleOAuthService.getUserInfo(tokens.id_token, tokens.access_token);
+        const profile = await this.googleOAuthService.getUserInfo(tokens.access_token);
+        if (!profile.email || !profile.email_verified) {
+            throw new UnauthorizedException('Google email is not verified');
+        }
 
         let user = await this.userService.findUserByEmail(profile.email);
         if (!user) {

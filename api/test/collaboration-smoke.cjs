@@ -29,6 +29,10 @@ await call('/quizzes','GET',null,token('pupil'),403);
 await call('/quizzes/generate','POST',{topic:'test'},token('pupil'),403);
 await call('/question-bank','GET',null,token('pupil'),403);
 await call('/account/users','GET',null,token('pupil'),403);
+await call('/account/teacher-requests','GET',null,token('pupil'),403);
+await call('/account/teacher-request','POST',{},token('pupil'),201);
+await call('/account/teacher-request','POST',{},token('pupil'),201);
+const pendingRequests=await call('/account/teacher-requests','GET',null,token('owner'));assert.equal(pendingRequests.length,1);assert.equal(pendingRequests[0].id,pupil.id);assert.ok(!('password' in pendingRequests[0]));
 await call('/account/role','PATCH',{userId:pupil.id,role:'TEACHER'},token('pupil'),403);
 await call('/answers','GET',null,null,404);await call('/questions','GET',null,null,404);
 

@@ -1,12 +1,14 @@
-import { Tooltip, UnstyledButton } from '@mantine/core';
+import { Badge, Tooltip, UnstyledButton } from '@mantine/core';
 
-export function NavbarLink({ icon: _Icon, label, active, onClick }) {
+export function NavbarLink({ icon: _Icon, label, active, onClick, count = 0 }) {
 
     return (
         <Tooltip label={label} position="right" transitionProps={{ duration: 0 }}>
             <UnstyledButton
                 onClick={onClick}
+                aria-label={count ? `${label}: ${count} заявок` : label}
                 style={{
+                    position: 'relative',
                     width: 50,
                     height: 50,
                     borderRadius: 8,
@@ -20,6 +22,7 @@ export function NavbarLink({ icon: _Icon, label, active, onClick }) {
                 }}
             >
                 <_Icon size={20} stroke={1.5} />
+                {count>0&&<Badge color="orange" size="xs" style={{position:"absolute",top:0,right:-3}}>{count}</Badge>}
             </UnstyledButton>
 
         </Tooltip>

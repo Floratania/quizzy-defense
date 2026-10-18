@@ -1,3 +1,4 @@
+import TeacherRequestNotifications from './TeacherRequestNotifications.jsx';
 import { Box, Button, Container, Group, Text } from "@mantine/core";
 import { useNavigate } from "react-router";
 import useAuth from "../../hooks/useAuth.js";
@@ -51,6 +52,7 @@ const Navbar = () => {
 
                 {user ? (
                     <Group gap="sm">
+                        <TeacherRequestNotifications/>
                         <Button variant="subtle" color="gray" onClick={() => navigate(user.role === 'STUDENT' ? '/student' : '/admin')}>
                             Кабінет
                         </Button>

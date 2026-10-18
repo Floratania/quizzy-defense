@@ -1,12 +1,12 @@
 import { Paper, Box } from "@mantine/core";
 
 const ANSWER_COLORS = [
-    { gradient: ['#60a5fa', '#3b82f6'], icon: '△' },  // Blue
-    { gradient: ['#34d399', '#10b981'], icon: '◇' },  // Green
-    { gradient: ['#fbbf24', '#f59e0b'], icon: '○' },  // Yellow
-    { gradient: ['#f87171', '#ef4444'], icon: '□' },  // Red
-    { gradient: ['#a78bfa', '#8b5cf6'], icon: '⬡' },  // Purple
-    { gradient: ['#fb7185', '#ec4899'], icon: '★' }   // Pink
+    { gradient: ['#60a5fa', '#3b82f6'] },  // Blue
+    { gradient: ['#34d399', '#10b981'] },  // Green
+    { gradient: ['#fbbf24', '#f59e0b'] },  // Yellow
+    { gradient: ['#f87171', '#ef4444'] },  // Red
+    { gradient: ['#a78bfa', '#8b5cf6'] },  // Purple
+    { gradient: ['#fb7185', '#ec4899'] }   // Pink
 ];
 
 export function PlayerAnswerCard({
@@ -22,7 +22,7 @@ export function PlayerAnswerCard({
     return (
         <Paper
             shadow={selected ? "2xl" : "xl"}
-            radius="xl"
+            radius="md"
             onClick={() => clickable && onSelect(answer.id)}
             style={{
                 cursor: clickable ? "pointer" : "default",
@@ -67,40 +67,8 @@ export function PlayerAnswerCard({
                     padding: '1rem'
                 }}
             >
-                <Box style={{ fontSize: 'clamp(32px, 5vw, 58px)', lineHeight: 1, marginBottom: 14 }}>{colorStyle.icon}</Box>
-                <Box style={{ fontSize: 'clamp(18px, 2.5vw, 32px)', lineHeight: 1.25, fontWeight: 700, overflowWrap: 'anywhere' }}>{answer.text}</Box>
+                <Box style={{ fontSize: 'clamp(18px, 2.5vw, 32px)', lineHeight: 1.25, fontWeight: 700, overflowWrap: 'break-word', hyphens: 'manual' }}>{answer.text}</Box>
             </Box>
-
-            {/* Selection overlay with pulse */}
-            {selected && (
-                <>
-                    <Box
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%)',
-                            pointerEvents: 'none',
-                            animation: 'pulseOverlay 1.5s ease-in-out infinite'
-                        }}
-                    />
-
-                    {/* Checkmark */}
-                    <Box
-                        style={{
-                            position: 'absolute',
-                            top: '5%',
-                            right: '5%',
-                            fontSize: 'clamp(48px, 10vw, 80px)',
-                            color: 'white',
-                            textShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                            animation: 'checkBounce 0.6s ease-in-out',
-                            userSelect: 'none'
-                        }}
-                    >
-                        ✓
-                    </Box>
-                </>
-            )}
 
             {/* Subtle shine effect on hover */}
             <Box

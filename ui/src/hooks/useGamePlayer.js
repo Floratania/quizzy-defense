@@ -16,6 +16,8 @@ export function useGamePlayer(sessionId, playerId) {
     const [eliminationReason, setEliminationReason] = useState(null);
     const [finalResult, setFinalResult] = useState(() => readFinalResult(sessionId, playerId));
     const [settings, setSettings] = useState({});
+    const [answerError, setAnswerError] = useState('');
+    const [retrySequence, setRetrySequence] = useState(0);
 
     useEffect(() => {
         if (!sessionId || !playerId) return;
@@ -34,6 +36,7 @@ export function useGamePlayer(sessionId, playerId) {
         };
 
         const handleQuestion = (data) => {
+            setAnswerError('');
             setPreview(null);
             setQuestion(data);
             setAnswerResult(null);
@@ -41,6 +44,14 @@ export function useGamePlayer(sessionId, playerId) {
 
         const handleAnswerReceived = (res) => {
             setAnswerResult(res);
+        };
+        const handleQuestionClosed = () => {
+            setQuestion(null); setPreview(null);
+            setAnswerResult((current) => current || { submitted: true, awaitingNext: true });
+        };
+        const handleAnswerError = (data) => {
+            setAnswerError(data?.message || 'Не вдалося надіслати відповідь. Спробуй ще раз.');
+            setRetrySequence((value) => value + 1);
         };
 
         const handleLeaderboard = (data) => {
@@ -67,6 +78,8 @@ export function useGamePlayer(sessionId, playerId) {
         socket.on("question_preview", handlePreview);
         socket.on("question_started", handleQuestion);
         socket.on("answer_received", handleAnswerReceived);
+        socket.on('question_closed', handleQuestionClosed);
+        socket.on('answer_error', handleAnswerError);
         socket.on("leaderboard", handleLeaderboard);
         socket.on("team_leaderboard", handleTeamLeaderboard);
         socket.on("player_completed", handlePlayerCompleted);
@@ -78,6 +91,8 @@ export function useGamePlayer(sessionId, playerId) {
             socket.off("question_preview", handlePreview);
             socket.off("question_started", handleQuestion);
             socket.off("answer_received", handleAnswerReceived);
+            socket.off('question_closed', handleQuestionClosed);
+            socket.off('answer_error', handleAnswerError);
             socket.off("leaderboard", handleLeaderboard);
             socket.off("team_leaderboard", handleTeamLeaderboard);
             socket.off("player_completed", handlePlayerCompleted);
@@ -107,6 +122,8 @@ export function useGamePlayer(sessionId, playerId) {
         eliminationReason,
         finalResult,
         settings,
+        answerError,
+        retrySequence,
         submitAnswer,
     };
 }

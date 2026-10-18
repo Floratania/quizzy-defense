@@ -114,8 +114,8 @@ export class GamePlayersService {
 
     async recordIntegrityEvent(socketId: string, hidden = true) {
         const player = await this.playersRepo.findOne({ where: { socketId }, relations: ['session'] });
+        if (!hidden) { if (player) this.hiddenPlayers.delete(player.id); return null; }
         if (!player || player.session.status !== 'RUNNING' || !player.session.settings?.trackTabSwitches || player.completedAt || player.eliminatedAt) return null;
-        if (!hidden) { this.hiddenPlayers.delete(player.id); return null; }
         if (this.hiddenPlayers.has(player.id)) return null;
         this.hiddenPlayers.add(player.id);
         try {

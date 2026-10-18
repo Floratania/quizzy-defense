@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Accordion, Group, Select, Table, Text } from '@mantine/core';
 
-const labels = { JOINED: 'Приєднався', DISCONNECTED: 'Зв’язок втрачено', RECONNECTED: 'Повернувся', TAB_HIDDEN: 'Вихід із вкладки' };
+const labels = { JOINED: 'Приєднався', DISCONNECTED: 'Зв’язок втрачено', RECONNECTED: 'Повернувся', TAB_HIDDEN: 'Згортання / вихід із вкладки', FOCUS_LOST: 'Втрата фокуса сторінки' };
 export default function SessionEventLog({ events = [] }) {
     const [playerId, setPlayerId] = useState(null);
     const players = useMemo(() => [...new Map(events.map((event) => [event.playerId, { value: event.playerId, label: event.nickname }])).values()], [events]);

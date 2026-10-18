@@ -10,8 +10,8 @@ export const AnswerResultScreen = ({ answerResult }) => {
         return (
             <Box mih="100vh" style={{ display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #dbeafe, #e9d5ff)' }}>
                 <Paper shadow="xl" radius="xl" p={50} ta="center">
-                    <Title order={2}>Відповідь прийнято</Title>
-                    <Text c="dimmed" mt="sm">Результат буде показано після завершення вікторини.</Text>
+                    <Title order={2}>{answerResult.timedOut ? 'Час на відповідь завершився' : answerResult.awaitingNext ? 'Раунд завершено' : 'Відповідь прийнято'}</Title>
+                    <Text c="dimmed" mt="sm">{answerResult.awaitingNext || answerResult.timedOut ? 'Очікуємо наступне питання від ведучого.' : 'Очікуємо завершення раунду. Результат буде показано відповідно до налаштувань тесту.'}</Text>
                 </Paper>
             </Box>
         );

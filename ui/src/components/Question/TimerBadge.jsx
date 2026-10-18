@@ -2,8 +2,8 @@ import { Badge } from "@mantine/core";
 import { IconClock } from "@tabler/icons-react";
 import { useCountdownTimer } from "../../hooks/useCountdownTimer.jsx";
 
-export function TimerBadge({ timeLimit }) {
-    const timeLeft = useCountdownTimer(timeLimit);
+export function TimerBadge({ timeLimit, endsAt }) {
+    const timeLeft = useCountdownTimer(timeLimit, endsAt);
 
     return (
         <Badge

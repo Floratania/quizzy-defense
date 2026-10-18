@@ -1,6 +1,7 @@
+import { useSessionIntegrity } from '../hooks/useSessionIntegrity.js';
 import React, { useEffect } from 'react';
 import { socket } from '../ws/socket.js';
-import { Badge, Box, Button, Container, Text, Center, Paper, Stack, ThemeIcon, Title } from '@mantine/core';
+import { Alert, Badge, Box, Button, Container, Text, Center, Paper, Stack, ThemeIcon, Title } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import RichText from '../components/Question/RichText.jsx';
 import { IconCircleCheck, IconEye, IconX } from '@tabler/icons-react';
@@ -16,21 +17,9 @@ const PlayerPageContent = () => {
     const { player, nickname, sessionId, teamName } = usePlayerGameContext();
     useEffect(() => {
         if (player.settings?.requireFullscreen && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-        let hidden = document.hidden;
-        const onVisibilityChanged = () => {
-            if (hidden === document.hidden) return;
-            hidden = document.hidden;
-            if (player.settings?.trackTabSwitches && socket.connected) socket.emit('integrity_event', { hidden });
-        };
-        const onConnect = () => {
-            hidden = document.hidden;
-            if (player.settings?.trackTabSwitches && !hidden) socket.emit('integrity_event', { hidden: false });
-        };
-        onConnect();
-        socket.on('connect', onConnect);
-        document.addEventListener('visibilitychange', onVisibilityChanged);
-        return () => { socket.off('connect', onConnect); document.removeEventListener('visibilitychange', onVisibilityChanged); };
     }, [player.settings?.requireFullscreen, player.settings?.trackTabSwitches]);
+
+    useSessionIntegrity({ enabled: player.settings?.trackTabSwitches, finished: player.gameFinished || player.playerCompleted, sessionId, playerId: localStorage.getItem('playerId') });
 
     if (!sessionId) {
         return (
@@ -115,7 +104,7 @@ const PlayerPageContent = () => {
     }
 
     if (player.question) {
-        return <QuestionScreen key={player.question.id} question={player.question} />;
+        return <>{player.answerError && <Alert color="red">{player.answerError}</Alert>}<QuestionScreen key={`${player.question.id}:${player.retrySequence}`} question={player.question} /></>;
     }
 
     if (player.preview) {

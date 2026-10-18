@@ -66,7 +66,7 @@ async function guest(code,name){const socket=io(base,{transports:['websocket'],a
 try {
 const levels=['easy','medium','hard'];
 const pool=levels.flatMap((difficulty,level)=>Array.from({length:level===0?18:16},(_,i)=>({...question(difficulty+' '+i),difficulty})));
-const balanced=await call('/quizzes','POST',{title:'Balanced 50',questionSelection:{easy:8,medium:8,hard:8},questions:pool},token('owner'),201);
+const balanced=await call('/quizzes','POST',{title:'Balanced 50',trackTabSwitches:true,questionSelection:{easy:8,medium:8,hard:8},questions:pool},token('owner'),201);
 const difficultyById=new Map(balanced.questions.map(q=>[q.id,q.difficulty]));
 const game=await call('/game-sessions','POST',{quizId:balanced.id},token('owner'),201);
 const a=await guest(game.roomCode,'Balanced A');const b=await guest(game.roomCode,'Balanced B');
@@ -77,11 +77,35 @@ assert.notDeepEqual(firstOrder,state.players.find(p=>p.id===b.joined.playerId).q
 const restored=io(base,{transports:['websocket'],autoConnect:false});sockets.push(restored);let connected=event(restored,'connect');restored.connect();await connected;const resumed=event(restored,'session_resumed');restored.emit('resume_session',{...a.joined});await resumed;
 state=await call('/game-sessions/'+game.id);assert.deepEqual(firstOrder,state.players.find(p=>p.id===a.joined.playerId).questionOrder);
 const qa=event(restored,'question_started');const qb=event(b.socket,'question_started');restored.emit('start_game',{sessionId:game.id});
-assert.equal(difficultyById.get((await qa).id),'easy');assert.equal(difficultyById.get((await qb).id),'easy');
+const firstA=await qa;const firstB=await qb;assert.equal(difficultyById.get(firstA.id),'easy');assert.equal(difficultyById.get(firstB.id),'easy');
+const acceptedA=event(restored,'answer_received');const acceptedB=event(b.socket,'answer_received');
+restored.emit('submit_answer',{questionId:firstA.id,response:{text:'Київ'},timeTaken:0});
+b.socket.emit('submit_answer',{questionId:firstB.id,response:{text:'Київ'},timeTaken:0});
+assert.equal((await acceptedA).correct,true);assert.equal((await acceptedB).correct,true);
+console.log('Personalized questions accepted:',firstA.id!==firstB.id?'different questions for A and B':'same first slot, independent full sets');
+
 await call('/game-sessions/'+game.id+'/finish','POST',{},token('owner'),201);
 const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('owner'));assert.equal(balancedReport.summary.totalQuestions,24);assert.equal(balancedReport.summary.poolQuestionCount,50);for(const p of balancedReport.players){assert.equal(p.assignedQuestionIds.length,24);assert.equal(p.totalQuestions,24);}
 const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');c.socket.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
 console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
+
+const timedQuiz=await call('/quizzes','POST',{title:'Personalized deadline regression',trackTabSwitches:true,questionSelection:{easy:2,medium:0,hard:0},questions:Array.from({length:6},(_,i)=>({...question('Deadline '+i),difficulty:'easy',timeLimit:2}))},token('owner'),201);
+const timed=await call('/game-sessions','POST',{quizId:timedQuiz.id},token('owner'),201);
+const ta=await guest(timed.roomCode,'Timed A'),tb=await guest(timed.roomCode,'Timed B'),silent=await guest(timed.roomCode,'Silent');
+const isolated=new Client({...config,database:dbName});await isolated.connect();
+try {for(const [i,p] of [ta,tb,silent].entries())await isolated.query('UPDATE session_players SET question_order=$1::jsonb WHERE id=$2',[JSON.stringify(timedQuiz.questions.slice(i*2,i*2+2).map(q=>q.id)),p.joined.playerId]);}finally{await isolated.end();}
+const host=io(base,{transports:['websocket'],autoConnect:false,auth:{token:token('owner')}});sockets.push(host);const hc=event(host,'connect');host.connect();await hc;const hj=event(host,'host_joined');host.emit('host_join_session',{sessionId:timed.id});await hj;
+let resultCount=0;host.on('question_results',()=>resultCount++);
+const started=[ta,tb,silent].map(p=>event(p.socket,'question_started'));const result=event(host,'question_results'),board=event(host,'leaderboard'),silentTimeout=event(silent.socket,'answer_received');
+host.emit('start_game',{sessionId:timed.id});const questions=await Promise.all(started);assert.notEqual(questions[0].id,questions[1].id);
+const integrity=event(host,'integrity_updated');ta.socket.emit('integrity_event',{hidden:true,reason:'blur'});assert.equal((await integrity).integrityEvents,1);ta.socket.emit('integrity_event',{hidden:false});
+const accepted=[ta,tb].map(p=>event(p.socket,'answer_received'));[ta,tb].forEach((p,i)=>p.socket.emit('submit_answer',{questionId:questions[i].id,response:{text:'Київ'},timeTaken:0}));for(const answer of await Promise.all(accepted))assert.equal(answer.correct,true);
+assert.equal((await silentTimeout).timedOut,true);assert.equal((await result).roundClosed,true);await board;assert.equal(resultCount,1);
+const next=event(tb.socket,'question_started');host.emit('next_question',{sessionId:timed.id});host.emit('next_question',{sessionId:timed.id});const nextQuestion=await next;assert.notEqual(nextQuestion.id,questions[1].id);
+const finished=event(host,'game_finished');await finished;assert.equal(resultCount,2);
+const timedReport=await call('/session-reports/'+timed.id,'GET',null,token('owner'));assert.equal(timedReport.players.length,3);
+console.log('Personalized Classic: different answers accepted; silent-player timeout; one round result; duplicate Next ignored; final round completed; focus event persisted');
+
 } finally {sockets.forEach(s=>s.disconnect());}
 await call('/quizzes/'+id,'DELETE',null,token('owner'));
 console.log('Collaboration, audit and host isolation: '+checks+' HTTP checks passed');

@@ -37,12 +37,12 @@ export class GameGateway {
         return this.flow.playerJoin(client, dto);
     }
     @SubscribeMessage('integrity_event')
-    async integrity(@ConnectedSocket() client: Socket, @MessageBody() dto?: { hidden?: boolean }) {
+    async integrity(@ConnectedSocket() client: Socket, @MessageBody() dto?: { hidden?: boolean; reason?: string }) {
         if (typeof dto?.hidden !== 'boolean') return;
         const event = await this.players.recordIntegrityEvent(client.id, dto.hidden);
         if (event) {
             this.server.to(`host:${event.sessionId}`).emit('integrity_updated', event);
-            await this.flow.logSessionEvent(event.playerId, 'TAB_HIDDEN');
+            await this.flow.logSessionEvent(event.playerId, dto.reason === 'blur' ? 'FOCUS_LOST' : 'TAB_HIDDEN');
         }
     }
 
@@ -57,11 +57,16 @@ export class GameGateway {
     }
 
     @SubscribeMessage('submit_answer')
-    submit(
+    async submit(
         @ConnectedSocket() client: Socket,
         @MessageBody() dto: CreatePlayerAnswerDto
     ) {
-        return this.flow.submitAnswer(client.id, dto);
+        try { return await this.flow.submitAnswer(client.id, dto); }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Не вдалося прийняти відповідь';
+            if (message.includes('already answered')) client.emit('answer_received', { submitted: true });
+            else client.emit('answer_error', { questionId: dto.questionId, message });
+        }
     }
 
     @SubscribeMessage('next_question')

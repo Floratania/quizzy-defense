@@ -78,7 +78,7 @@ export function useGameHost(sessionId) {
             setQuestion(data);
             setResults(null);
 
-            setCurrentQuestionIndex((prev) => prev + 1 || 1);
+            setCurrentQuestionIndex((prev) => data.currentQuestionIndex || prev + 1 || 1);
 
             setPlayers((prev) =>
                 prev.map((p) => ({ ...p, hasAnswered: false }))
@@ -146,6 +146,8 @@ export function useGameHost(sessionId) {
             connectionService.disconnect();
         };
 
+        const reconnectHost = () => gameService.hostJoin(sessionId);
+        socket.on('connect', reconnectHost);
         socket.on("host_joined", handleHostJoined);
         socket.on('session_events', handleSessionEvents);
         socket.on('session_event', handleSessionEvent);
@@ -166,6 +168,7 @@ export function useGameHost(sessionId) {
         socket.on("game_finished", handleFinished);
 
         return () => {
+            socket.off('connect', reconnectHost);
             socket.off("host_joined", handleHostJoined);
             socket.off('session_events', handleSessionEvents);
             socket.off('session_event', handleSessionEvent);

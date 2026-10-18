@@ -12,7 +12,7 @@ describe('Survival mistake limit', () => {
         const session = { mode, currentQuestionIndex: 1, settings: {}, quiz: {}, players: [{ id: 'p' }, { id: 'other', eliminatedAt: oneSurvivor ? new Date() : null }] };
         const sessions = { getRoundState: async () => ({ session, playerQuestions: new Map([['p', { id: 'q' }]]) }), getById: async () => session, peekNextQuestion: async () => hasNext ? { id: 'next' } : null };
         const emit = jest.fn();
-        const flow = new GameFlowService({} as any, { getLeaderboard: async () => [], eliminate: jest.fn() } as any, sessions as any, { getAnswersForRound: async () => [{ player: { id: 'p' } }], getQuestionStats: async () => ({}) } as any, {} as any, {} as any, { server: { to: () => ({ emit }) } } as any);
+        const flow = new GameFlowService({} as any, { getBySocket: async () => null, getLeaderboard: async () => [], eliminate: jest.fn() } as any, sessions as any, { hasPlayerAnswered: async () => true, getAnswersForRound: async () => [{ player: { id: 'p' } }], getQuestionStats: async () => ({}) } as any, {} as any, {} as any, { server: { to: () => ({ emit }) } } as any);
         const finish = jest.spyOn(flow, 'finishGame').mockResolvedValue(undefined);
         await flow.finishQuestion('s', 'q');
         await jest.advanceTimersByTimeAsync(3000);
@@ -22,7 +22,7 @@ describe('Survival mistake limit', () => {
 
     it.each([2, 3])('eliminates only at the configured threshold (mistakes=%i)', async (mistakes) => {
         const session = { mode: 'SURVIVAL', currentQuestionIndex: 2, settings: { survivalMistakeLimit: 3 }, quiz: {}, players: [{ id: 'p' }, { id: 'other' }] };
-        const players = { eliminate: jest.fn() };
+        const players = { getBySocket: async () => null, eliminate: jest.fn() };
         const answers = { submitAnswer: async () => ({ playerId: 'p', sessionId: 's', correct: false }), getSurvivalMistakes: async () => mistakes, getAnswersForRound: async () => [] };
         const sessions = { getById: async () => session, getRoundState: async () => ({ session, playerQuestions: new Map([['p', { id: 'q' }]]) }) };
         const flow = new GameFlowService({} as any, players as any, sessions as any, answers as any, {} as any, {} as any, { server: { to: () => ({ emit: jest.fn() }) } } as any);
@@ -33,8 +33,8 @@ describe('Survival mistake limit', () => {
     it.each([2, 3])('applies the same limit to timeouts (mistakes=%i)', async (mistakes) => {
         jest.useFakeTimers();
         const session = { mode: 'SURVIVAL', currentQuestionIndex: 2, settings: { survivalMistakeLimit: 3 }, quiz: {}, players: [{ id: 'p', socketId: 'socket' }] };
-        const players = { eliminate: jest.fn() };
-        const answers = { getSurvivalMistakes: async () => mistakes, getAnswersForRound: async () => [], getQuestionStats: async () => ({}) };
+        const players = { getBySocket: async () => null, eliminate: jest.fn() };
+        const answers = { hasPlayerAnswered: async () => true, getSurvivalMistakes: async () => mistakes, getAnswersForRound: async () => [], getQuestionStats: async () => ({}) };
         const sessions = { getRoundState: async () => ({ session, playerQuestions: new Map([['p', { id: 'q' }]]) }) };
         const flow = new GameFlowService({} as any, players as any, sessions as any, answers as any, {} as any, {} as any, { server: { to: () => ({ emit: jest.fn() }) } } as any);
         await flow.finishQuestion('s', 'q');

@@ -29,6 +29,10 @@ export class GameFlowService {
     ) {}
 
     private questionTimers: Record<string, NodeJS.Timeout> = {};
+    private readonly closedRounds = new Set<string>();
+    private readonly advancingSessions = new Set<string>();
+    private readonly roundDeadlines = new Map<string, number>();
+
     private pendingAnswers = new Set<string>();
     async logSessionEvent(playerId: string, type: string) {
         const event = await this.players.addSessionEvent(playerId, type);
@@ -81,9 +85,13 @@ export class GameFlowService {
             })));
         }
         if (session.status === 'RUNNING' && session.mode !== GameMode.PROGRESS) {
+            if (this.closedRounds.has(`${sessionId}:${session.currentQuestionIndex}`)) {
+                client.emit('leaderboard', await this.players.getLeaderboard(sessionId));
+                return;
+            }
             const question = await this.sessions.getCurrentQuestion(sessionId);
             client.emit('game_started');
-            if (question) client.emit('question_started', this.toPlayableQuestion(question));
+            if (question) client.emit('question_started', { ...this.toPlayableQuestion(question), endsAt: this.roundDeadlines.get(sessionId), currentQuestionIndex: session.currentQuestionIndex + 1, personalized: Boolean(session.quiz.questionSelection || session.quiz.shuffleQuestions) });
         }
     }
 
@@ -151,6 +159,7 @@ export class GameFlowService {
         const { session, canonicalQuestion: question, playerQuestions } = await this.sessions.getRoundState(sessionId);
 
         if (!question) return this.finishGame(sessionId);
+        clearTimeout(this.questionTimers[sessionId]);
 
         if (session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT) {
             const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
@@ -170,29 +179,32 @@ export class GameFlowService {
                 const current=playerQuestions.get(player.id);
                 if(current&&!player.eliminatedAt) await this.players.startQuestionClock(player.id,current.id);
             }
+            const roundTimeLimit = Math.max(question.timeLimit, ...[...playerQuestions.values()].filter(Boolean).map((item) => item!.timeLimit));
+            const endsAt = Date.now() + roundTimeLimit * 1000;
+            this.roundDeadlines.set(sessionId, endsAt);
             if (session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.quiz.shuffleAnswers || session.mode === GameMode.TOURNAMENT) {
                 const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
                 this.gateway.server.to(sessionId).except(playerSockets).emit(
                     'question_started',
-                    this.toPlayableQuestion(question, session.quiz.shuffleAnswers),
+                    { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), timeLimit: roundTimeLimit, endsAt, personalized: true, currentQuestionIndex: session.currentQuestionIndex + 1 },
                 );
                 for (const player of session.players) {
                     const playerQuestion = playerQuestions.get(player.id);
                     if (player.socketId && playerQuestion && !player.eliminatedAt) {
                         this.gateway.server.to(player.socketId).emit(
                             'question_started',
-                            this.toPlayableQuestion(playerQuestion, session.quiz.shuffleAnswers),
+                            { ...this.toPlayableQuestion(playerQuestion, session.quiz.shuffleAnswers), endsAt: Date.now() + playerQuestion.timeLimit * 1000 },
                         );
                     }
                 }
             } else {
-                const payload = this.toPlayableQuestion(question, session.quiz.shuffleAnswers);
+                const payload = { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), endsAt, currentQuestionIndex: session.currentQuestionIndex + 1 };
                 this.gateway.server.to(sessionId).emit('question_started', payload);
             }
 
             this.questionTimers[sessionId] = setTimeout(() => {
                 this.finishQuestion(sessionId, question.id);
-            }, Math.max(question.timeLimit, ...[...playerQuestions.values()].filter(Boolean).map((item) => item!.timeLimit)) * 1000);
+            }, roundTimeLimit * 1000);
 
         }, 1000);
 
@@ -206,6 +218,14 @@ export class GameFlowService {
     }
 
     private async processAnswer(clientId: string, dto: CreatePlayerAnswerDto) {
+        const participant = await this.players.getBySocket(clientId);
+        if (participant) {
+            const active = await this.sessions.getById(participant.session_id);
+            if (active.mode !== GameMode.PROGRESS && this.closedRounds.has(`${active.id || participant.session_id}:${active.currentQuestionIndex}`)) {
+                this.gateway.server.to(clientId).emit('answer_received', { submitted: true, awaitingNext: true });
+                return;
+            }
+        }
         const result = await this.answers.submitAnswer(
             clientId,
             dto.questionId,
@@ -281,13 +301,14 @@ export class GameFlowService {
         client.emit('session_resumed', { ok: true, settings: session.settings });
         if (stored.socketId !== client.id && session.status !== 'FINISHED') await this.logSessionEvent(player.id, 'RECONNECTED');
 
-        if (player.completedAt) return client.emit('player_completed');
-        if (player.eliminatedAt) return client.emit('player_eliminated', { reason: 'eliminated' });
         if (session.status === 'FINISHED') return client.emit('game_finished', {
             feedbackMode: session.quiz.feedbackMode,
             result: await this.answers.getPlayerFinalResult(player.id, session.quiz.feedbackMode !== QuizFeedbackMode.END_SCORE_ONLY),
         });
+        if (player.completedAt) return client.emit('player_completed');
+        if (player.eliminatedAt) return client.emit('player_eliminated', { reason: 'eliminated' });
         if (session.status !== 'RUNNING') return;
+        if (session.mode !== GameMode.PROGRESS && this.closedRounds.has(`${sessionId}:${session.currentQuestionIndex}`)) return client.emit('answer_received', { submitted: true, awaitingNext: true });
 
         const index = session.mode === GameMode.PROGRESS ? player.currentQuestionIndex : session.currentQuestionIndex;
         const question = await this.sessions.getPlayerQuestion(sessionId, playerId, index);
@@ -295,7 +316,7 @@ export class GameFlowService {
         if (await this.answers.hasPlayerAnswered(playerId, question.id)) {
             return client.emit('answer_received', { submitted: true });
         }
-        client.emit('question_started', this.toPlayableQuestion(question, session.quiz.shuffleAnswers));
+        client.emit('question_started', { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), endsAt: player.questionStartedAt ? new Date(player.questionStartedAt).getTime() + question.timeLimit * 1000 : undefined });
     }
 
     private async sendProgressQuestion(player: { id: string; session_id: string; socketId?: string; currentQuestionIndex: number }) {
@@ -345,6 +366,24 @@ export class GameFlowService {
     async finishQuestion(sessionId: string, questionId: string) {
         const roundState = await this.sessions.getRoundState(sessionId);
         const session = roundState.session;
+        const roundKey = `${sessionId}:${session.currentQuestionIndex}`;
+        if (this.closedRounds.has(roundKey) || session.status === 'FINISHED') return;
+        this.closedRounds.add(roundKey);
+        clearTimeout(this.questionTimers[sessionId]);
+        delete this.questionTimers[sessionId];
+        for (const player of session.players.filter((item) => !item.eliminatedAt)) {
+            const assigned = roundState.playerQuestions.get(player.id);
+            if (assigned && !await this.answers.hasPlayerAnswered(player.id, assigned.id)) {
+                try {
+                    const result = await this.answers.recordTimeout(player.id, assigned.id);
+                    if (player.socketId) this.gateway.server.to(player.socketId).emit('answer_received', session.quiz.feedbackMode === QuizFeedbackMode.IMMEDIATE ? { ...result, timedOut: true } : { submitted: true, timedOut: true });
+                    this.gateway.server.to(`host:${sessionId}`).emit('player_answered', { playerId: player.id, timedOut: true });
+                } catch {
+                    if (!await this.answers.hasPlayerAnswered(player.id, assigned.id)) throw new Error('Could not persist question timeout');
+                }
+            }
+            if (player.socketId) this.gateway.server.to(player.socketId).emit('question_closed', { questionId: assigned?.id });
+        }
         const expectedByPlayer = Object.fromEntries([...roundState.playerQuestions.entries()]
             .filter(([, question]) => Boolean(question))
             .map(([playerId, question]) => [playerId, question!.id]));
@@ -364,7 +403,7 @@ export class GameFlowService {
             ? await this.answers.getRoundStats(sessionId, roundQuestionIds, expectedByPlayer)
             : await this.answers.getQuestionStats(sessionId, questionId);
 
-        this.gateway.server.to(sessionId).emit('question_results', stats);
+        this.gateway.server.to(sessionId).emit('question_results', { ...stats, roundClosed: true, message: 'Раунд завершено. Після таблиці результатів натисніть «Наступне питання».' });
 
         setTimeout(async () => {
             const updatedSession = await this.sessions.getById(sessionId);
@@ -458,6 +497,11 @@ export class GameFlowService {
 
 
     async nextQuestion(sessionId: string) {
+        if (this.advancingSessions.has(sessionId)) return;
+        const current = await this.sessions.getById(sessionId);
+        if (current.status === 'FINISHED' || !this.closedRounds.has(`${sessionId}:${current.currentQuestionIndex}`)) return;
+        this.advancingSessions.add(sessionId);
+        try {
         await this.sessions.increaseQuestionIndex(sessionId);
 
         const next = await this.sessions.getCurrentQuestion(sessionId);
@@ -484,7 +528,8 @@ export class GameFlowService {
                 tournament,
             );
         }
-        return this.startQuestion(sessionId);
+        return await this.startQuestion(sessionId);
+        } finally { this.advancingSessions.delete(sessionId); }
     }
 
     async finishGame(sessionId: string, finalLeaderboard?: unknown[]) {
@@ -498,6 +543,9 @@ export class GameFlowService {
         }
         await this.sessions.finish(sessionId);
         if (finalLeaderboard) this.gateway.server.to(`host:${sessionId}`).emit('final_leaderboard', finalLeaderboard);
+        clearTimeout(this.questionTimers[sessionId]);
+        delete this.questionTimers[sessionId];
+        this.roundDeadlines.delete(sessionId);
         const feedbackMode = session.quiz.feedbackMode ?? QuizFeedbackMode.IMMEDIATE;
         for (const player of session.players) {
             if (!player.socketId) continue;

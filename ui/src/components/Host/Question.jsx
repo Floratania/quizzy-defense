@@ -36,9 +36,10 @@ export default function Question({question, players, currentQuestionIndex, teamL
                                 {answeredCount}/{activePlayers.length}
                             </Badge>
                         </Group>
-                        <TimerBadge timeLimit={question.timeLimit} />
+                        <TimerBadge timeLimit={question.timeLimit} endsAt={question.endsAt} />
                     </Group>
 
+                    {question.personalized && <Paper withBorder p="sm"><Text size="sm">Учасники отримують різні питання. Нижче — приклад одного варіанта; відповіді перевіряються за особистим питанням кожного.</Text></Paper>}
                     {/* Question Card */}
                     <Paper shadow="xl" radius="xl" p={40} style={{ background: "white" }}>
                         <Stack spacing="lg">
@@ -100,6 +101,7 @@ export default function Question({question, players, currentQuestionIndex, teamL
                                 <Grid.Col key={player.id} span={6} md={4} lg={3}>
                                     <Card shadow="sm" radius="lg" p="md">
                                         <Stack spacing="xs" align="center">
+                                            <Badge variant="light" color="orange">Виходи / фокус: {player.integrityEvents || 0}</Badge>
                                             <Avatar
                                                 size="md"
                                                 radius="xl"

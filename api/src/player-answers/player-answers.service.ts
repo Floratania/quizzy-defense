@@ -20,16 +20,36 @@ export class PlayerAnswersService {
     ) {
     }
 
-    async submitAnswer(
+    private readonly answerLocks = new Map<string, Promise<void>>();
+
+    async recordTimeout(playerId: string, questionId: string) {
+        return this.submitAnswer('', questionId, undefined, { timedOut: true }, 0, playerId);
+    }
+
+    async submitAnswer(socketId: string, questionId: string, answerId: string | undefined, response: Record<string, unknown> | undefined, clientTime: number, internalPlayerId?: string) {
+        const participant = await this.playersRepo.findOne({ where: internalPlayerId ? { id: internalPlayerId } : { socketId } });
+        if (!participant) throw new NotFoundException('Player not found');
+        const previous = this.answerLocks.get(participant.id) || Promise.resolve();
+        let release!: () => void;
+        const ready = new Promise<void>((resolve) => { release = resolve; });
+        const queued = previous.catch(() => {}).then(() => ready);
+        this.answerLocks.set(participant.id, queued);
+        await previous.catch(() => {});
+        try { return await this.persistAnswer(socketId, questionId, answerId, response, clientTime, participant.id); }
+        finally { release(); if (this.answerLocks.get(participant.id) === queued) this.answerLocks.delete(participant.id); }
+    }
+
+    private async persistAnswer(
         playerSocketId: string,
         questionId: string,
         answerId: string | undefined,
         response: Record<string, unknown> | undefined,
         _clientTimeTaken: number,
+        internalPlayerId?: string,
     ) {
         // 1. Find player
         const player = await this.playersRepo.findOne({
-            where: {socketId: playerSocketId},
+            where: internalPlayerId ? { id: internalPlayerId } : {socketId: playerSocketId},
             relations: ['session'],
         });
 

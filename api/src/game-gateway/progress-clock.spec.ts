@@ -8,7 +8,7 @@ describe('Progress server timeout',()=>{
         const sessions={getRoundState:async()=>({totalQuestions:2,session:{quiz:{}}}),getPlayerQuestion:async()=>question,getById:async()=>({mode:'PROGRESS',quiz:{feedbackMode:'IMMEDIATE'}})};
         const answers={hasPlayerAnswered:async()=>false,submitAnswer:jest.fn(async()=>({sessionId:'s',playerId:'p',correct:false}))};
         const emit=jest.fn();
-        const flow=new GameFlowService({} as any,{getOne:async()=>player,startQuestionClock:async()=>{}} as any,sessions as any,answers as any,{} as any,{} as any,{server:{to:()=>({emit})}} as any);
+        const flow=new GameFlowService({} as any,{getBySocket:async()=>null,getOne:async()=>player,startQuestionClock:async()=>{}} as any,sessions as any,answers as any,{} as any,{} as any,{server:{to:()=>({emit})}} as any);
         const advance=jest.spyOn(flow as any,'advanceProgressPlayer').mockResolvedValue(undefined);
         await (flow as any).sendProgressQuestion(player);
         await jest.advanceTimersByTimeAsync(1000);

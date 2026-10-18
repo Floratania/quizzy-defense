@@ -18,6 +18,7 @@ export default function Result({results}) {
                             Результати питання
                         </Title>
 
+                        {results.message && <Text mb="md" c="dimmed">{results.message}</Text>}
                         <Group mb="xl" grow>
                             <Paper withBorder p="md" ta="center">
                                 <Text c="dimmed">Відповіли</Text>

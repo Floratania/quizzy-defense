@@ -19,11 +19,14 @@ import KahootGameScreen from "../pages/Test.jsx";
 import ClassesPage from '../components/Dashboard/ClassesPage.jsx';
 import PracticePage from '../pages/PracticePage.jsx';
 import FormattingGuidePage from '../pages/FormattingGuidePage.jsx';
+import MistakePracticePage from '../pages/MistakePracticePage.jsx';
+import { NotFoundPage, RouteErrorPage } from '../pages/RouteProblemPage.jsx';
 
 const router = createBrowserRouter([
     {
         path: '/',
         Component: App,
+        errorElement: <RouteErrorPage />,
         children: [
             {index: true, Component: HomePage},
             {
@@ -37,6 +40,7 @@ const router = createBrowserRouter([
             {path: 'panel2', Component: QuizCreator},
             {path: 'host/:quizId', Component: HostPage},
             {path: 'player', Component: PlayerPage},
+            {path: 'mistake-practice', Component: MistakePracticePage},
             {path: 'join', Component: JoinPage},
             {path: 'help/formatting', element: <Navigate to="/admin/help/formatting" replace />},
             {path: 'manage', Component: CreateEditQuizPage},
@@ -64,7 +68,8 @@ const router = createBrowserRouter([
                     { path: "classes", Component: ClassesPage },
                     { path: 'help/formatting', Component: FormattingGuidePage },
                 ]
-            }
+            },
+            {path: '*', Component: NotFoundPage},
         ],
     },
 ]);

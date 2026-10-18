@@ -30,6 +30,7 @@ export const QuestionScreen = ({ question }) => {
     };
 
     useEffect(() => {
+        if (question.practice) return;
         const timeout = window.setTimeout(() => {
             setSubmitted((alreadySubmitted) => {
                 if (!alreadySubmitted) submitAnswer({ response: { timedOut: true } });
@@ -37,7 +38,7 @@ export const QuestionScreen = ({ question }) => {
             });
         }, Math.max(1, Number(question.timeLimit) || 30) * 1000);
         return () => window.clearTimeout(timeout);
-    }, [question.id, question.timeLimit, submitAnswer]);
+    }, [question.id, question.timeLimit, question.practice, submitAnswer]);
 
     if (question.type === 'multiple_choice' || question.type === 'true_false') {
         return (
@@ -45,7 +46,7 @@ export const QuestionScreen = ({ question }) => {
                 title={question.text}
                 imageUrl={question.mediaUrl}
                 hint={question.type === 'true_false' ? 'Оберіть правильне твердження' : 'Оберіть одну правильну відповідь'}
-                timeLimit={question.timeLimit}
+                timeLimit={question.practice ? null : question.timeLimit}
             >
                 <Box h={question.answers.length <= 2 ? 230 : 410} maw={820} w="100%" mx="auto">
                     <PlayerAnswerGrid
@@ -63,7 +64,7 @@ export const QuestionScreen = ({ question }) => {
             current.includes(answerId) ? current.filter((id) => id !== answerId) : [...current, answerId]
         );
         return (
-            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} hint="Оберіть усі правильні варіанти" timeLimit={question.timeLimit}>
+            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} hint="Оберіть усі правильні варіанти" timeLimit={question.practice ? null : question.timeLimit}>
                 <Grid>
                     {question.answers.map((answer) => {
                         const selected = selectedAnswers.includes(answer.id);
@@ -107,7 +108,7 @@ export const QuestionScreen = ({ question }) => {
             if (firstEmpty !== undefined) placeWord(firstEmpty, wordId);
         };
         return (
-            <InteractiveShell title="Вставте пропущене слово" imageUrl={question.mediaUrl} hint="Перетягніть варіант у пропуск" timeLimit={question.timeLimit}>
+            <InteractiveShell title="Вставте пропущене слово" imageUrl={question.mediaUrl} hint="Перетягніть варіант у пропуск" timeLimit={question.practice ? null : question.timeLimit}>
                 <Paper withBorder radius="lg" p="xl">
                     <Group justify="center" gap="sm" wrap="wrap">
                         {textParts.map((part, index) => {
@@ -162,7 +163,7 @@ export const QuestionScreen = ({ question }) => {
 
     if (question.type === 'open_text') {
         return (
-            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} timeLimit={question.timeLimit}>
+            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} timeLimit={question.practice ? null : question.timeLimit}>
                 <TextInput size="xl" label="Ваша відповідь" value={text} onChange={(event) => setText(event.target.value)} disabled={submitted} />
                 <Button size="lg" disabled={!text.trim() || submitted} onClick={() => send({ response: { text } })}>Надіслати відповідь</Button>
             </InteractiveShell>
@@ -173,7 +174,7 @@ export const QuestionScreen = ({ question }) => {
         const leftItems = question.configuration?.leftItems || [];
         const used = new Set(Object.values(matches));
         return (
-            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} hint="Перетягніть праву картку до відповідної лівої" timeLimit={question.timeLimit}>
+            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} hint="Перетягніть праву картку до відповідної лівої" timeLimit={question.practice ? null : question.timeLimit}>
                 <Group align="flex-start" grow>
                     <Stack>
                         {leftItems.map((left) => (
@@ -220,7 +221,7 @@ export const QuestionScreen = ({ question }) => {
             });
         };
         return (
-            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} hint="Перетягніть елементи у правильний порядок" timeLimit={question.timeLimit}>
+            <InteractiveShell title={question.text} imageUrl={question.mediaUrl} hint="Перетягніть елементи у правильний порядок" timeLimit={question.practice ? null : question.timeLimit}>
                 <Stack>
                     {order.map((item, index) => (
                         <Paper key={item.id} draggable={!submitted} onDragStart={() => setDraggedOrderId(item.id)}
@@ -239,10 +240,10 @@ export const QuestionScreen = ({ question }) => {
 
 function InteractiveShell({ title, imageUrl, hint, timeLimit, children }) {
     return (
-        <Box p="xl" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 50%, #fce7f3 100%)' }}>
+        <Box p="xl" style={{ minHeight: timeLimit === null ? undefined : '100vh', display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 50%, #fce7f3 100%)' }}>
             <Paper maw={900} w="100%" mx="auto" p="xl" radius="xl" shadow="lg">
                 <Stack gap="lg">
-                    <Group justify="space-between"><div style={{flex:1,minWidth:0}}><RichText>{title}</RichText></div><TimerBadge timeLimit={timeLimit} /></Group>
+                    <Group justify="space-between"><div style={{flex:1,minWidth:0}}><RichText>{title}</RichText></div>{timeLimit === null ? <Badge variant="light">Без таймера</Badge> : <TimerBadge timeLimit={timeLimit} />}</Group>
                     {imageUrl && <Image src={imageUrl} alt={title} radius="md" mah={300} fit="contain" fallbackSrc="https://placehold.co/800x300?text=Фото+недоступне" />}
                     {hint && <Text c="dimmed">{hint}</Text>}{children}
                 </Stack>

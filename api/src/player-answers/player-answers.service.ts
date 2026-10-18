@@ -292,6 +292,12 @@ export class PlayerAnswersService {
                     correct: answer?.isCorrect ?? false,
                     earnedPoints: answer?.earnedPoints ?? 0,
                     correctAnswer: this.formatCorrectAnswer(question),
+                    practiceQuestion: {
+                        id: question.id, text: question.text, type: question.type,
+                        mediaUrl: question.mediaUrl, explanation: question.explanation,
+                        timeLimit: question.timeLimit, configuration: question.configuration,
+                        answers: question.answers.map(({ id, text, mediaUrl, isCorrect }) => ({ id, text, mediaUrl, isCorrect })),
+                    },
                 };
             }),
         };

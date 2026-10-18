@@ -285,7 +285,7 @@ export class GameFlowService {
         if (player.eliminatedAt) return client.emit('player_eliminated', { reason: 'eliminated' });
         if (session.status === 'FINISHED') return client.emit('game_finished', {
             feedbackMode: session.quiz.feedbackMode,
-            result: await this.answers.getPlayerFinalResult(player.id, session.quiz.feedbackMode === QuizFeedbackMode.END_WITH_ANSWERS),
+            result: await this.answers.getPlayerFinalResult(player.id, session.quiz.feedbackMode !== QuizFeedbackMode.END_SCORE_ONLY),
         });
         if (session.status !== 'RUNNING') return;
 
@@ -503,7 +503,7 @@ export class GameFlowService {
             if (!player.socketId) continue;
             const result = await this.answers.getPlayerFinalResult(
                 player.id,
-                feedbackMode === QuizFeedbackMode.END_WITH_ANSWERS,
+                feedbackMode !== QuizFeedbackMode.END_SCORE_ONLY,
             );
             this.gateway.server.to(player.socketId).emit('game_finished', { feedbackMode, result });
         }

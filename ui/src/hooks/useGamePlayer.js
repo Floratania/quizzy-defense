@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { socket } from "../ws/socket";
 import { connectionService } from "../ws/connectionService";
 import {gameService} from "../services/gameService.js";
+import { readFinalResult, saveFinalResult } from '../utils/finalResultCache.js';
 
 export function useGamePlayer(sessionId, playerId) {
     const [preview, setPreview] = useState(null);
@@ -13,7 +14,7 @@ export function useGamePlayer(sessionId, playerId) {
     const [playerCompleted, setPlayerCompleted] = useState(false);
     const [eliminated, setEliminated] = useState(false);
     const [eliminationReason, setEliminationReason] = useState(null);
-    const [finalResult, setFinalResult] = useState(null);
+    const [finalResult, setFinalResult] = useState(() => readFinalResult(sessionId, playerId));
     const [settings, setSettings] = useState({});
 
     useEffect(() => {
@@ -53,7 +54,10 @@ export function useGamePlayer(sessionId, playerId) {
         };
 
         const handleGameFinished = (data) => {
-            if (data?.result) setFinalResult(data.result);
+            if (data?.result) {
+                setFinalResult(data.result);
+                saveFinalResult(sessionId, playerId, data.result);
+            }
             setGameFinished(true);
             connectionService.disconnect();
         };

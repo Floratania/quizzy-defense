@@ -141,7 +141,7 @@ export class QuizzesService {
     async revoke(id: string, userId: number, member: number) {
         await this.collaborators(id, userId);
         await this.quizRepository.manager.transaction(async (manager) => {
-            const removed = await manager.query('DELETE FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2 RETURNING "userId"', [id, member]);
+            const removed = await manager.query('WITH removed AS (DELETE FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2 RETURNING "userId") SELECT * FROM removed', [id, member]);
             if (!removed.length) return;
             const users = await manager.query('SELECT email FROM "user" WHERE id=$1', [member]);
             await manager.query('INSERT INTO quiz_change_history ("quizId","actorId",action,details) VALUES ($1,$2,$3,$4)', [id, userId, 'REVOKED', JSON.stringify({ member: users[0]?.email })]);

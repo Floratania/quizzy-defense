@@ -191,20 +191,26 @@ export const AddQuestionForm = () => {
     };
 
     return (
-        <Card ref={formRef} shadow="md" padding="md" radius="lg" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
-            <Title order={3} mb="sm">{editingQuestionId !== null ? 'Редагування питання' : 'Нове питання'}</Title>
-            {editingQuestionId !== null && <Text size="sm" c="dimmed" mb="md">Зміни застосовуються лише до питання в цій вікторині. Оригінал у банку залишиться незмінним.</Text>}
+        <Card ref={formRef} shadow="md" padding="sm" radius="md" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
+            <Title order={4} mb="xs">{editingQuestionId !== null ? 'Редагування питання' : 'Нове питання'}</Title>
+            {editingQuestionId !== null && <Text size="xs" c="dimmed" mb="xs">Зміни лише в цій вікторині; оригінал у банку зберігається.</Text>}
 
-            <Stack gap="sm">
+            <Stack gap="xs">
 
-                {/* TYPE SELECT */}
-                <Select
-                    label="Тип питання"
-                    data={questionTypes}
-                    value={currentQuestion.type}
-                    onChange={handleQuestionTypeChange}
-                    size="md"
-                />
+                <Grid gutter="xs" align="end">
+                    <Grid.Col span={{ base: 12, sm: 5 }}>
+                        <Select label="Тип питання" data={questionTypes} value={currentQuestion.type} onChange={handleQuestionTypeChange} size="sm" />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 4, sm: 2 }}>
+                        <NumberInput label="Час, с" value={currentQuestion.timeLimit} onChange={(timeLimit) => updateCurrentQuestion({ timeLimit })} min={5} max={300} size="sm" />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 4, sm: 2 }}>
+                        <NumberInput label="Бали" value={currentQuestion.points} onChange={(points) => updateCurrentQuestion({ points })} min={100} max={10000} step={100} size="sm" />
+                    </Grid.Col>
+                    {['multiple_choice', 'multiple_response'].includes(currentQuestion.type) && <Grid.Col span={{ base: 4, sm: 3 }}>
+                        <NumberInput label="Варіантів" value={currentQuestion.numberOfAnswers} onChange={handleNumberOfAnswersChange} min={2} max={6} size="sm" />
+                    </Grid.Col>}
+                </Grid>
 
                 {/* QUESTION TEXT */}
                 {currentQuestion.type === 'fill_blank' ? (
@@ -229,7 +235,7 @@ export const AddQuestionForm = () => {
                         minRows={2}
                         autosize
                         required
-                        size="md"
+                        size="sm"
                     />
                 )}
 
@@ -275,32 +281,6 @@ export const AddQuestionForm = () => {
                 </Box>
                 </Stack>
                 </Box>
-
-                {/* TIME + POINTS */}
-                <Grid>
-                    <Grid.Col span={6}>
-                        <NumberInput
-                            label="Обмеження часу (секунд)"
-                            value={currentQuestion.timeLimit}
-                            onChange={(v) => updateCurrentQuestion({ timeLimit: v })}
-                            min={5}
-                            max={300}
-                            leftSection={<IconClock size={16} />}
-                        />
-                    </Grid.Col>
-
-                    <Grid.Col span={6}>
-                        <NumberInput
-                            label="Бали"
-                            value={currentQuestion.points}
-                            onChange={(v) => updateCurrentQuestion({ points: v })}
-                            min={100}
-                            max={10000}
-                            step={100}
-                            leftSection={<IconStar size={16} />}
-                        />
-                    </Grid.Col>
-                </Grid>
 
                 {/* TEXT INPUT QUESTION */}
                 {currentQuestion.type === 'open_text' && (
@@ -463,18 +443,6 @@ export const AddQuestionForm = () => {
                 {/* MULTIPLE CHOICE / TRUE FALSE */}
                 {!['open_text', 'fill_blank', 'matching', 'ordering'].includes(currentQuestion.type) && (
                     <>
-                        {/* NUMBER OF ANSWERS (ONLY MCQ) */}
-                        {(currentQuestion.type === 'multiple_choice' || currentQuestion.type === 'multiple_response') && (
-                            <NumberInput
-                                label={currentQuestion.type === 'fill_blank' ? 'Кількість варіантів слів' : 'Кількість відповідей'}
-                                value={currentQuestion.numberOfAnswers}
-                                onChange={handleNumberOfAnswersChange}
-                                min={2}
-                                max={6}
-                                size="md"
-                            />
-                        )}
-
                         {/* ANSWER LIST */}
                         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
                             {currentQuestion.answers
@@ -502,7 +470,8 @@ export const AddQuestionForm = () => {
                                                 />
                                             </Group>
 
-                                            {/* ANSWER IMAGE */}
+                                            <Box component="details" key={`answer-image-${editingQuestionId}-${idx}`} open={Boolean(currentQuestion.answerImagePreviews[idx]) || undefined}>
+                                            <Text component="summary" size="xs" c="dimmed" style={{ cursor: 'pointer' }}>Зображення</Text>
                                             {currentQuestion.answerImagePreviews[idx] ? (
                                                 <Box>
                                                     <Group justify="space-between" mb="xs">
@@ -542,6 +511,7 @@ export const AddQuestionForm = () => {
                                                     size="xs"
                                                 />
                                             )}
+                                            </Box>
                                         </Stack>
                                     </Paper>
                                 ))}
@@ -551,8 +521,8 @@ export const AddQuestionForm = () => {
 
                 {/* SUBMIT QUESTION */}
                 <Checkbox
+                    size="xs"
                     label="Також зберегти в банк питань"
-                    description="Увімкніть, щоб повторно використовувати це питання в інших вікторинах. Інакше воно залишиться лише в цій вікторині."
                     checked={Boolean(currentQuestion.saveToBank)}
                     onChange={(event) => updateCurrentQuestion({ saveToBank: event.currentTarget.checked })}
                 />
@@ -566,7 +536,7 @@ export const AddQuestionForm = () => {
                     }}
                     variant="gradient"
                     gradient={{ from: 'blue', to: 'purple' }}
-                    size="md"
+                    size="sm"
                     fullWidth
                 >
                     {editingQuestionId !== null ? 'Зберегти зміни питання' : 'Додати запитання'}

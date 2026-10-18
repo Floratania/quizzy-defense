@@ -38,6 +38,7 @@ import { useNavigate } from "react-router";
 import { useSessionReports } from '../../../hooks/useSessionReports.js';
 import {checkQuizQuality} from '../../../utils/quizQuality.js';
 import RichText from '../../Question/RichText.jsx';
+import QuizSharingModal from './QuizSharingModal.jsx';
 
 export default function QuizList() {
 
@@ -51,6 +52,7 @@ export default function QuizList() {
     const [previewLoading, setPreviewLoading] = useState(false);
     const [quality, setQuality] = useState(null);
     const [checkingQuality, setCheckingQuality] = useState(false);
+    const [sharingQuiz, setSharingQuiz] = useState(null);
     const auditQuiz = async (id) => {
         setCheckingQuality(true);
         try { const quiz=await handleGetById(id);const issues=await checkQuizQuality(quiz);setQuality({quizId:id,issues});return issues; }
@@ -158,6 +160,7 @@ export default function QuizList() {
 
     return (
         <Stack gap="xl">
+            <QuizSharingModal quiz={sharingQuiz} onClose={() => setSharingQuiz(null)} />
             <Modal opened={checkingQuality || Boolean(quality)} onClose={()=>setQuality(null)} title="Перевірка якості квізу">
                 {checkingQuality ? <Text>Перевірка питань і зображень…</Text> : <Stack>{quality?.issues.length ? quality.issues.map((issue,index)=><Text key={index} c={issue.severity==='error'?'red':'orange'}>{issue.message}</Text>):<Text c="green">Проблем не виявлено</Text>}</Stack>}
             </Modal>
@@ -311,6 +314,9 @@ export default function QuizList() {
                             <Table.Tr>
                                 <Table.Td>
                                     <Text fw={600}>{quiz.title}</Text>
+                                    <Badge size="xs" variant="light" color={quiz.accessRole === 'OWNER' ? 'gray' : 'violet'}>
+                                        {quiz.accessRole === 'VIEWER' ? 'Спільний · перегляд і запуск' : quiz.accessRole === 'EDITOR' ? 'Спільний · редактор' : 'Власник'}
+                                    </Badge>
                                 </Table.Td>
 
                                 <Table.Td>
@@ -323,6 +329,8 @@ export default function QuizList() {
                                         <ActionIcon
                                             variant="light"
                                             color="blue"
+                                            title="Запустити тест для учнів"
+                                            aria-label={`Запустити тест для учнів: ${quiz.title}`}
                                             onClick={() => handleStartSession(quiz.id)}
                                         >
                                             <IconPlayerPlay size={16}/>
@@ -385,6 +393,8 @@ export default function QuizList() {
                                         <ActionIcon
                                             variant="light"
                                             color="blue"
+                                            title="Редагувати квіз"
+                                            disabled={quiz.accessRole === 'VIEWER'}
                                             onClick={() => handleEditQuiz(quiz)}
                                         >
                                             <IconEdit size={16}/>
@@ -399,7 +409,10 @@ export default function QuizList() {
 
                                             <Menu.Dropdown>
                                                 <Menu.Item leftSection={<IconEye size={16}/>} onClick={() => handlePreview(quiz.id)}>
-                                                    Preview
+                                                    Переглянути питання
+                                                </Menu.Item>
+                                                <Menu.Item leftSection={<IconUsers size={16}/>} onClick={() => setSharingQuiz(quiz)}>
+                                                    {quiz.accessRole === 'OWNER' ? 'Доступ та історія' : 'Історія змін'}
                                                 </Menu.Item>
                                                 <Menu.Item leftSection={<IconCopy size={16}/>} onClick={() => handleDuplicate(quiz.id)}>Дублювати</Menu.Item>
                                                 <Menu.Item onClick={()=>auditQuiz(quiz.id)}>Перевірити якість</Menu.Item>
@@ -413,6 +426,7 @@ export default function QuizList() {
 
                                                 <Menu.Item
                                                     color="red"
+                                                    disabled={quiz.accessRole !== 'OWNER'}
                                                     leftSection={<IconTrash size={16}/>}
                                                     onClick={() => handleDeleteQuizClick(quiz.id)}
                                                 >

@@ -16,8 +16,8 @@ export const QuizHeader = () => {
     const handleSubmit = async () => {
         try {
             setSaving(true);
-            await submitQuiz();
-            navigate("/admin/quizzes");
+            const result = await submitQuiz();
+            if (result) navigate("/admin/quizzes");
         } catch (err) {
             console.error("Failed to submit quiz:", err);
         } finally {

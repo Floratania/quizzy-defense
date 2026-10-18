@@ -2,6 +2,7 @@ import {
     Injectable,
     NotFoundException,
     BadRequestException,
+    ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, Repository } from 'typeorm';
@@ -29,6 +30,10 @@ export class GameSessionsService {
 
         if (!quiz) {
             throw new NotFoundException('Quiz not found');
+        }
+        if (quiz.userId !== userId) {
+            const access = await this.quizzesRepo.query('SELECT 1 FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2', [quiz.id, userId]);
+            if (!access.length) throw new ForbiddenException('Немає доступу до запуску цього квізу');
         }
         const now = new Date();
         const errors=quizErrors(quiz.questions);

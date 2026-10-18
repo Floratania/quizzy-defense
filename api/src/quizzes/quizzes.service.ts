@@ -51,7 +51,11 @@ export class QuizzesService {
         });
 
 
-        return await this.quizRepository.save(quiz);
+        return this.quizRepository.manager.transaction(async (manager) => {
+            const saved = await manager.save(Quiz, quiz);
+            await manager.query('INSERT INTO quiz_change_history ("quizId","actorId",action,details) VALUES ($1,$2,$3,$4)', [saved.id, userId, 'CREATED', JSON.stringify({ title: saved.title, questionCount: saved.questions.length })]);
+            return { ...saved, accessRole: 'OWNER' };
+        });
     }
 
     private validateInteractiveQuestion(question: CreateQuizDto['questions'][number]) {
@@ -92,6 +96,7 @@ export class QuizzesService {
     async findOne(id: string) {
         const quiz = await this.quizRepository.findOne({
             where: { id },
+            order: { questions: { position: 'ASC' } },
             relations: {
                 questions: {
                     answers: true
@@ -119,19 +124,35 @@ export class QuizzesService {
         if (quiz.userId !== userId) throw new ForbiddenException();
         return this.quizRepository.query('SELECT c."userId",c.role,u.name,u.email FROM quiz_collaborators c JOIN "user" u ON u.id=c."userId" WHERE c."quizId"=$1',[id]);
     }
-    async share(id: string, userId: number, dto: {email:string,role:string}) {
-        await this.collaborators(id,userId);
-        if (!['VIEWER','EDITOR'].includes(dto.role) || typeof dto.email !== 'string') throw new BadRequestException();
-        const users = await this.quizRepository.query('SELECT id FROM "user" WHERE lower(email)=lower($1) AND role=$2',[dto.email.trim(),'TEACHER']);
-        if (!users.length) throw new BadRequestException('Викладача з такою поштою не знайдено');
+    async share(id: string, userId: number, dto: {email: string, role: string}) {
+        await this.collaborators(id, userId);
+        if (!['VIEWER', 'EDITOR'].includes(dto.role) || typeof dto.email !== 'string') throw new BadRequestException();
+        const users = await this.quizRepository.query('SELECT id,email FROM "user" WHERE lower(email)=lower($1) AND role=$2', [dto.email.trim(), 'TEACHER']);
+        if (!users.length) throw new BadRequestException('Викладача з такою поштою не знайдено. Спочатку він має зареєструватися в Quizzy.');
         if (users[0].id === userId) throw new BadRequestException('Ви вже власник');
-        await this.quizRepository.query('INSERT INTO quiz_collaborators ("quizId","userId",role) VALUES ($1,$2,$3) ON CONFLICT ("quizId","userId") DO UPDATE SET role=EXCLUDED.role',[id,users[0].id,dto.role]);
-        return this.collaborators(id,userId);
+        await this.quizRepository.manager.transaction(async (manager) => {
+            const previous = await manager.query('SELECT role FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2 FOR UPDATE', [id, users[0].id]);
+            if (previous[0]?.role === dto.role) return;
+            await manager.query('INSERT INTO quiz_collaborators ("quizId","userId",role) VALUES ($1,$2,$3) ON CONFLICT ("quizId","userId") DO UPDATE SET role=EXCLUDED.role', [id, users[0].id, dto.role]);
+            await manager.query('INSERT INTO quiz_change_history ("quizId","actorId",action,details) VALUES ($1,$2,$3,$4)', [id, userId, previous.length ? 'ROLE_CHANGED' : 'SHARED', JSON.stringify({ member: users[0].email, role: dto.role, previousRole: previous[0]?.role })]);
+        });
+        return this.collaborators(id, userId);
     }
-    async revoke(id:string,userId:number,member:number) {
-        await this.collaborators(id,userId);
-        await this.quizRepository.query('DELETE FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2',[id,member]);
-        return this.collaborators(id,userId);
+    async revoke(id: string, userId: number, member: number) {
+        await this.collaborators(id, userId);
+        await this.quizRepository.manager.transaction(async (manager) => {
+            const removed = await manager.query('DELETE FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2 RETURNING "userId"', [id, member]);
+            if (!removed.length) return;
+            const users = await manager.query('SELECT email FROM "user" WHERE id=$1', [member]);
+            await manager.query('INSERT INTO quiz_change_history ("quizId","actorId",action,details) VALUES ($1,$2,$3,$4)', [id, userId, 'REVOKED', JSON.stringify({ member: users[0]?.email })]);
+        });
+        return this.collaborators(id, userId);
+    }
+    async history(id: string, userId: number) {
+        await this.access(id, userId);
+        return this.quizRepository.query(`SELECT h.id,h.action,h.details,h."createdAt",u.name AS "actorName"
+            FROM quiz_change_history h LEFT JOIN "user" u ON u.id=h."actorId"
+            WHERE h."quizId"=$1 ORDER BY h.id DESC LIMIT 100`, [id]);
     }
     async findByUser(id: number) {
         const rows = await this.quizRepository.query('SELECT "quizId",role FROM quiz_collaborators WHERE "userId"=$1',[id]);
@@ -146,27 +167,33 @@ export class QuizzesService {
     async update(id: string, dto: UpdateQuizDto, userId: number) {
         const quiz = await this.access(id, userId, true);
         if (!dto.questions) throw new BadRequestException('Questions are required');
-        dto.questions.forEach((question) => this.validateInteractiveQuestion(question));
-        await this.questionRepository.delete({ quizId: id });
-        Object.assign(quiz, {
-            title: dto.title ?? quiz.title,
-            description: dto.description,
-            topic: dto.topic?.trim() || quiz.topic,
-            passThreshold: dto.passThreshold ?? quiz.passThreshold,
-            availableFrom: dto.availableFrom === undefined ? quiz.availableFrom : dto.availableFrom ? new Date(dto.availableFrom) : null,
-            availableUntil: dto.availableUntil === undefined ? quiz.availableUntil : dto.availableUntil ? new Date(dto.availableUntil) : null,
-            maxAttempts: dto.maxAttempts ?? quiz.maxAttempts, requireFullscreen: dto.requireFullscreen ?? quiz.requireFullscreen,
-            trackTabSwitches: dto.trackTabSwitches ?? quiz.trackTabSwitches,
-            feedbackMode: dto.feedbackMode ?? quiz.feedbackMode,
-            shuffleQuestions: dto.shuffleQuestions ?? quiz.shuffleQuestions,
-            shuffleAnswers: dto.shuffleAnswers ?? quiz.shuffleAnswers,
-            questions: dto.questions.map((question, position) => this.questionRepository.create({
-                ...question,
-                position,
-                answers: question.answers.map((answer) => this.answerRepository.create(answer)),
-            })),
+        const questions = dto.questions;
+        questions.forEach((question) => this.validateInteractiveQuestion(question));
+        const previous = { title: quiz.title, questionCount: quiz.questions.length };
+        return this.quizRepository.manager.transaction(async (manager) => {
+            await manager.delete(Question, { quizId: id });
+            Object.assign(quiz, {
+                title: dto.title ?? quiz.title,
+                description: dto.description,
+                topic: dto.topic?.trim() || quiz.topic,
+                passThreshold: dto.passThreshold ?? quiz.passThreshold,
+                availableFrom: dto.availableFrom === undefined ? quiz.availableFrom : dto.availableFrom ? new Date(dto.availableFrom) : null,
+                availableUntil: dto.availableUntil === undefined ? quiz.availableUntil : dto.availableUntil ? new Date(dto.availableUntil) : null,
+                maxAttempts: dto.maxAttempts ?? quiz.maxAttempts, requireFullscreen: dto.requireFullscreen ?? quiz.requireFullscreen,
+                trackTabSwitches: dto.trackTabSwitches ?? quiz.trackTabSwitches,
+                feedbackMode: dto.feedbackMode ?? quiz.feedbackMode,
+                shuffleQuestions: dto.shuffleQuestions ?? quiz.shuffleQuestions,
+                shuffleAnswers: dto.shuffleAnswers ?? quiz.shuffleAnswers,
+                questions: questions.map((question, position) => this.questionRepository.create({
+                    ...question,
+                    position,
+                    answers: question.answers.map((answer) => this.answerRepository.create(answer)),
+                })),
+            });
+            const saved = await manager.save(Quiz, quiz);
+            await manager.query('INSERT INTO quiz_change_history ("quizId","actorId",action,details) VALUES ($1,$2,$3,$4)', [id, userId, 'EDITED', JSON.stringify({ title: saved.title, questionCount: saved.questions.length, previousTitle: previous.title, previousQuestionCount: previous.questionCount })]);
+            return saved;
         });
-        return this.quizRepository.save(quiz);
     }
 
     async remove(id: string, userId: number) {
@@ -177,7 +204,7 @@ export class QuizzesService {
     }
 
     async duplicate(id: string, userId: number) {
-        const source = await this.quizRepository.findOne({ where: { id, userId }, relations: { questions: { answers: true } } });
+        const source = await this.access(id, userId);
         if (!source) throw new NotFoundException(`Quiz with id ${id} not found`);
         return this.create({
             title: `${source.title} — копія`, description: source.description, topic: source.topic,

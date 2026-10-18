@@ -1,4 +1,5 @@
-import {Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req} from '@nestjs/common';
+import {Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ParseIntPipe} from '@nestjs/common';
+import {ShareQuizDto} from './dto/share-quiz.dto';
 import {QuizzesService} from './quizzes.service';
 import {CreateQuizDto} from './dto/create-quiz.dto';
 import {UpdateQuizDto} from './dto/update-quiz.dto';
@@ -53,10 +54,14 @@ export class QuizzesController {
     collaborators(@Param('id') id:string,@Req() req) {return this.quizzesService.collaborators(id,req.user.id);}
     @UseGuards(AuthGuard)
     @Post(':id/collaborators')
-    share(@Param('id') id:string,@Req() req,@Body() dto:{email:string,role:string}) {return this.quizzesService.share(id,req.user.id,dto);}
+    share(@Param('id') id:string,@Req() req,@Body() dto:ShareQuizDto) {return this.quizzesService.share(id,req.user.id,dto);}
     @UseGuards(AuthGuard)
     @Delete(':id/collaborators/:member')
-    revoke(@Param('id') id:string,@Param('member') member:string,@Req() req) {return this.quizzesService.revoke(id,req.user.id,Number(member));}
+    revoke(@Param('id') id:string,@Param('member', ParseIntPipe) member:number,@Req() req) {return this.quizzesService.revoke(id,req.user.id,member);}
+
+    @UseGuards(AuthGuard)
+    @Get(':id/history')
+    history(@Param('id') id: string, @Req() req) { return this.quizzesService.history(id, req.user.id); }
 
     @UseGuards(AuthGuard)
     @Patch(':id')

@@ -3,7 +3,7 @@ import { useAuthContext } from './AuthContext.jsx';
 import { loadQuizDraft, saveQuizDraft, deleteQuizDraft } from '../utils/quizDrafts.js';
 import { QuestionType } from "../constants/question-type.constants.js";
 import { uploadToCloudinary } from "../services/cloudinary.service.js";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuizzes } from "../hooks/useQuizzes.js";
 import { saveQuestionToBank } from '../services/questionBank.service.js';
 import { notifications } from '@mantine/notifications';
@@ -50,6 +50,7 @@ const createDefaultQuestion = () => ({
 
 export function QuizProvider({ children }) {
     const { id } = useParams();              // <-- determine mode
+    const navigate = useNavigate();
     const isEdit = Boolean(id);
     const { user } = useAuthContext();
     const draftKey = user?.id ? `user:${user.id}:quiz:${id || 'new'}` : null;
@@ -95,6 +96,13 @@ export function QuizProvider({ children }) {
             hydratedDraftKey.current = null;
             setLoading(true);
             skipDraftSave.current = false;
+            const accessibleQuiz = isEdit ? await handleGetById(id) : null;
+            if (cancelled) return;
+            if (isEdit && (!accessibleQuiz || accessibleQuiz.accessRole === 'VIEWER')) {
+                notifications.show({ color: 'red', message: 'Редагування недоступне. Зверніться до власника квізу.' });
+                navigate('/admin/quizzes');
+                return;
+            }
             if (draftKey) {
                 try {
                     const draft = await loadQuizDraft(draftKey);
@@ -119,7 +127,7 @@ export function QuizProvider({ children }) {
                 return;
             }
 
-            const quiz = await handleGetById(id);
+            const quiz = accessibleQuiz;
             if (cancelled) return;
 
             setFormData({
@@ -465,6 +473,7 @@ export function QuizProvider({ children }) {
 
         // 3. API call
         const result = isEdit ? await handleUpdate(id, payload) : await handleCreate(payload);
+        if (!result) return null;
         skipDraftSave.current = true;
         if (draftKey) await deleteQuizDraft(draftKey).catch(() => {});
         return result;

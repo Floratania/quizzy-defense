@@ -18,6 +18,20 @@ for(let i=0;i<180;i++){try{await fetch(base);break;}catch{await new Promise(r=>s
 const users={};
 for(const role of ['owner','viewer','editor','stranger']){const email=role+'@collaboration.example.test';const password='Quizzy-test-2026!';await call('/auth/signup','POST',{email,password,name:role+' teacher'},null,201);users[role]=await call('/auth/login','POST',{email,password});}
 const token=key=>users[key].accessToken;
+
+const fixtures=new Client({...config,database:dbName});await fixtures.connect();await fixtures.query(`UPDATE "user" SET role='ADMIN' WHERE id=$1`,[users.owner.user.id]);await fixtures.end();
+for(const role of ['viewer','editor','stranger']) {await call('/account/teacher-request','POST',{},token(role),201);await call('/account/role','PATCH',{userId:users[role].user.id,role:'TEACHER'},token('owner'));}
+const pupilEmail='pupil@collaboration.example.test';
+const pupil=await call('/auth/signup','POST',{name:'Test Pupil',email:pupilEmail,password:'Quizzy-test-2026!'},null,201);assert.equal(pupil.role,'STUDENT');
+users.pupil=await call('/auth/login','POST',{email:pupilEmail,password:'Quizzy-test-2026!'});
+await call('/auth/signup','POST',{name:'Bad Role',email:'badrole@example.test',password:'Quizzy-test-2026!',role:'ADMIN'},null,400);
+await call('/quizzes','GET',null,token('pupil'),403);
+await call('/quizzes/generate','POST',{topic:'test'},token('pupil'),403);
+await call('/question-bank','GET',null,token('pupil'),403);
+await call('/account/users','GET',null,token('pupil'),403);
+await call('/account/role','PATCH',{userId:pupil.id,role:'TEACHER'},token('pupil'),403);
+await call('/answers','GET',null,null,404);await call('/questions','GET',null,null,404);
+
 const question=text=>({text,type:'open_text',timeLimit:30,points:1000,answers:[{text:'Київ',isCorrect:true},{text:'Kyiv',isCorrect:true}]});
 const payload={title:'Collaboration check',questions:[question('First'),question('Second')]};
 const quiz=await call('/quizzes','POST',payload,token('owner'),201); const id=quiz.id;assert.equal(quiz.showQuestionLeaderboard,false);
@@ -48,6 +62,18 @@ await call('/session-reports/'+session.id+'/share-owner','PATCH',{shared:false},
 await call('/session-reports/'+session.id,'GET',null,token('owner'),403);
 assert.equal((await call('/session-reports','GET',null,token('owner'))).length,0);
 
+const bank=await call('/question-bank','POST',{text:'Private question',payload:{text:'Private question',type:'open_text',answers:['secret'],correctAnswers:[0]}},token('owner'),201);
+assert.equal((await call('/question-bank','GET',null,token('viewer'))).length,0);
+await call('/question-bank?ownerId='+users.owner.user.id,'GET',null,token('viewer'),403);
+await call('/question-bank/collaborators','POST',{email:pupilEmail,role:'VIEWER'},token('owner'),400);
+await call('/question-bank/collaborators','POST',{email:users.viewer.user.email,role:'VIEWER'},token('owner'),201);
+assert.equal((await call('/question-bank?ownerId='+users.owner.user.id,'GET',null,token('viewer')))[0].id,bank.id);
+await call('/question-bank/'+bank.id,'DELETE',null,token('viewer'),403);
+await call('/question-bank/collaborators','POST',{email:users.editor.user.email,role:'EDITOR'},token('owner'),201);
+await call('/question-bank/'+bank.id,'PATCH',{text:'Edited bank',payload:bank.payload},token('editor'));
+await call('/question-bank/collaborators/'+users.viewer.user.id,'DELETE',null,token('owner'));
+await call('/question-bank?ownerId='+users.owner.user.id,'GET',null,token('viewer'),403);
+
 const updated=await call('/quizzes/'+id,'PATCH',{...payload,title:'Edited by teacher',questions:[question('Second'),question('First')]},token('editor'));assert.equal(updated.title,'Edited by teacher');
 assert.deepEqual((await call('/quizzes/'+id,'GET',null,token('viewer'))).questions.map(q=>q.text),['Second','First']);
 let history=await call('/quizzes/'+id+'/history','GET',null,token('viewer'));assert.equal(history[0].action,'EDITED');assert.equal(history[0].actorName,'editor teacher');
@@ -69,14 +95,20 @@ const pool=levels.flatMap((difficulty,level)=>Array.from({length:level===0?18:16
 const balanced=await call('/quizzes','POST',{title:'Balanced 50',trackTabSwitches:true,questionSelection:{easy:8,medium:8,hard:8},questions:pool},token('owner'),201);
 const difficultyById=new Map(balanced.questions.map(q=>[q.id,q.difficulty]));
 const game=await call('/game-sessions','POST',{quizId:balanced.id},token('owner'),201);
+await call('/game-sessions/'+game.id,'GET',null,null,401);await call('/game-sessions/'+game.id,'GET',null,token('pupil'),403);
+const intruder=io(base,{transports:['websocket'],auth:{token:token('pupil')}});sockets.push(intruder);await event(intruder,'connect');
+const denied=event(intruder,'host_error');intruder.emit('host_join_session',{sessionId:game.id});await denied;
+const deniedStart=event(intruder,'host_error');intruder.emit('start_game',{sessionId:game.id});await deniedStart;
+assert.equal((await call('/game-sessions/'+game.id,'GET',null,token('owner'))).status,'WAITING');
 const a=await guest(game.roomCode,'Balanced A');const b=await guest(game.roomCode,'Balanced B');
-let state=await call('/game-sessions/'+game.id);
+let state=await call('/game-sessions/'+game.id,'GET',null,token('owner'));
 for(const p of state.players){assert.equal(p.questionOrder.length,24);assert.equal(new Set(p.questionOrder).size,24);for(const level of levels)assert.equal(p.questionOrder.filter(id=>difficultyById.get(id)===level).length,8);}
 const firstOrder=state.players.find(p=>p.id===a.joined.playerId).questionOrder;
 assert.notDeepEqual(firstOrder,state.players.find(p=>p.id===b.joined.playerId).questionOrder);
 const restored=io(base,{transports:['websocket'],autoConnect:false});sockets.push(restored);let connected=event(restored,'connect');restored.connect();await connected;const resumed=event(restored,'session_resumed');restored.emit('resume_session',{...a.joined});await resumed;
-state=await call('/game-sessions/'+game.id);assert.deepEqual(firstOrder,state.players.find(p=>p.id===a.joined.playerId).questionOrder);
-const qa=event(restored,'question_started');const qb=event(b.socket,'question_started');restored.emit('start_game',{sessionId:game.id});
+state=await call('/game-sessions/'+game.id,'GET',null,token('owner'));assert.deepEqual(firstOrder,state.players.find(p=>p.id===a.joined.playerId).questionOrder);
+const controls=io(base,{transports:['websocket'],auth:{token:token('owner')}});sockets.push(controls);await event(controls,'connect');
+const qa=event(restored,'question_started');const qb=event(b.socket,'question_started');controls.emit('start_game',{sessionId:game.id});
 const firstA=await qa;const firstB=await qb;assert.equal(difficultyById.get(firstA.id),'easy');assert.equal(difficultyById.get(firstB.id),'easy');
 const acceptedA=event(restored,'answer_received');const acceptedB=event(b.socket,'answer_received');
 restored.emit('submit_answer',{questionId:firstA.id,response:{text:'Київ'},timeTaken:0});
@@ -86,7 +118,7 @@ console.log('Personalized questions accepted:',firstA.id!==firstB.id?'different 
 
 await call('/game-sessions/'+game.id+'/finish','POST',{},token('owner'),201);
 const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('owner'));assert.equal(balancedReport.summary.totalQuestions,24);assert.equal(balancedReport.summary.poolQuestionCount,50);for(const p of balancedReport.players){assert.equal(p.assignedQuestionIds.length,24);assert.equal(p.totalQuestions,24);}
-const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');c.socket.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
+const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');controls.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
 console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
 
 const timedQuiz=await call('/quizzes','POST',{title:'Personalized deadline regression',showQuestionLeaderboard:true,trackTabSwitches:true,questionSelection:{easy:2,medium:0,hard:0},questions:Array.from({length:6},(_,i)=>({...question('Deadline '+i),difficulty:'easy',timeLimit:2}))},token('owner'),201);
@@ -109,6 +141,9 @@ const timedReport=await call('/session-reports/'+timed.id,'GET',null,token('owne
 console.log('Personalized Classic: different answers accepted; silent-player timeout; one round result; duplicate Next ignored; final round completed; tab exit persisted');
 
 } finally {sockets.forEach(s=>s.disconnect());}
+await call('/account/role','PATCH',{userId:users.editor.user.id,role:'STUDENT'},token('owner'));
+await call('/question-bank','GET',null,token('editor'),403);
+await call('/quizzes/my','GET',null,token('editor'),403);
 await call('/quizzes/'+id,'DELETE',null,token('owner'));
 console.log('Collaboration, audit and host isolation: '+checks+' HTTP checks passed');
 })().catch(e=>{console.error(e.message);process.exitCode=1;}).finally(async()=>{if(child){child.kill();await new Promise(r=>setTimeout(r,700));}if(admin._connected){await admin.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1',[dbName]);await admin.query('DROP DATABASE IF EXISTS '+dbName);await admin.end();}console.log('Isolated test database removed');});

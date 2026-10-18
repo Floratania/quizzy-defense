@@ -1,8 +1,10 @@
+import BankItemEditor from './BankItemEditor.jsx';
+import BankAccess from './BankAccess.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActionIcon, Badge, Button, Card, Group, Image, Paper, Select, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import RichText from '../../../Question/RichText.jsx';
 import { notifications } from '@mantine/notifications';
-import { IconHistory, IconLibrary, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
+import { IconEdit, IconHistory, IconLibrary, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import { useQuizContext } from '../../../../context/QuizContext.jsx';
 import { addQuestionBankExamples, deleteQuestionFromBank, getQuestionBank, getQuestionUsage, pickQuestionsFromBank } from '../../../../services/questionBank.service.js';
 
@@ -29,6 +31,8 @@ export const QuestionBank = () => {
 const QuestionBankContents = () => {
     const { addQuestionFromBank } = useQuizContext();
     const [items, setItems] = useState([]);
+    const [ownerId,setOwnerId]=useState('');
+    const [editingItem,setEditingItem]=useState(null);
     const [search, setSearch] = useState('');
     const [topic, setTopic] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -38,7 +42,7 @@ const QuestionBankContents = () => {
 
     const load = async () => {
         setLoading(true);
-        try { setItems(await getQuestionBank(search, topic || '')); }
+        try { setItems(await getQuestionBank(search, topic || '',ownerId)); }
         catch { notifications.show({ color: 'red', message: 'Не вдалося завантажити банк питань' }); }
         finally { setLoading(false); }
     };
@@ -48,15 +52,15 @@ const QuestionBankContents = () => {
         const refresh = () => load();
         window.addEventListener('question-bank-updated', refresh);
         return () => window.removeEventListener('question-bank-updated', refresh);
-    }, []);
+    }, [ownerId]);
     const topics = useMemo(() => [...new Set(items.map((item) => item.topic))].map((value) => ({ value, label: value })), [items]);
 
     const remove = async (id) => {
-        await deleteQuestionFromBank(id);
-        setItems((previous) => previous.filter((item) => item.id !== id));
+        try { await deleteQuestionFromBank(id);
+        setItems((previous) => previous.filter((item) => item.id !== id)); } catch { notifications.show({color:"red",message:"Немає права видаляти питання з цього банку"}); }
     };
     const autoPick = async () => {
-        const selected = await pickQuestionsFromBank(topic || '', counts);
+        const selected = await pickQuestionsFromBank(topic || '', counts,ownerId);
         selected.forEach((item) => addQuestionFromBank({ ...item.payload, difficulty: item.difficulty }));
         notifications.show({ color: 'green', message: `Додано питань: ${selected.length}` });
     };
@@ -64,8 +68,10 @@ const QuestionBankContents = () => {
 
     return (
         <Stack gap="md" mt="md">
+            <BankAccess ownerId={ownerId} onChange={setOwnerId}/>
+            {editingItem&&<BankItemEditor key={editingItem.id} item={editingItem} onClose={()=>setEditingItem(null)} onSaved={()=>{setEditingItem(null);load();}}/>}
             <Group justify="flex-end">
-                <Button variant="light" color="teal" loading={addingExamples} onClick={async () => {
+                <Button variant="light" color="teal" disabled={Boolean(ownerId)} loading={addingExamples} onClick={async () => {
                     setAddingExamples(true);
                     try {
                         const { added } = await addQuestionBankExamples();
@@ -108,12 +114,13 @@ const QuestionBankContents = () => {
                                             notifications.show({ color: 'green', message: 'Питання додано до квізу. Його можна редагувати у списку запитань.' });
                                         }}><IconPlus size={18} /></ActionIcon>
                                     </Tooltip>
-                                    <Tooltip label="Історія використання" withArrow>
+                                    {item.accessRole!=='VIEWER'&&<ActionIcon aria-label="Редагувати в банку" variant="default" size="lg" onClick={()=>setEditingItem(item)}><IconEdit size={18}/></ActionIcon>}
+                                    {!ownerId&&<Tooltip label="Історія використання" withArrow>
                                         <ActionIcon aria-label="Історія використання" color="blue" variant="light" size="lg" onClick={() => showUsage(item.id)}><IconHistory size={18} /></ActionIcon>
-                                    </Tooltip>
-                                    <Tooltip label="Видалити з банку" withArrow>
+                                    </Tooltip>}
+                                    {item.accessRole!=='VIEWER'&&<Tooltip label="Видалити з банку" withArrow>
                                         <ActionIcon aria-label="Видалити з банку" color="red" variant="light" size="lg" onClick={() => remove(item.id)}><IconTrash size={18} /></ActionIcon>
-                                    </Tooltip>
+                                    </Tooltip>}
                                 </Group>
                             </Group>
                                 <Stack gap={6}>

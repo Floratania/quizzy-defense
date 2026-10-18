@@ -1,3 +1,5 @@
+import StudentPage from '../pages/StudentPage.jsx';
+import AccountRolesPage from '../pages/AccountRolesPage.jsx';
 import {createBrowserRouter, Navigate} from 'react-router';
 import App from '../App';
 import QuizCreator from "../pages/QuizCreator.jsx";
@@ -29,6 +31,7 @@ const router = createBrowserRouter([
         errorElement: <RouteErrorPage />,
         children: [
             {index: true, Component: HomePage},
+            {path:'student',Component:StudentPage},
             {
                 path: 'auth',
                 element: (
@@ -37,14 +40,14 @@ const router = createBrowserRouter([
                     </GuestGuard>
                 ),
             },
-            {path: 'panel2', Component: QuizCreator},
-            {path: 'host/:quizId', Component: HostPage},
+            {path: 'panel2', element:<ProtectedRoute><QuizCreator/></ProtectedRoute>},
+            {path: 'host/:quizId', element:<ProtectedRoute><HostPage/></ProtectedRoute>},
             {path: 'player', Component: PlayerPage},
             {path: 'mistake-practice', Component: MistakePracticePage},
             {path: 'join', Component: JoinPage},
             {path: 'help/formatting', element: <Navigate to="/admin/help/formatting" replace />},
-            {path: 'manage', Component: CreateEditQuizPage},
-            {path: 'stats', Component: QuizSessionStatistics},
+            {path: 'manage', element:<ProtectedRoute><CreateEditQuizPage/></ProtectedRoute>},
+            {path: 'stats', element:<ProtectedRoute><QuizSessionStatistics/></ProtectedRoute>},
             {path: 'test', Component: KahootGameScreen},
             {path: 'question-test', Component: QuestionMock},
             {
@@ -66,6 +69,7 @@ const router = createBrowserRouter([
                     { path: "reports/:id", Component: QuizSessionStatistics },
                     { path: "reports", Component: QuizReportsList },
                     { path: "classes", Component: ClassesPage },
+                    {path:"users",Component:AccountRolesPage},
                     { path: 'help/formatting', Component: FormattingGuidePage },
                 ]
             },

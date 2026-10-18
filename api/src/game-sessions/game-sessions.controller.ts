@@ -1,3 +1,4 @@
+import {TeacherGuard} from '@/guards/teacher.guard';
 import {
     Controller,
     Post,
@@ -14,25 +15,26 @@ import * as authTypes from "@/auth/types/auth.types";
 export class GameSessionsController {
     constructor(private readonly service: GameSessionsService) {}
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post()
     create(@Body() dto: CreateGameSessionDto, @Req() req: authTypes.AuthenticatedRequest) {
         return this.service.create(dto, req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get('my/active')
     getMyActive(@Req() req: authTypes.AuthenticatedRequest) {
         return this.service.getHostActiveSessions(req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post(':id/start')
-    start(@Param('id') id: string) {
+    async start(@Param('id') id: string, @Req() req) {
+        await this.service.assertHost(id, req.user.id);
         return this.service.start(id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post(':id/finish')
     finish(@Param('id') id: string, @Req() req: authTypes.AuthenticatedRequest) {
         return this.service.finishForHost(id, req.user.id);
@@ -40,12 +42,13 @@ export class GameSessionsController {
 
     @Get('by-code/:roomCode')
     getByRoomCode(@Param('roomCode') code: string) {
-        return this.service.getByRoomCode(code);
+        return this.service.publicLobby(code);
     }
 
 
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get(':id')
-    getById(@Param('id') id: string) {
-        return this.service.getById(id);
+    getById(@Param('id') id: string, @Req() req) {
+        return this.service.hostDetails(id, req.user.id);
     }
 }

@@ -51,7 +51,7 @@ const Navbar = () => {
 
                 {user ? (
                     <Group gap="sm">
-                        <Button variant="subtle" color="gray" onClick={() => navigate('/admin')}>
+                        <Button variant="subtle" color="gray" onClick={() => navigate(user.role === 'STUDENT' ? '/student' : '/admin')}>
                             Кабінет
                         </Button>
                         <Button variant="gradient" gradient={{ from: 'blue', to: 'violet' }} onClick={handleLogout}>

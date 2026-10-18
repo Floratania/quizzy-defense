@@ -132,7 +132,7 @@ export class QuizzesService {
     async share(id: string, userId: number, dto: {email: string, role: string}) {
         await this.collaborators(id, userId);
         if (!['VIEWER', 'EDITOR'].includes(dto.role) || typeof dto.email !== 'string') throw new BadRequestException();
-        const users = await this.quizRepository.query('SELECT id,email FROM "user" WHERE lower(email)=lower($1) AND role=$2', [dto.email.trim(), 'TEACHER']);
+        const users = await this.quizRepository.query(`SELECT id,email FROM "user" WHERE lower(email)=lower($1) AND role IN ('TEACHER','ADMIN')`, [dto.email.trim()]);
         if (!users.length) throw new BadRequestException('Викладача з такою поштою не знайдено. Спочатку він має зареєструватися в Quizzy.');
         if (users[0].id === userId) throw new BadRequestException('Ви вже власник');
         await this.quizRepository.manager.transaction(async (manager) => {

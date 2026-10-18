@@ -121,6 +121,13 @@ export class GameSessionsService {
     }
 
 
+    async assertHost(id:string, userId:number | undefined) {
+        const rows = userId ? await this.sessionsRepo.query(`SELECT s.id FROM game_sessions s JOIN "user" u ON u.id=s.user_id WHERE s.id=$1 AND s.user_id=$2 AND u.role IN ('TEACHER','ADMIN')`,[id,userId]) : [];
+        if (!rows.length) throw new ForbiddenException('Лише ведучий може керувати цією грою');
+    }
+    async hostDetails(id:string,userId:number) { await this.assertHost(id,userId);return this.getById(id); }
+    async publicLobby(code:string) { const s=await this.getByRoomCode(code);return {id:s.id,roomCode:s.roomCode,status:s.status,mode:s.mode,quiz:{title:s.quiz.title},playerCount:s.players.length,teams:(s.teams||[]).map(t=>({id:t.id,name:t.name}))}; }
+
     async getById(id: string): Promise<GameSession> {
         const session = await this.sessionsRepo.findOne({
             where: { id },

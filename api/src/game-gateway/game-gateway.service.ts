@@ -46,7 +46,14 @@ export class GameFlowService {
     }
 
 
+    async authorizeHost(client:Socket, sessionId:string) {
+        const userId = client.data.hostUserId || this.authenticatedStudent(client);
+        await this.sessions.assertHost(sessionId,userId);
+        client.data.hostUserId = userId;
+    }
+
     async hostJoin(client: Socket, sessionId: string) {
+        await this.authorizeHost(client,sessionId);
         client.join(sessionId);
         client.join(`host:${sessionId}`);
         client.emit('session_events', await this.players.getSessionEvents(sessionId));
@@ -406,7 +413,7 @@ export class GameFlowService {
             ? await this.answers.getRoundStats(sessionId, roundQuestionIds, expectedByPlayer)
             : await this.answers.getQuestionStats(sessionId, questionId);
 
-        this.gateway.server.to(sessionId).emit('question_results', { ...stats, roundClosed: true, message: 'Раунд завершено. Після таблиці результатів натисніть «Наступне питання».' });
+        this.gateway.server.to(`host:${sessionId}`).emit('question_results', { ...stats, roundClosed: true, message: 'Раунд завершено. Після таблиці результатів натисніть «Наступне питання».' });
 
         setTimeout(async () => {
             const updatedSession = await this.sessions.getById(sessionId);

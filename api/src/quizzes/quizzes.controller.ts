@@ -1,3 +1,4 @@
+import {TeacherGuard} from '@/guards/teacher.guard';
 import {Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ParseIntPipe} from '@nestjs/common';
 import {ShareQuizDto} from './dto/share-quiz.dto';
 import {QuizzesService} from './quizzes.service';
@@ -13,63 +14,63 @@ export class QuizzesController {
     constructor(private readonly quizzesService: QuizzesService, private readonly quizGenerationService: QuizGenerationService) {
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post('generate')
     generate(@Body() dto: GenerateQuizDto) {
         return this.quizGenerationService.generate(dto);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post()
     create(@Body() createQuizDto: CreateQuizDto, @Req() req) {
         return this.quizzesService.create(createQuizDto, req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post(':id/duplicate')
     duplicate(@Param('id') id: string, @Req() req) {
         return this.quizzesService.duplicate(id, req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get()
     findAll(@Req() req) {
         return this.quizzesService.findByUser(req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get('my')
     findMyBookings(@Req() req: authTypes.AuthenticatedRequest) {
         return this.quizzesService.findByUser(req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get(':id')
     findOne(@Param('id') id: string, @Req() req) {
         return this.quizzesService.access(id, req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get(':id/collaborators')
     collaborators(@Param('id') id:string,@Req() req) {return this.quizzesService.collaborators(id,req.user.id);}
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Post(':id/collaborators')
     share(@Param('id') id:string,@Req() req,@Body() dto:ShareQuizDto) {return this.quizzesService.share(id,req.user.id,dto);}
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Delete(':id/collaborators/:member')
     revoke(@Param('id') id:string,@Param('member', ParseIntPipe) member:number,@Req() req) {return this.quizzesService.revoke(id,req.user.id,member);}
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Get(':id/history')
     history(@Param('id') id: string, @Req() req) { return this.quizzesService.history(id, req.user.id); }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateQuizDto: UpdateQuizDto, @Req() req: authTypes.AuthenticatedRequest) {
         return this.quizzesService.update(id, updateQuizDto, req.user.id);
     }
 
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, TeacherGuard)
     @Delete(':id')
     remove(@Param('id') id: string, @Req() req: authTypes.AuthenticatedRequest) {
         return this.quizzesService.remove(id, req.user.id);

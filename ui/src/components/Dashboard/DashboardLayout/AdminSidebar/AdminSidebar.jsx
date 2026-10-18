@@ -1,3 +1,5 @@
+import {useAuthContext} from '../../../../context/AuthContext.jsx';
+import {IconUsers} from '@tabler/icons-react';
 import {Box, Stack} from '@mantine/core';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {ADMIN_SIDEBAR_LINKS} from './admin-sidebar.constants.js';
@@ -5,6 +7,7 @@ import {NavbarLink} from "./NavbarLink.jsx";
 
 export function AdminSidebar() {
   const navigate = useNavigate();
+  const {user}=useAuthContext();
   const location = useLocation();
 
   return (
@@ -20,7 +23,7 @@ export function AdminSidebar() {
       }}
     >
       <Stack spacing="md" align="center">
-        {ADMIN_SIDEBAR_LINKS.map((link) => (
+        {[...ADMIN_SIDEBAR_LINKS,...(user?.role==='ADMIN'?[{icon:IconUsers,label:'Користувачі',to:'/admin/users'}]:[])].map((link) => (
           <NavbarLink
             key={link.label}
             icon={link.icon}

@@ -16,8 +16,10 @@ export class User {
     @Column()
     password?: string;
 
-    @Column({ type: 'varchar', length: 20, default: 'TEACHER' })
-    role: 'TEACHER' | 'STUDENT';
+    @Column({ type: 'varchar', length: 20, default: 'STUDENT' })
+    role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+
+    @Column({ default: false }) teacherRequested: boolean;
 
     @OneToMany(() => Quiz, (quiz) => quiz.user)
     quizzes: Quiz[];

@@ -41,6 +41,7 @@ export class AuthService {
             name,
             email,
             password: hashedPassword,
+            role: 'STUDENT',
         });
 
         const savedUser = await this.userRepository.save(newUser);
@@ -81,7 +82,7 @@ export class AuthService {
         return {
             ...tokens,
             user: {
-                ...claims
+                ...claims, role: existingUser.role
             },
         };
     }
@@ -149,6 +150,7 @@ export class AuthService {
             name: data.name,
             email: data.email,
             password: '',
+            role: 'STUDENT',
         });
 
         return this.userRepository.save(newUser);

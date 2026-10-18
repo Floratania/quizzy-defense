@@ -1,3 +1,4 @@
+import {TeacherGuard} from '@/guards/teacher.guard';
 // session-reports.controller.ts
 
 import { Controller, Get, Param, NotFoundException, UseGuards, Req, Patch, Body } from '@nestjs/common';
@@ -7,7 +8,7 @@ class ShareReportDto { @IsBoolean() shared: boolean; }
 import { SessionReportsService } from './session-reports.service';
 
 @Controller('session-reports')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, TeacherGuard)
 export class SessionReportsController {
     constructor(private readonly reportsService: SessionReportsService) {}
 

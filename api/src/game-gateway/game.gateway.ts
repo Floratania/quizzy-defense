@@ -29,7 +29,7 @@ export class GameGateway {
 
     @SubscribeMessage('host_join_session')
     hostJoin(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionId: string }) {
-        return this.flow.hostJoin(client, payload.sessionId);
+        return this.hostAction(client, payload.sessionId, () => this.flow.hostJoin(client, payload.sessionId));
     }
 
     @SubscribeMessage('join_session')
@@ -53,7 +53,7 @@ export class GameGateway {
 
     @SubscribeMessage('start_game')
     start(@ConnectedSocket() client: Socket, @MessageBody() dto: { sessionId: string }) {
-        return this.flow.startGame(dto.sessionId);
+        return this.hostAction(client,dto.sessionId,()=>this.flow.startGame(dto.sessionId));
     }
 
     @SubscribeMessage('submit_answer')
@@ -70,7 +70,12 @@ export class GameGateway {
     }
 
     @SubscribeMessage('next_question')
-    next(@MessageBody() dto: { sessionId: string }) {
-        return this.flow.nextQuestion(dto.sessionId);
+    next(@ConnectedSocket() client:Socket, @MessageBody() dto: { sessionId: string }) {
+        return this.hostAction(client,dto.sessionId,()=>this.flow.nextQuestion(dto.sessionId));
     }
+    private async hostAction(client:Socket,sessionId:string,action:()=>unknown) {
+        try { await this.flow.authorizeHost(client,sessionId);return await action(); }
+        catch { client.emit('host_error',{message:'Немає доступу до керування цією грою'}); }
+    }
+
 }

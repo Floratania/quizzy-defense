@@ -367,8 +367,8 @@ export class PlayerAnswersService {
     }
 
     async grade(id:string,userId:number,dto:{earnedPoints:number,isCorrect:boolean}){
-        const answer=await this.answersRepo.findOne({where:{id},relations:['player','question','question.quiz']});
-        if(!answer||answer.question.quiz.userId!==userId)throw new NotFoundException('Answer not found');
+        const answer=await this.answersRepo.findOne({where:{id},relations:['player','player.session','question','question.quiz']});
+        if(!answer||answer.player.session.userId!==userId)throw new NotFoundException('Answer not found');
         const points=Math.max(0,Math.min(Number(dto.earnedPoints)||0,answer.question.points));
         answer.player.totalScore=Math.max(0,answer.player.totalScore-answer.earnedPoints+points);
         answer.earnedPoints=points;answer.isCorrect=Boolean(dto.isCorrect);

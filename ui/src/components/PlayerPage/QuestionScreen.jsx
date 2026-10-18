@@ -50,7 +50,7 @@ export const QuestionScreen = ({ question }) => {
             >
                 <Box maw={820} w="100%" mx="auto">
                     <PlayerAnswerGrid
-                        compact={Boolean(question.practice)}
+                        compact
                         answers={question.answers}
                         selectedAnswer={selectedAnswer}
                         onSelect={(answerId) => { setSelectedAnswer(answerId); send({ answerId }); }}
@@ -72,18 +72,18 @@ export const QuestionScreen = ({ question }) => {
                         return (
                             <Grid.Col key={answer.id} span={12}>
                                 <Paper
-                                    withBorder p="lg" radius="md"
+                                    withBorder p="sm" radius="md"
                                     onClick={() => !submitted && toggleAnswer(answer.id)}
-                                    style={{ cursor: 'pointer', borderColor: selected ? '#7950f2' : undefined, background: selected ? '#f3f0ff' : undefined }}
+                                    style={{ cursor: 'pointer', borderColor: selected ? '#343a40' : undefined, background: selected ? '#e9ecef' : undefined }}
                                 >
                                     {answer.imageUrl && <Image src={answer.imageUrl} alt={answer.text} radius="sm" h={120} fit="contain" mb="sm" />}
-                                    <Group><Badge color={selected ? 'violet' : 'gray'}>{selected ? '✓' : '○'}</Badge><Text fw={600}>{answer.text}</Text></Group>
+                                    <Group><Badge color={'gray'}>{selected ? '✓' : '○'}</Badge><Text fw={600}>{answer.text}</Text></Group>
                                 </Paper>
                             </Grid.Col>
                         );
                     })}
                 </Grid>
-                <Button size="lg" disabled={selectedAnswers.length === 0 || submitted} onClick={() => send({ response: { answerIds: selectedAnswers } })}>
+                <Button size="md" disabled={selectedAnswers.length === 0 || submitted} onClick={() => send({ response: { answerIds: selectedAnswers } })}>
                     Підтвердити вибір
                 </Button>
             </InteractiveShell>
@@ -166,7 +166,7 @@ export const QuestionScreen = ({ question }) => {
         return (
             <InteractiveShell title={question.text} imageUrl={question.mediaUrl} endsAt={question.endsAt} timeLimit={question.practice ? null : question.timeLimit}>
                 <TextInput size="xl" label="Ваша відповідь" value={text} onChange={(event) => setText(event.target.value)} disabled={submitted} />
-                <Button size="lg" disabled={!text.trim() || submitted} onClick={() => send({ response: { text } })}>Надіслати відповідь</Button>
+                <Button size="md" disabled={!text.trim() || submitted} onClick={() => send({ response: { text } })}>Надіслати відповідь</Button>
             </InteractiveShell>
         );
     }
@@ -201,7 +201,7 @@ export const QuestionScreen = ({ question }) => {
                         ))}
                     </Stack>
                 </Group>
-                <Button size="lg" disabled={Object.keys(matches).length !== leftItems.length || submitted}
+                <Button size="md" disabled={Object.keys(matches).length !== leftItems.length || submitted}
                         onClick={() => send({ response: { matches: Object.entries(matches).map(([leftId, rightId]) => ({ leftId, rightId })) } })}>
                     Перевірити пари
                 </Button>
@@ -231,7 +231,7 @@ export const QuestionScreen = ({ question }) => {
                         </Paper>
                     ))}
                 </Stack>
-                <Button size="lg" disabled={submitted} onClick={() => send({ response: { order: order.map((item) => item.id) } })}>Перевірити порядок</Button>
+                <Button size="md" disabled={submitted} onClick={() => send({ response: { order: order.map((item) => item.id) } })}>Перевірити порядок</Button>
             </InteractiveShell>
         );
     }
@@ -241,9 +241,9 @@ export const QuestionScreen = ({ question }) => {
 
 function InteractiveShell({ title, imageUrl, hint, timeLimit, endsAt, children }) {
     return (
-        <Box p={timeLimit === null ? 0 : "xl"} style={{ minHeight: timeLimit === null ? undefined : '100vh', display: 'flex', alignItems: 'center', background: timeLimit === null ? 'transparent' : 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 50%, #fce7f3 100%)' }}>
-            <Paper maw={900} w="100%" mx="auto" p={timeLimit === null ? "md" : "xl"} radius={timeLimit === null ? "md" : "xl"} shadow={timeLimit === null ? undefined : "lg"} withBorder={timeLimit === null}>
-                <Stack gap={timeLimit === null ? "sm" : "lg"}>
+        <Box p={timeLimit === null ? 0 : { base: "sm", sm: "lg" }} style={{ minHeight: timeLimit === null ? undefined : '100vh', background: timeLimit === null ? 'transparent' : '#f8f9fa' }}>
+            <Paper maw={900} w="100%" mx="auto" p="md" radius="md" withBorder>
+                <Stack gap="sm">
                     <Group justify="space-between"><div style={{flex:1,minWidth:0}}><RichText>{title}</RichText></div>{timeLimit === null ? <Text size="xs" c="dimmed">Без таймера</Text> : <TimerBadge timeLimit={timeLimit} endsAt={endsAt} />}</Group>
                     {imageUrl && <Image src={imageUrl} alt={title} radius="md" mah={300} fit="contain" fallbackSrc="https://placehold.co/800x300?text=Фото+недоступне" />}
                     {hint && <Text c="dimmed">{hint}</Text>}{children}

@@ -51,7 +51,7 @@ const Hero = () => {
                         </Button>
 
                         <Button size="lg" variant="default" onClick={() => {
-                            if (user) navigate("dashboard")
+                            if (user) navigate(user.role === 'STUDENT' ? '/student' : '/admin')
                             else navigate("auth")
                         }}>
                             Розпочати

@@ -43,6 +43,7 @@ const AuthPage = () => {
                     email: formData.email,
                     password: formData.password,
                 });
+                await login(formData.email, formData.password);
             }
 
             window.location.href = '/';
@@ -69,7 +70,7 @@ const AuthPage = () => {
                     <Text c="dimmed" size="sm" ta="center" maw={400}>
                         {isLogin
                             ? 'Увійдіть, щоб продовжити користування сервісом'
-                            : 'Створіть свій акаунт і розпочніть неймовірну подорож'}
+                            : 'Новий акаунт має роль учня. Викладачі подають заявку на підтвердження в особистому кабінеті.'}
                     </Text>
                 </Stack>
             </Center>

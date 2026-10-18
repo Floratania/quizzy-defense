@@ -50,6 +50,7 @@ export const QuestionScreen = ({ question }) => {
             >
                 <Box maw={820} w="100%" mx="auto">
                     <PlayerAnswerGrid
+                        compact={Boolean(question.practice)}
                         answers={question.answers}
                         selectedAnswer={selectedAnswer}
                         onSelect={(answerId) => { setSelectedAnswer(answerId); send({ answerId }); }}
@@ -240,10 +241,10 @@ export const QuestionScreen = ({ question }) => {
 
 function InteractiveShell({ title, imageUrl, hint, timeLimit, endsAt, children }) {
     return (
-        <Box p="xl" style={{ minHeight: timeLimit === null ? undefined : '100vh', display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 50%, #fce7f3 100%)' }}>
-            <Paper maw={900} w="100%" mx="auto" p="xl" radius="xl" shadow="lg">
-                <Stack gap="lg">
-                    <Group justify="space-between"><div style={{flex:1,minWidth:0}}><RichText>{title}</RichText></div>{timeLimit === null ? <Badge variant="light">Без таймера</Badge> : <TimerBadge timeLimit={timeLimit} endsAt={endsAt} />}</Group>
+        <Box p={timeLimit === null ? 0 : "xl"} style={{ minHeight: timeLimit === null ? undefined : '100vh', display: 'flex', alignItems: 'center', background: timeLimit === null ? 'transparent' : 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 50%, #fce7f3 100%)' }}>
+            <Paper maw={900} w="100%" mx="auto" p={timeLimit === null ? "md" : "xl"} radius={timeLimit === null ? "md" : "xl"} shadow={timeLimit === null ? undefined : "lg"} withBorder={timeLimit === null}>
+                <Stack gap={timeLimit === null ? "sm" : "lg"}>
+                    <Group justify="space-between"><div style={{flex:1,minWidth:0}}><RichText>{title}</RichText></div>{timeLimit === null ? <Text size="xs" c="dimmed">Без таймера</Text> : <TimerBadge timeLimit={timeLimit} endsAt={endsAt} />}</Group>
                     {imageUrl && <Image src={imageUrl} alt={title} radius="md" mah={300} fit="contain" fallbackSrc="https://placehold.co/800x300?text=Фото+недоступне" />}
                     {hint && <Text c="dimmed">{hint}</Text>}{children}
                 </Stack>

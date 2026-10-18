@@ -1,4 +1,4 @@
-import { Paper, Box } from "@mantine/core";
+import { Paper, Box, UnstyledButton } from "@mantine/core";
 
 const ANSWER_COLORS = [
     { gradient: ['#60a5fa', '#3b82f6'] },  // Blue
@@ -14,10 +14,24 @@ export function PlayerAnswerCard({
                                      index,
                                      selected,
                                      disabled,
-                                     onSelect
+                                     onSelect,
+                                     compact = false
                                  }) {
     const colorStyle = ANSWER_COLORS[index % ANSWER_COLORS.length];
     const clickable = !!onSelect && !disabled;
+
+    if (compact) return (
+        <UnstyledButton
+            disabled={!clickable}
+            onClick={() => onSelect(answer.id)}
+            aria-pressed={selected}
+            style={{ width: '100%', minHeight: 44, padding: '10px 14px', borderRadius: 6,
+                border: `1px solid ${selected ? '#343a40' : '#ced4da'}`,
+                background: selected ? '#e9ecef' : '#fff', color: '#212529',
+                fontSize: 16, lineHeight: 1.4, textAlign: 'left', overflowWrap: 'anywhere',
+                opacity: disabled && !selected ? 0.55 : 1 }}
+        >{answer.text}</UnstyledButton>
+    );
 
     return (
         <Paper

@@ -10,16 +10,21 @@ import {
     Box,
 } from "@mantine/core";
 import {IconHash, IconUser, IconLogin} from "@tabler/icons-react";
-import {useNavigate} from "react-router";
+import {useNavigate, useSearchParams} from "react-router";
 import {notifications} from "@mantine/notifications";
 import {socket} from "../../ws/socket.js";
 import {gameService} from "../../services/gameService.js";
+import {useAuthContext} from '../../context/AuthContext.jsx';
 
 export default function JoinPage() {
-    const [roomCode, setRoomCode] = useState("");
+    const [searchParams] = useSearchParams();
+    const [roomCode, setRoomCode] = useState(searchParams.get('code') || "");
     const [nickname, setNickname] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const {user} = useAuthContext();
+    const savedSessionId = localStorage.getItem('sessionId');
+    const savedPlayerId = localStorage.getItem('playerId');
 
     // --- SOCKET LISTENERS ---
     useEffect(() => {
@@ -27,7 +32,9 @@ export default function JoinPage() {
             setLoading(false);
             localStorage.setItem("sessionId", data.sessionId);
             localStorage.setItem("playerId", data.playerId);
+            localStorage.setItem('resumeToken',data.resumeToken);
             localStorage.setItem("nickname", nickname);
+            if (data.teamName) localStorage.setItem("teamName", data.teamName);
 
             navigate("/player");
         };
@@ -51,7 +58,7 @@ export default function JoinPage() {
     }, [nickname, navigate]);
 
     // --- JOIN HANDLER ---
-    const handleJoin = () => {
+    const handleJoin = async () => {
         if (!roomCode.trim() || !nickname.trim()) {
             notifications.show({
                 title: "Дані не заповнені",
@@ -62,7 +69,12 @@ export default function JoinPage() {
         }
 
         setLoading(true);
-        gameService.joinSession({roomCode, nickname});
+        try {
+            await gameService.joinSession({roomCode, nickname, ...(user?.id ? { studentId: user.id } : {})});
+        } catch (error) {
+            setLoading(false);
+            notifications.show({title: 'Помилка підключення', message: error.message, color: 'red'});
+        }
     };
 
     // Submit on Enter
@@ -94,6 +106,12 @@ export default function JoinPage() {
                         }}
                     >
                         <Stack spacing="lg">
+                            {savedSessionId && savedPlayerId && (
+                                <Paper withBorder radius="md" p="md" style={{ background: '#ecfdf5' }}>
+                                    <Text fw={600} c="teal" mb="xs">Знайдено незавершене проходження</Text>
+                                    <Button color="teal" fullWidth onClick={() => navigate('/player')}>Продовжити попередню сесію</Button>
+                                </Paper>
+                            )}
                             <div style={{textAlign: "center"}}>
                                 <Title order={2} style={{color: "#1f2937", marginBottom: 8}}>
                                     Приєднатися до гри

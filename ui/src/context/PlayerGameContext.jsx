@@ -3,6 +3,10 @@ import { useGamePlayer } from '../hooks/useGamePlayer.js';
 
 const PlayerGameContext = createContext();
 
+export function PracticeProvider({children, submitAnswer}) {
+    return <PlayerGameContext.Provider value={{submitAnswer}}>{children}</PlayerGameContext.Provider>;
+}
+
 export const usePlayerGameContext = () => {
     const context = useContext(PlayerGameContext);
     if (!context) {
@@ -14,6 +18,7 @@ export const usePlayerGameContext = () => {
 export const PlayerGameProvider = ({ children }) => {
     const playerId = localStorage.getItem("playerId");
     const nickname = localStorage.getItem("nickname");
+    const teamName = localStorage.getItem("teamName");
     const sessionId = localStorage.getItem("sessionId");
 
     const player = useGamePlayer(sessionId, playerId);
@@ -25,11 +30,12 @@ export const PlayerGameProvider = ({ children }) => {
         }
     }, [player.question]);
 
-    const submitAnswer = (answerId) => {
+    const submitAnswer = ({ answerId, response } = {}) => {
         const timeTaken = Date.now() - startTime;
         player.submitAnswer({
             questionId: player.question.id,
-            answerId: answerId,
+            answerId,
+            response,
             timeTaken: timeTaken,
         });
     };
@@ -38,6 +44,7 @@ export const PlayerGameProvider = ({ children }) => {
         <PlayerGameContext.Provider value={{
             player,
             nickname,
+            teamName,
             sessionId,
             submitAnswer
         }}>

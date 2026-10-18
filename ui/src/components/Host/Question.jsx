@@ -1,14 +1,14 @@
-import {Avatar, Badge, Box, Card, Container, Grid, Group, Paper, Progress, Stack, Text, Title} from "@mantine/core";
+import {Avatar, Badge, Box, Card, Container, Grid, Group, Image, Paper, Progress, Stack, Text, Title} from "@mantine/core";
 import {IconClock, IconUsers} from "@tabler/icons-react";
 import React from "react";
 import {TimerBadge} from "../Question/TimerBadge.jsx";
-import {AnswerGrid} from "../Question/AnswerGrid.jsx";
-import {HostAnswerCard} from "./HostAnswerCard.jsx";
-import {HostAnswerGrid} from "./HostAnswerGrid.jsx";
+import TournamentBoard from './TournamentBoard.jsx';
+import RichText from '../Question/RichText.jsx';
 
-export default function Question({question, players, currentQuestionIndex}) {
-    const answeredCount = players.filter(p => p.hasAnswered).length;
-    const progressPercent = (answeredCount / players.length) * 100 || 0;
+export default function Question({question, players, currentQuestionIndex, teamLeaderboard = [], tournamentState = null}) {
+    const activePlayers = players.filter((player) => !player.eliminated);
+    const answeredCount = activePlayers.filter(p => p.hasAnswered).length;
+    const progressPercent = (answeredCount / activePlayers.length) * 100 || 0;
 
     return (
         <Box
@@ -20,6 +20,7 @@ export default function Question({question, players, currentQuestionIndex}) {
         >
             <Container size="xl">
                 <Stack spacing="xl">
+                    {tournamentState && <TournamentBoard state={tournamentState} compact />}
                     {/* Header */}
                     <Group position="apart">
                         <Group>
@@ -32,7 +33,7 @@ export default function Question({question, players, currentQuestionIndex}) {
                                 gradient={{ from: "blue.3", to: "purple.3" }}
                                 leftSection={<IconUsers size={16} />}
                             >
-                                {answeredCount}/{players.length}
+                                {answeredCount}/{activePlayers.length}
                             </Badge>
                         </Group>
                         <TimerBadge timeLimit={question.timeLimit} />
@@ -44,16 +45,27 @@ export default function Question({question, players, currentQuestionIndex}) {
                             <Badge size="md" color="blue.3" variant="light">
                                 Питання {currentQuestionIndex}
                             </Badge>
-                            <Title order={2} style={{ fontSize: "2.5rem", color: "#1f2937" }}>
-                                {question.text}
-                            </Title>
+                            <div style={{ fontSize: "1.5rem", color: "#1f2937" }}>
+                                <RichText>{question.text}</RichText>
+                            </div>
+                            {question.mediaUrl && <Image src={question.mediaUrl} alt={question.text} radius="md" mah={320} fit="contain" />}
                         </Stack>
                     </Paper>
 
-                    {/* Answers Grid */}
-                    <HostAnswerGrid
-                        answers={question.answers}
-                    />
+
+                    {teamLeaderboard.length > 0 && (
+                        <Paper shadow="sm" radius="lg" p="md">
+                            <Title order={3} mb="sm">Командний рахунок наживо</Title>
+                            <Group grow>
+                                {teamLeaderboard.map((team) => (
+                                    <Paper key={team.id} withBorder p="sm" ta="center">
+                                        <Text fw={700}>{team.name}</Text>
+                                        <Text size="xl">{team.totalScore}</Text>
+                                    </Paper>
+                                ))}
+                            </Group>
+                        </Paper>
+                    )}
 
                     {/* Progress Bar */}
                     <Paper shadow="sm" radius="lg" p="md" style={{ background: "white" }}>
@@ -61,7 +73,7 @@ export default function Question({question, players, currentQuestionIndex}) {
                             <Group position="apart">
                                 <Text weight={600}>Гравці відповіли</Text>
                                 <Text color="dimmed" size="sm">
-                                    {answeredCount} / {players.length}
+                                    {answeredCount} / {activePlayers.length}
                                 </Text>
                             </Group>
                             <Progress
@@ -103,7 +115,10 @@ export default function Question({question, players, currentQuestionIndex}) {
                                             <Text weight={600} size="sm" align="center">
                                                 {player.nickname}
                                             </Text>
-                                            {player.hasAnswered ? (
+                                            <Badge size="sm" color={player.integrityEvents ? 'orange' : 'gray'} variant="light">Виходи з вкладки: {player.integrityEvents || 0}</Badge>
+                                            {player.eliminated ? (
+                                                <Badge size="xs" color="red" variant="light">Вибув · глядач</Badge>
+                                            ) : player.hasAnswered ? (
                                                 <Badge size="xs" color="green" variant="light">
                                                     Відповів
                                                 </Badge>

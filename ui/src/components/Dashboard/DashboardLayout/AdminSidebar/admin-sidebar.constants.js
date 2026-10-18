@@ -1,6 +1,8 @@
 import {
     IconDeviceDesktopAnalytics,
     IconPencilStar,
+    IconSchool,
+    IconBook,
 } from '@tabler/icons-react';
 
 export const ADMIN_SIDEBAR_LINKS = [
@@ -14,4 +16,6 @@ export const ADMIN_SIDEBAR_LINKS = [
         label: 'Reports',
         to: '/admin/reports'
     },
+    { icon: IconSchool, label: 'Класи', to: '/admin/classes' },
+    { icon: IconBook, label: 'Довідка', to: '/admin/help/formatting' },
 ];

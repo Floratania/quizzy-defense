@@ -57,19 +57,18 @@ export function PlayerAnswerCard({
                 }
             }}
         >
-            {/* Icon */}
             <Box
                 style={{
-                    fontSize: 'clamp(80px, 15vw, 180px)',
-                    fontWeight: 700,
                     color: "white",
                     textAlign: "center",
                     textShadow: "0 8px 16px rgba(0,0,0,0.3)",
                     animation: selected ? "iconPulse 0.6s ease-in-out" : "none",
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    padding: '1rem'
                 }}
             >
-                {colorStyle.icon}
+                <Box style={{ fontSize: 'clamp(32px, 5vw, 58px)', lineHeight: 1, marginBottom: 14 }}>{colorStyle.icon}</Box>
+                <Box style={{ fontSize: 'clamp(18px, 2.5vw, 32px)', lineHeight: 1.25, fontWeight: 700, overflowWrap: 'anywhere' }}>{answer.text}</Box>
             </Box>
 
             {/* Selection overlay with pulse */}

@@ -10,6 +10,21 @@ export function useSessionService() {
         }
     };
 
+    const getActiveSessions = async () => {
+        const { data } = await apiClient.get('/game-sessions/my/active');
+        return data;
+    };
 
-    return {startSession};
+    const getSession = async (id) => {
+        const { data } = await apiClient.get(`/game-sessions/${id}`);
+        return data;
+    };
+
+    const finishSession = async (id) => {
+        const { data } = await apiClient.post(`/game-sessions/${id}/finish`);
+        return data;
+    };
+
+
+    return {startSession, getActiveSessions, getSession, finishSession};
 }

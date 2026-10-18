@@ -34,8 +34,14 @@ export class PlayerAnswer {
     @JoinColumn({ name: 'selected_answer_id' })
     selectedAnswer: Answer | null;
 
-    @Column({name: 'selected_answer_id'})
-    selectedAnswerId: string;
+    @Column({name: 'selected_answer_id', nullable: true})
+    selectedAnswerId: string | null;
+
+    @Column({ type: 'jsonb', nullable: true })
+    response: Record<string, unknown> | null;
+
+    @Column({ default: false })
+    isCorrect: boolean;
 
     @Column({ type: 'int', default: 0 })
     earnedPoints: number; // points for this answer

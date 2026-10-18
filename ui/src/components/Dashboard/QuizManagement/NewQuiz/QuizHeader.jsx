@@ -5,7 +5,7 @@ import { useQuizContext } from "../../../../context/QuizContext.jsx";
 import { useNavigate } from "react-router";
 
 export const QuizHeader = () => {
-    const { formData, isEdit, submitQuiz } = useQuizContext();
+    const { formData, isEdit, submitQuiz, editingQuestionId, draftStatus, draftRestored, discardDraft } = useQuizContext();
     const navigate = useNavigate();
     const [saving, setSaving] = useState(false);
 
@@ -46,10 +46,12 @@ export const QuizHeader = () => {
                         <Text c="dimmed" size="sm">
                             додано {formData.questionsData.length} запитан(ь/я)
                         </Text>
+                        <Text size="xs" c="dimmed">{draftRestored ? 'Відновлено локальну чернетку. ' : ''}{draftStatus}</Text>
                     </Box>
                 </Group>
 
                 <Group>
+                    <Button variant="subtle" color="gray" size="xs" onClick={discardDraft} disabled={saving}>Видалити чернетку</Button>
                     <Button
                         variant="light"
                         color="gray"
@@ -61,9 +63,9 @@ export const QuizHeader = () => {
 
                     <Button
                         variant="gradient"
-                        gradient={{ from: "blue.4", to: "purple.4" }}
+                        gradient={{ from: "teal.6", to: "green.7" }}
                         onClick={handleSubmit}
-                        disabled={formData.questionsData.length === 0 || saving}
+                        disabled={formData.questionsData.length === 0 || saving || editingQuestionId !== null}
                     >
                         {isEdit ? "Зберегти зміни" : "Створити вікторину"}
                     </Button>

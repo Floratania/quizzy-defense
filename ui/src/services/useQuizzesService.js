@@ -11,6 +11,15 @@ export function useQuizzesService() {
         }
     };
 
+    const generateQuiz = async (settings) => {
+        try {
+            const { data } = await apiClient.post('/quizzes/generate', settings);
+            return data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Не вдалося згенерувати вікторину');
+        }
+    };
+
     const getQuizzes = async () => {
         try {
             const { data } = await apiClient.get('/quizzes/my');
@@ -31,7 +40,7 @@ export function useQuizzesService() {
 
     const updateQuiz = async (id, quiz) => {
         try {
-            const { data } = await apiClient.put(`/quizzes/${id}`, quiz);
+            const { data } = await apiClient.patch(`/quizzes/${id}`, quiz);
             return data;
         } catch (error) {
             throw new Error(error);
@@ -47,11 +56,15 @@ export function useQuizzesService() {
         }
     };
 
+    const duplicateQuiz = async (id) => (await apiClient.post(`/quizzes/${id}/duplicate`)).data;
+
     return {
         createQuiz,
+        generateQuiz,
         getQuizzes,
         getQuizById,
         updateQuiz,
-        deleteQuiz
+        deleteQuiz,
+        duplicateQuiz
     };
 }

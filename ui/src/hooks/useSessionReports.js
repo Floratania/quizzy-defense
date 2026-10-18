@@ -1,6 +1,5 @@
 import { notifications } from '@mantine/notifications';
 import { useEffect, useState } from "react";
-import { useQuizzesService } from "../services/useQuizzesService.js";
 import {useSessionReportsService} from "../services/useSessionReportsService.js";
 
 export const useSessionReports = () => {

@@ -1,6 +1,6 @@
 import { Tooltip, UnstyledButton } from '@mantine/core';
 
-export function NavbarLink({ icon: Icon, label, active, onClick }) {
+export function NavbarLink({ icon: _Icon, label, active, onClick }) {
 
     return (
         <Tooltip label={label} position="right" transitionProps={{ duration: 0 }}>
@@ -19,7 +19,7 @@ export function NavbarLink({ icon: Icon, label, active, onClick }) {
                     color: active ? 'white' : 'black',
                 }}
             >
-                <Icon size={20} stroke={1.5} />
+                <_Icon size={20} stroke={1.5} />
             </UnstyledButton>
 
         </Tooltip>

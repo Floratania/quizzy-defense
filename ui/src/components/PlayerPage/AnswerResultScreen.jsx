@@ -3,9 +3,23 @@
 import React from 'react';
 import { Box, Container, Paper, Title, Text, Stack, ThemeIcon, Badge } from '@mantine/core';
 import { IconCheck, IconX, IconStar } from '@tabler/icons-react';
+import RichText from '../Question/RichText.jsx';
 
 export const AnswerResultScreen = ({ answerResult }) => {
+    if (answerResult.submitted && typeof answerResult.correct !== 'boolean') {
+        return (
+            <Box mih="100vh" style={{ display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #dbeafe, #e9d5ff)' }}>
+                <Paper shadow="xl" radius="xl" p={50} ta="center">
+                    <Title order={2}>Відповідь прийнято</Title>
+                    <Text c="dimmed" mt="sm">Результат буде показано після завершення вікторини.</Text>
+                </Paper>
+            </Box>
+        );
+    }
     const isCorrect = answerResult.correct;
+    const correctness = Number(answerResult.correctness ?? (isCorrect ? 1 : 0));
+    const isPartial = correctness > 0 && correctness < 1;
+    const resultColor = isCorrect ? '#059669' : isPartial ? '#d97706' : '#dc2626';
 
     return (
         <Box
@@ -13,7 +27,7 @@ export const AnswerResultScreen = ({ answerResult }) => {
                 minHeight: "100vh",
                 background: isCorrect
                     ? "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 50%, #6ee7b7 100%)"
-                    : "linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #fca5a5 100%)",
+                    : isPartial ? "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%)" : "linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #fca5a5 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -28,6 +42,7 @@ export const AnswerResultScreen = ({ answerResult }) => {
                     style={{ background: "white", textAlign: "center" }}
                 >
                     <Stack spacing="xl" align="center">
+                        {answerResult.explanation && <Paper withBorder p="md" w="100%"><Text fw={600}>Пояснення</Text><RichText>{answerResult.explanation}</RichText></Paper>}
                         <ThemeIcon
                             size={120}
                             radius="xl"
@@ -35,7 +50,7 @@ export const AnswerResultScreen = ({ answerResult }) => {
                             gradient={
                                 isCorrect
                                     ? { from: 'teal.4', to: 'green.5' }
-                                    : { from: 'red.4', to: 'pink.5' }
+                                    : isPartial ? { from: 'yellow.5', to: 'orange.6' } : { from: 'red.4', to: 'pink.5' }
                             }
                             style={{
                                 animation: 'bounce 0.6s ease-in-out'
@@ -49,14 +64,14 @@ export const AnswerResultScreen = ({ answerResult }) => {
                                 order={1}
                                 style={{
                                     fontSize: '3.5rem',
-                                    color: isCorrect ? '#059669' : '#dc2626',
+                                    color: resultColor,
                                     marginBottom: 8
                                 }}
                             >
-                                {isCorrect ? 'Correct!' : 'Wrong!'}
+                                {isCorrect ? 'Правильно!' : isPartial ? 'Частково правильно' : 'Неправильно'}
                             </Title>
                             <Text size="lg" c="dimmed">
-                                {isCorrect ? 'Great job!' : 'Better luck next time'}
+                                {isPartial ? `Правильність: ${Math.round(correctness * 100)}%` : isCorrect ? 'Чудова робота!' : 'Спробуйте наступного разу'}
                             </Text>
                         </div>
 
@@ -66,17 +81,17 @@ export const AnswerResultScreen = ({ answerResult }) => {
                             style={{
                                 background: isCorrect
                                     ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
-                                    : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                                    : isPartial ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
                                 width: '100%',
                                 maxWidth: 300
                             }}
                         >
                             <Stack spacing="xs" align="center">
-                                <IconStar size={32} color={isCorrect ? '#059669' : '#dc2626'} />
+                                <IconStar size={32} color={resultColor} />
                                 <Text size="sm" c="dimmed">
-                                    Points Earned
+                                    Нараховано балів
                                 </Text>
-                                <Title order={1} style={{ color: isCorrect ? '#059669' : '#dc2626' }}>
+                                <Title order={1} style={{ color: resultColor }}>
                                     +{answerResult.earnedPoints}
                                 </Title>
                             </Stack>

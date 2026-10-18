@@ -1,15 +1,31 @@
 import { notifications } from '@mantine/notifications';
-import {useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {useSessionService} from "../services/useSessionService.js";
 
 export const useSession = () => {
-    const [sessionId, setSessionId] = useState('');
-    const { startSession } = useSessionService();
+
+    const [activeSessions, setActiveSessions] = useState([]);
+    const { startSession, getActiveSessions, getSession, finishSession } = useSessionService();
+
+    const refreshActiveSessions = useCallback(async () => {
+        try {
+            setActiveSessions(await getActiveSessions());
+        } catch (error) {
+            console.error('Failed to load active sessions', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        refreshActiveSessions();
+        const interval = setInterval(refreshActiveSessions, 5000);
+        return () => clearInterval(interval);
+    }, [refreshActiveSessions]);
 
     const newSession = async (quizId) => {
         try {
             const response = await startSession(quizId);
-            setSessionId(response);
+
+            await refreshActiveSessions();
 
             notifications.show({
                 title: 'Success',
@@ -29,5 +45,10 @@ export const useSession = () => {
         }
     };
 
-    return { newSession };
+    const closeSession = async (id) => {
+        await finishSession(id);
+        await refreshActiveSessions();
+    };
+
+    return { newSession, activeSessions, refreshActiveSessions, getSession, closeSession };
 };

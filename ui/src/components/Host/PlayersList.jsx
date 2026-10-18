@@ -18,8 +18,13 @@ import {
 } from "@mantine/core";
 import { IconPlayerPlay, IconUsers, IconCopy } from "@tabler/icons-react";
 import React from "react";
+import { QRCodeSVG } from 'qrcode.react';
 
-export default function PlayersList({ players, sessionId, startGame, roomCode }) {
+export default function PlayersList({ players, sessionId, startGame, roomCode, mode, teams = [], teamAssignment = 'AUTO' }) {
+    const isTeamGame = mode === 'TEAM' || mode === 'TOURNAMENT';
+    const usesTeamCodes = isTeamGame && teamAssignment === 'CODES';
+    const joinLink = (code) => `${window.location.origin}/join?code=${encodeURIComponent(code || '')}`;
+
     return (
         <Box
             style={{
@@ -36,10 +41,11 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                         <Center>
                             <Stack spacing="xs" align="center">
                                 <Text size="lg" weight={600} color="dimmed">
-                                    Приєднуйтесь за кодом
+                                    {usesTeamCodes ? 'Коди для приєднання до команд' : 'Приєднуйтесь за кодом'}
                                 </Text>
 
-                                <Group spacing="xs">
+                                {!usesTeamCodes && <Group spacing="xs">
+                                    <Paper p="sm" withBorder><QRCodeSVG value={joinLink(roomCode)} size={150} level="M" /></Paper>
                                     <Badge
                                         size="xl"
                                         radius="md"
@@ -63,11 +69,36 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                                             </Button>
                                         )}
                                     </CopyButton>
-                                </Group>
+                                </Group>}
+
+                                {usesTeamCodes && (
+                                    <Grid w="100%" mt="sm">
+                                        {teams.map((team) => (
+                                            <Grid.Col key={team.id} span={{ base: 12, sm: 6 }}>
+                                                <Paper withBorder radius="md" p="md">
+                                                    <Group justify="space-between">
+                                                        <QRCodeSVG value={joinLink(team.joinCode)} size={92} level="M" />
+                                                        <div>
+                                                            <Text size="sm" c="dimmed">{team.name}</Text>
+                                                            <Text fw={800} size="xl">{team.joinCode}</Text>
+                                                        </div>
+                                                        <CopyButton value={team.joinCode || ''}>
+                                                            {({ copied, copy }) => (
+                                                                <Button variant="light" color={copied ? 'green' : 'violet'} onClick={copy}>
+                                                                    {copied ? 'Скопійовано' : 'Копіювати'}
+                                                                </Button>
+                                                            )}
+                                                        </CopyButton>
+                                                    </Group>
+                                                </Paper>
+                                            </Grid.Col>
+                                        ))}
+                                    </Grid>
+                                )}
 
                                 <Text color="dimmed" size="sm" ta="center">
                                     Гравці приєднуються тут:<br/>
-                                    <strong>quizzy.com/join</strong>
+                                    <strong>{joinLink(roomCode)}</strong>
                                 </Text>
                             </Stack>
                         </Center>
@@ -110,6 +141,9 @@ export default function PlayersList({ players, sessionId, startGame, roomCode })
                                             <Text weight={600} size="sm" align="center">
                                                 {player.nickname}
                                             </Text>
+                                            {isTeamGame && <Badge color="violet" variant="light">{player.teamName || 'Команда'}</Badge>}
+                                            <Badge size="sm" color={player.integrityEvents ? 'orange' : 'gray'} variant="light">Виходи з вкладки: {player.integrityEvents || 0}</Badge>
+                                            {player.eliminated && <Badge color="red" variant="light">Вибув</Badge>}
                                         </Stack>
                                     </Card>
                                 </Grid.Col>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import PlayersList from "../../components/Host/PlayersList.jsx";
 import Preview from "../../components/Host/Preview.jsx";
@@ -8,19 +8,23 @@ import HostLeaderBoard from "../../components/Host/HostLeaderBoard.jsx";
 
 import { useSession } from "../../hooks/useSession.js";
 import { useGameHost } from "../../hooks/useGameHost.js";
-import { Box, Loader, Stack, Text } from "@mantine/core";
+import { Badge, Box, Container, Group, Loader, Paper, Progress, Stack, Text, Title } from "@mantine/core";
 import Result from "../../components/Host/Result.jsx";
 import LeaderboardScreen from "../../components/LeaderboardScreen.jsx";
+import TournamentBoard from "../../components/Host/TournamentBoard.jsx";
+import SessionEventLog from '../../components/Host/SessionEventLog.jsx';
 
 
 export default function HostPage() {
     console.log("HOST PAGE MOUNTED");
     const { quizId } = useParams();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
 
     // session is allowed to be null initially
     const [session, setSession] = useState(null);
 
-    const { newSession } = useSession();
+    const { newSession, getSession } = useSession();
 
     // ✅ MUST be called unconditionally
     const host = useGameHost(session?.id ?? null);
@@ -32,8 +36,27 @@ export default function HostPage() {
 
         const create = async () => {
             try {
-                const sess = await newSession({ quizId });
-                if (active) setSession(sess);
+                const existingSessionId = searchParams.get('sessionId');
+                if (existingSessionId) {
+                    const existing = await getSession(existingSessionId);
+                    if (active) setSession(existing);
+                    return;
+                }
+                const requestedMode = searchParams.get('mode');
+                const mode = ['TEAM', 'PROGRESS', 'SURVIVAL', 'TOURNAMENT'].includes(requestedMode) ? requestedMode : 'CLASSIC';
+                const teamCount = Math.max(2, Math.min(Number(searchParams.get('teamCount') || 2), 8));
+                const teamAssignment = searchParams.get('teamAssignment') === 'CODES' ? 'CODES' : 'AUTO';
+                const sess = await newSession({
+                    quizId,
+                    mode,
+                    ...(mode === 'SURVIVAL' ? { survivalMistakeLimit: Math.max(1, Math.min(100, Number(searchParams.get('mistakes')) || 1)) } : {}),
+                    ...(mode === 'TEAM' ? { teamCount, teamAssignment } : {}),
+                    ...(mode === 'TOURNAMENT' ? { tournamentTeamCount: [4, 8].includes(teamCount) ? teamCount : 4, teamAssignment } : {}),
+                });
+                if (active && sess) {
+                    setSession(sess);
+                    navigate(`/host/${quizId}?sessionId=${sess.id}`, { replace: true });
+                }
             } catch (err) {
                 console.error("Failed to create session:", err);
             }
@@ -44,7 +67,7 @@ export default function HostPage() {
         return () => {
             active = false;
         };
-    }, [quizId]);
+    }, [quizId, searchParams, navigate]);
 
     // ⛔ session still loading OR host still initializing
     if (!session || host.loading) {
@@ -79,12 +102,54 @@ export default function HostPage() {
         results,
         timeLeft,
         leaderboard,
+        teamLeaderboard,
+        progress,
+        tournamentState,
         nextQuestion
     } = host;
 
 
 
     // ---------- Render UI ----------
+    const renderSession = () => {
+
+    if (isGameFinished) {
+        if (session.mode === 'TOURNAMENT') {
+            return <Box p="xl" mih="100vh" bg="violet.0"><Container size="md"><Stack><TournamentBoard state={tournamentState} /><HostLeaderBoard leaderboard={leaderboard || teamLeaderboard || []} nextQuestion={null} isGameFinished /></Stack></Container></Box>;
+        }
+        return (
+            <HostLeaderBoard
+                leaderboard={leaderboard || teamLeaderboard || []}
+                nextQuestion={null}
+                isGameFinished
+            />
+        );
+    }
+
+    if (session.mode === 'PROGRESS' && gameStarted && !isGameFinished) {
+        return (
+            <Box p="xl" mih="100vh" style={{ background: 'linear-gradient(135deg, #dbeafe, #e9d5ff)' }}>
+                <Container size="md">
+                    <Paper shadow="xl" radius="xl" p="xl">
+                        <Title order={2} mb="xs">Автоматичне проходження</Title>
+                        <Text c="dimmed" mb="xl">Кожен учень проходить питання у власному темпі.</Text>
+                        <Stack>
+                            {progress.map((item) => (
+                                <Paper key={item.playerId} withBorder p="md">
+                                    <Group justify="space-between" mb="xs">
+                                        <Text fw={600}>{item.nickname}</Text>
+                                        <Badge color="orange" variant="light">Виходи з вкладки: {players.find((p) => p.id === item.playerId)?.integrityEvents || 0}</Badge>
+                                        <Badge color={item.completed ? 'green' : 'blue'}>{item.completed ? 'Завершено' : `${item.current}/${item.total}`}</Badge>
+                                    </Group>
+                                    <Progress value={item.percent} color={item.completed ? 'green' : 'blue'} size="lg" animated />
+                                </Paper>
+                            ))}
+                        </Stack>
+                    </Paper>
+                </Container>
+            </Box>
+        );
+    }
 
     if (results) {
         return <Result results={results} />;
@@ -92,22 +157,22 @@ export default function HostPage() {
 
 
     if (leaderboard && !isGameFinished) {
+        if (session.mode === 'TOURNAMENT') {
+            return (
+                <Box p="xl" mih="100vh" bg="violet.0">
+                    <Container size="md"><Stack>
+                        <TournamentBoard state={tournamentState} />
+                        <LeaderboardScreen mode="host" leaderboard={leaderboard} onNext={nextQuestion} isGameFinished={false} />
+                    </Stack></Container>
+                </Box>
+            );
+        }
         return (
             <LeaderboardScreen
                 mode="host"
                 leaderboard={leaderboard}
                 onNext={nextQuestion}
                 isGameFinished={isGameFinished}
-            />
-        );
-    }
-
-    if (leaderboard && isGameFinished) {
-        return (
-            <HostLeaderBoard
-                leaderboard={leaderboard}
-                nextQuestion={null}
-                isGameFinished={true}
             />
         );
     }
@@ -119,6 +184,8 @@ export default function HostPage() {
                 players={players}
                 currentQuestionIndex={currentQuestionIndex}
                 timeLeft={timeLeft}
+                teamLeaderboard={teamLeaderboard}
+                tournamentState={tournamentState}
             />
         );
     }
@@ -134,6 +201,9 @@ export default function HostPage() {
                 sessionId={session.id}
                 startGame={startGame}
                 roomCode={session.roomCode}
+                mode={session.mode}
+                teams={session.teams || []}
+                teamAssignment={session.settings?.teamAssignment || 'AUTO'}
             />
         );
     }
@@ -154,4 +224,7 @@ export default function HostPage() {
             </Stack>
         </Box>
     );
+    };
+
+    return <>{renderSession()}<Container size="xl"><SessionEventLog events={host.sessionEvents} /></Container></>;
 }

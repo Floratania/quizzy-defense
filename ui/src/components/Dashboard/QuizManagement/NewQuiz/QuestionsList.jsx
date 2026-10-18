@@ -1,6 +1,8 @@
 import React from "react";
+import RichText from '../../../Question/RichText.jsx';
 import {
     Card,
+    Box,
     Title,
     Stack,
     Paper,
@@ -16,25 +18,41 @@ import {
     IconStar,
     IconTrash,
     IconCheck,
-    IconX
+    IconX,
+    IconLibraryPlus,
+    IconPencil
 } from "@tabler/icons-react";
+import { notifications } from '@mantine/notifications';
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
 
 // Уніфікований мапінг типів
 const questionTypes = {
     quiz: "Вибір з варіантів",
     "multiple_choice": "Вибір з варіантів",
+    "multiple_response": "Кілька правильних відповідей",
     "true-false": "Правда/Неправда",
     "true_false": "Правда/Неправда",
     boolean: "Правда/Неправда",
     "text-input": "Текстова відповідь",
-    "open_text": "Відкрите запитання"
+    "open_text": "Відкрите запитання",
+    "fill_blank": "Вставити пропущене слово",
+    matching: "Встановлення відповідності",
+    ordering: "Правильна послідовність"
 };
 
 export const QuestionsList = () => {
-    const { formData, removeQuestion } = useQuizContext();
+    const { formData, removeQuestion, saveQuestionInBank, editQuestion } = useQuizContext();
 
     const questions = formData.questionsData || [];
+
+    const saveToBank = async (question) => {
+        try {
+            await saveQuestionInBank(question);
+            notifications.show({ color: 'green', message: 'Питання збережено до банку' });
+        } catch {
+            notifications.show({ color: 'red', message: 'Не вдалося зберегти питання' });
+        }
+    };
 
     if (questions.length === 0) return null;
 
@@ -88,19 +106,23 @@ export const QuestionsList = () => {
                                 </Group>
                             </Group>
 
-                            <ActionIcon
-                                color="red"
-                                variant="light"
-                                onClick={() => removeQuestion(q.id)}
-                            >
-                                <IconTrash size={18} />
-                            </ActionIcon>
+                            <Group gap="xs">
+                                <ActionIcon title="Редагувати питання" aria-label="Редагувати питання" color="blue" variant="light" onClick={() => editQuestion(q.id)}>
+                                    <IconPencil size={18} />
+                                </ActionIcon>
+                                <ActionIcon title="Зберегти до банку" color="teal" variant="light" onClick={() => saveToBank(q)}>
+                                    <IconLibraryPlus size={18} />
+                                </ActionIcon>
+                                <ActionIcon color="red" variant="light" onClick={() => removeQuestion(q.id)}>
+                                    <IconTrash size={18} />
+                                </ActionIcon>
+                            </Group>
                         </Group>
 
                         {/* TEXT */}
-                        <Text fw={600} size="lg" mb="md">
-                            {q.text}
-                        </Text>
+                        <Box mb="md">
+                            <RichText>{q.text}</RichText>
+                        </Box>
 
                         {/* QUESTION IMAGE */}
                         {(q.imagePreview || q.imageUrl) && (
@@ -115,7 +137,7 @@ export const QuestionsList = () => {
                         )}
 
                         {/* ANSWERS */}
-                        {q.type !== "text-input" && q.type !== "open_text" && (
+                        {!['text-input', 'open_text', 'fill_blank', 'matching', 'ordering'].includes(q.type) && (
                             <Grid>
                                 {q.answers.slice(0, q.numberOfAnswers).map((answer, i) => (
                                     <Grid.Col key={i} span={6}>
@@ -174,6 +196,15 @@ export const QuestionsList = () => {
                                 ))}
                             </Grid>
                         )}
+                        {q.type === 'matching' && q.matchingPairs.map((pair, pairIndex) => (
+                            <Text key={pair.leftId} size="sm">{pairIndex + 1}. {pair.left} → {pair.right}</Text>
+                        ))}
+                        {q.type === 'ordering' && q.orderingItems.map((item, itemIndex) => (
+                            <Text key={item.id} size="sm">{itemIndex + 1}. {item.text}</Text>
+                        ))}
+                        {q.type === 'fill_blank' && q.fillBlankItems.map((item, itemIndex) => (
+                            <Text key={item.id} size="sm">Пропуск {itemIndex + 1}: <strong>{item.text}</strong></Text>
+                        ))}
                     </Paper>
                 ))}
             </Stack>

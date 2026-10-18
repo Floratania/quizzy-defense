@@ -2,11 +2,7 @@ import React from 'react';
 import { Card, Title, Stack, Paper, Group, Text, Badge, Divider } from '@mantine/core';
 import {useQuizContext} from "../../../../context/QuizContext.jsx";
 
-const questionTypes = {
-    'quiz': 'Вибір з варіантів',
-    'true-false': 'Правда/Неправда',
-    'text-input': 'Текстова відповідь'
-};
+
 
 export const QuizSummary = () => {
     const { formData } = useQuizContext();

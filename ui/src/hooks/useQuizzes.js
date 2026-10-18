@@ -5,11 +5,16 @@ import { useQuizzesService } from "../services/useQuizzesService.js";
 export const useQuizzes = () => {
     const {
         createQuiz,
+        generateQuiz,
         getQuizzes,
         getQuizById,
         updateQuiz,
-        deleteQuiz
+        deleteQuiz,
+        duplicateQuiz
     } = useQuizzesService();
+
+    const handleGenerate = (settings) => generateQuiz(settings);
+    const handleDuplicate = async (id) => { const copy = await duplicateQuiz(id); setQuizzes((prev) => [...prev, copy]); return copy; };
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -148,8 +153,10 @@ export const useQuizzes = () => {
 
         // CRUD
         handleCreate,
+        handleGenerate,
         handleGetById,
         handleUpdate,
         handleDelete,
+        handleDuplicate,
     };
 };

@@ -1,5 +1,6 @@
 import { Paper, Box, Group, Text } from "@mantine/core";
 import { ANSWER_STYLES } from "../../constants/answerStyles.js";
+import RichText from '../Question/RichText.jsx';
 
 export function HostAnswerCard({ answer, index }) {
     const style = ANSWER_STYLES[index % ANSWER_STYLES.length];
@@ -53,7 +54,7 @@ export function HostAnswerCard({ answer, index }) {
                             wordBreak: "break-word",
                         }}
                     >
-                        {answer.text}
+                        <RichText>{answer.text}</RichText>
                     </Text>
                 </Group>
             </Paper>
@@ -90,7 +91,7 @@ export function HostAnswerCard({ answer, index }) {
                         wordBreak: "break-word",
                     }}
                 >
-                    {answer.text}
+                    <RichText>{answer.text}</RichText>
                 </Text>
             </Group>
         </Paper>

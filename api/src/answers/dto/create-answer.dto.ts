@@ -3,7 +3,7 @@ import {IsString, IsNotEmpty, IsBoolean, IsUrl, IsOptional} from 'class-validato
 export class CreateAnswerDto {
     @IsString()
     @IsNotEmpty()
-    text?: string;
+    text: string;
 
     @IsUrl()
     @IsOptional()

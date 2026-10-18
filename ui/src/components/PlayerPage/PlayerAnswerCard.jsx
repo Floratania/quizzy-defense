@@ -1,6 +1,7 @@
 import { Box } from "@mantine/core";
 import { ANSWER_STYLES } from "../../constants/answerStyles.js";
 import { AnswerCardBase } from "../Question/AnswerCardBase.jsx";
+import RichText from '../Question/RichText.jsx';
 
 export function PlayerAnswerCard({
                                      answer,
@@ -44,7 +45,7 @@ export function PlayerAnswerCard({
         );
     }
 
-    // Icon only variant
+    // Text answer with a small shape marker
     return (
         <AnswerCardBase
             answer={answer}
@@ -53,17 +54,11 @@ export function PlayerAnswerCard({
             disabled={disabled}
             onSelect={onSelect}
         >
-            <Box
-                style={{
-                    fontSize: 80,
-                    fontWeight: 700,
-                    color: "white",
-                    textAlign: "center",
-                    textShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                    animation: selected ? "iconBounce 0.6s ease-in-out" : "none"
-                }}
-            >
-                {style.icon}
+            <Box style={{ color: "white", textAlign: "center", padding: 12 }}>
+                <Box style={{ fontSize: 34, lineHeight: 1, marginBottom: 12, animation: selected ? "iconBounce 0.6s ease-in-out" : "none" }}>{style.icon}</Box>
+                <Box style={{ fontSize: 22, lineHeight: 1.3, fontWeight: 700, overflowWrap: 'anywhere', textShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+                    <RichText>{answer.text}</RichText>
+                </Box>
             </Box>
         </AnswerCardBase>
     );

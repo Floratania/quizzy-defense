@@ -1,0 +1,26 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ts = require('typescript');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('src/game-teams/game-teams.service.ts','utf8');
+const exported = {};
+vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,experimentalDecorators:true}}).outputText,{exports:exported,require:()=>({Injectable:()=>()=>{},InjectRepository:()=>()=>{}})});
+const session = {id:'test',settings:{}};
+const teams = Array.from({length:8},(_,i)=>({id:String(i),name:String(i),players:[{totalScore:80-i*10}]}));
+const service = new exported.GameTeamsService({find:async()=>teams},{findOneByOrFail:async()=>session,save:async()=>session});
+(async()=>{
+    await service.getTournamentState('test',0,9);
+    let state = await service.getTournamentState('test',3,9);
+    const initial = JSON.stringify(state.matches.map(m=>[m.home.id,m.away.id]));
+    teams[3].players[0].totalScore += 100;
+    state = await service.getTournamentState('test',4,9);
+    assert.equal(JSON.stringify(state.matches.map(m=>[m.home.id,m.away.id])),initial);
+    state = await service.getTournamentState('test',6,9);
+    assert.equal(state.activeTeamIds.length,2);
+    assert.ok(state.activeTeamIds.includes('3'));
+    assert.ok(!state.activeTeamIds.includes('0'));
+    teams[3].players[0].totalScore += 10;
+    state = await service.getTournamentState('test',9,9);
+    assert.equal(state.champion.id,'3');
+    console.log('PASS fixed semifinal pairs, match winners, stage scores, final champion');
+})().catch(error=>{console.error(error);process.exitCode=1;});

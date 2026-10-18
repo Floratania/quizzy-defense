@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 import {LoginDto} from './dto/login.dto';
 import {JwtService} from '@nestjs/jwt';
 import {RefreshToken} from './entities/refresh-token.entity';
-import {v4 as uuidv4} from 'uuid';
+import {randomUUID as uuidv4} from 'node:crypto';
 import {User} from '@/users/entities/user.entity';
 import {TokenClaims} from './types/auth.types';
 import {GoogleOAuthService} from "@/auth/google-oauth/google-oauth.service";

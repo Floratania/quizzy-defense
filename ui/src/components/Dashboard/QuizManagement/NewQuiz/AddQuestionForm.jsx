@@ -1,21 +1,31 @@
 import React from 'react';
 import {
     Card, Title, Stack, Select, TextInput, Box, Text, FileInput,
-    Paper, Group, CloseButton, Image, Grid, NumberInput, Checkbox, Button
+    Paper, Group, CloseButton, Image, Grid, NumberInput, Checkbox, Button, Badge, Textarea, Anchor
 } from '@mantine/core';
 import { IconPhoto, IconClock, IconStar, IconPlus } from '@tabler/icons-react';
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
+import RichText from '../../../Question/RichText.jsx';
 
 const questionTypes = [
     { label: 'Вибір з варіантів', value: 'multiple_choice' },
+    { label: 'Кілька правильних відповідей', value: 'multiple_response' },
     { label: 'Правда/Неправда', value: 'true_false' },
-    { label: 'Текстове запитання', value: 'open_text' }
+    { label: 'Текстове запитання', value: 'open_text' },
+    { label: 'Вставити пропущене слово', value: 'fill_blank' },
+    { label: 'Встановлення відповідності', value: 'matching' },
+    { label: 'Правильна послідовність', value: 'ordering' }
 ];
 
 const answerColors = ['blue', 'teal', 'yellow', 'red', 'violet', 'pink'];
 
 export const AddQuestionForm = () => {
-    const { currentQuestion, updateCurrentQuestion, setCurrentQuestion, addQuestion } = useQuizContext();
+    const { currentQuestion, updateCurrentQuestion, setCurrentQuestion, addQuestion, editingQuestionId, cancelQuestionEdit } = useQuizContext();
+    const [adding, setAdding] = React.useState(false);
+    const formRef = React.useRef(null);
+    React.useEffect(() => {
+        if (editingQuestionId !== null) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [editingQuestionId]);
 
     // ----------------------------
     // TYPE CHANGE HANDLER
@@ -46,6 +56,37 @@ export const AddQuestionForm = () => {
                 answerImageUrls: [null],
                 numberOfAnswers: 1,
                 correctAnswers: [0],
+            });
+            return;
+        }
+
+        if (type === 'fill_blank') {
+            setCurrentQuestion({
+                ...currentQuestion,
+                type,
+                answers: [],
+                answerImages: [],
+                answerImagePreviews: [],
+                answerImageUrls: [],
+                numberOfAnswers: 0,
+                correctAnswers: [],
+                fillBlankItems: currentQuestion.fillBlankItems?.length >= 2
+                    ? currentQuestion.fillBlankItems
+                    : [{ id: crypto.randomUUID(), text: '' }, { id: crypto.randomUUID(), text: '' }],
+            });
+            return;
+        }
+
+        if (type === 'matching' || type === 'ordering') {
+            setCurrentQuestion({
+                ...currentQuestion,
+                type,
+                answers: [],
+                answerImages: [],
+                answerImagePreviews: [],
+                answerImageUrls: [],
+                numberOfAnswers: 0,
+                correctAnswers: [],
             });
             return;
         }
@@ -135,7 +176,7 @@ export const AddQuestionForm = () => {
     // CORRECT ANSWER CHECKBOX
     // ----------------------------
     const handleCorrectAnswerToggle = (idx) => {
-        if (currentQuestion.type === 'true_false') {
+        if (currentQuestion.type === 'true_false' || currentQuestion.type === 'multiple_choice' || currentQuestion.type === 'fill_blank') {
             updateCurrentQuestion({ correctAnswers: [idx] });
             return;
         }
@@ -150,8 +191,9 @@ export const AddQuestionForm = () => {
     };
 
     return (
-        <Card shadow="md" padding="xl" radius="lg" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
-            <Title order={3} mb="lg">Нове питання</Title>
+        <Card ref={formRef} shadow="md" padding="xl" radius="lg" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
+            <Title order={3} mb="lg">{editingQuestionId !== null ? 'Редагування питання' : 'Нове питання'}</Title>
+            {editingQuestionId !== null && <Text size="sm" c="dimmed" mb="md">Зміни застосовуються лише до питання в цій вікторині. Оригінал у банку залишиться незмінним.</Text>}
 
             <Stack gap="lg">
 
@@ -165,20 +207,38 @@ export const AddQuestionForm = () => {
                 />
 
                 {/* QUESTION TEXT */}
-                <TextInput
-                    label="Питання"
-                    placeholder="Введіть ваше запитання (до 100 символів)"
-                    value={currentQuestion.text}
-                    onChange={(e) => updateCurrentQuestion({ text: e.target.value.slice(0, 100) })}
-                    maxLength={100}
-                    required
-                    size="md"
-                    rightSection={
-                        <Text size="xs" c="dimmed">{currentQuestion.text.length}/100</Text>
-                    }
-                />
+                {currentQuestion.type === 'fill_blank' ? (
+                    <Textarea
+                        label="Текст із пропусками"
+                        description="Поставте ___ у кожному місці, куди потрібно вставити слово (від 2 до 8 пропусків)"
+                        placeholder="Навесні ___ світить яскравіше, а ___ стають довшими."
+                        value={currentQuestion.text}
+                        onChange={(event) => updateCurrentQuestion({ text: event.target.value.slice(0, 1500) })}
+                        minRows={5}
+                        maxLength={1500}
+                        required
+                    />
+                ) : (
+                    <Textarea
+                        label="Питання"
+                        description="Підтримує форматований текст, формули та програмний код. Правила й готові приклади — у довідці нижче."
+                        placeholder="Введіть текст, формули або код"
+                        value={currentQuestion.text}
+                        onChange={(e) => updateCurrentQuestion({ text: e.target.value.slice(0, 10000) })}
+                        maxLength={10000}
+                        minRows={4}
+                        required
+                        size="md"
+                    />
+                )}
+
+                <Anchor href="/admin/help/formatting" target="_blank" rel="noopener noreferrer" size="sm">
+                    Як писати формули, код і форматований текст? Відкрити довідку ↗
+                </Anchor>
 
                 {/* QUESTION IMAGE */}
+                <Textarea label="Пояснення відповіді" description="Необов’язково: розв’язання, коментар або посилання у форматі [Матеріал](https://...). Учень побачить пояснення відповідно до налаштувань показу результатів." value={currentQuestion.explanation || ''} onChange={(event) => updateCurrentQuestion({ explanation: event.currentTarget.value })} minRows={3} maxLength={10000} />
+                {currentQuestion.text && <Paper withBorder p="md"><Text size="sm" c="dimmed">Як виглядатиме питання</Text><RichText>{currentQuestion.text}</RichText></Paper>}
                 <Box>
                     <Text size="sm" fw={500} mb="xs">Зображення (Необов'язково)</Text>
                     {currentQuestion.imagePreview ? (
@@ -236,7 +296,7 @@ export const AddQuestionForm = () => {
                 {/* TEXT INPUT QUESTION */}
                 {currentQuestion.type === 'open_text' && (
                     <TextInput
-                        label="Правильна відповідь"
+                        label={currentQuestion.type === 'fill_blank' ? 'Пропущене слово або фраза' : 'Правильна відповідь'}
                         value={currentQuestion.answers[0]}
                         onChange={(e) =>
                             updateCurrentQuestion({
@@ -246,13 +306,137 @@ export const AddQuestionForm = () => {
                     />
                 )}
 
+                {currentQuestion.type === 'matching' && (
+                    <Stack gap="sm">
+                        <Text fw={500}>Пари для встановлення відповідності</Text>
+                        {currentQuestion.matchingPairs.map((pair, idx) => (
+                            <Group key={pair.leftId} align="end" wrap="nowrap">
+                                <TextInput
+                                    label={`Ліва частина ${idx + 1}`}
+                                    value={pair.left}
+                                    onChange={(event) => {
+                                        const matchingPairs = currentQuestion.matchingPairs.map((item, index) =>
+                                            index === idx ? { ...item, left: event.target.value } : item,
+                                        );
+                                        updateCurrentQuestion({ matchingPairs });
+                                    }}
+                                    style={{ flex: 1 }}
+                                />
+                                <TextInput
+                                    label="Відповідність"
+                                    value={pair.right}
+                                    onChange={(event) => {
+                                        const matchingPairs = currentQuestion.matchingPairs.map((item, index) =>
+                                            index === idx ? { ...item, right: event.target.value } : item,
+                                        );
+                                        updateCurrentQuestion({ matchingPairs });
+                                    }}
+                                    style={{ flex: 1 }}
+                                />
+                                <CloseButton
+                                    disabled={currentQuestion.matchingPairs.length <= 2}
+                                    onClick={() => updateCurrentQuestion({
+                                        matchingPairs: currentQuestion.matchingPairs.filter((_, index) => index !== idx),
+                                    })}
+                                />
+                            </Group>
+                        ))}
+                        <Button
+                            variant="light"
+                            disabled={currentQuestion.matchingPairs.length >= 8}
+                            onClick={() => updateCurrentQuestion({
+                                matchingPairs: [...currentQuestion.matchingPairs, {
+                                    leftId: crypto.randomUUID(), left: '', rightId: crypto.randomUUID(), right: '',
+                                }],
+                            })}
+                        >
+                            Додати пару
+                        </Button>
+                    </Stack>
+                )}
+
+                {currentQuestion.type === 'ordering' && (
+                    <Stack gap="sm">
+                        <Text fw={500}>Елементи у правильному порядку</Text>
+                        {currentQuestion.orderingItems.map((item, idx) => (
+                            <Group key={item.id} wrap="nowrap">
+                                <Badge>{idx + 1}</Badge>
+                                <TextInput
+                                    value={item.text}
+                                    placeholder={`Елемент ${idx + 1}`}
+                                    onChange={(event) => {
+                                        const orderingItems = currentQuestion.orderingItems.map((current, index) =>
+                                            index === idx ? { ...current, text: event.target.value } : current,
+                                        );
+                                        updateCurrentQuestion({ orderingItems });
+                                    }}
+                                    style={{ flex: 1 }}
+                                />
+                                <CloseButton
+                                    disabled={currentQuestion.orderingItems.length <= 2}
+                                    onClick={() => updateCurrentQuestion({
+                                        orderingItems: currentQuestion.orderingItems.filter((_, index) => index !== idx),
+                                    })}
+                                />
+                            </Group>
+                        ))}
+                        <Button
+                            variant="light"
+                            disabled={currentQuestion.orderingItems.length >= 8}
+                            onClick={() => updateCurrentQuestion({
+                                orderingItems: [...currentQuestion.orderingItems, { id: crypto.randomUUID(), text: '' }],
+                            })}
+                        >
+                            Додати елемент
+                        </Button>
+                    </Stack>
+                )}
+
+                {currentQuestion.type === 'fill_blank' && (
+                    <Stack gap="sm">
+                        <Group justify="space-between">
+                            <div>
+                                <Text fw={500}>Слова у правильному порядку пропусків</Text>
+                                <Text size="xs" c="dimmed">Пропусків у тексті: {(currentQuestion.text.match(/___/g) || []).length}; слів: {currentQuestion.fillBlankItems.length}</Text>
+                            </div>
+                            <Button
+                                size="xs"
+                                variant="light"
+                                disabled={currentQuestion.fillBlankItems.length >= 8}
+                                onClick={() => updateCurrentQuestion({ fillBlankItems: [...currentQuestion.fillBlankItems, { id: crypto.randomUUID(), text: '' }] })}
+                            >
+                                Додати слово
+                            </Button>
+                        </Group>
+                        {currentQuestion.fillBlankItems.map((item, index) => (
+                            <Group key={item.id} wrap="nowrap">
+                                <Badge>{index + 1}</Badge>
+                                <TextInput
+                                    placeholder={`Слово для пропуску ${index + 1}`}
+                                    value={item.text}
+                                    onChange={(event) => updateCurrentQuestion({
+                                        fillBlankItems: currentQuestion.fillBlankItems.map((word, wordIndex) =>
+                                            wordIndex === index ? { ...word, text: event.target.value.slice(0, 100) } : word
+                                        ),
+                                    })}
+                                    style={{ flex: 1 }}
+                                />
+                                <CloseButton
+                                    disabled={currentQuestion.fillBlankItems.length <= 2}
+                                    onClick={() => updateCurrentQuestion({ fillBlankItems: currentQuestion.fillBlankItems.filter((_, wordIndex) => wordIndex !== index) })}
+                                />
+                            </Group>
+                        ))}
+                    </Stack>
+                )}
+
                 {/* MULTIPLE CHOICE / TRUE FALSE */}
-                {currentQuestion.type !== 'open_text' && (
+                {!['open_text', 'fill_blank', 'matching', 'ordering'].includes(currentQuestion.type) && (
                     <>
                         {/* NUMBER OF ANSWERS (ONLY MCQ) */}
-                        {currentQuestion.type === 'multiple_choice' && (
+                        {(currentQuestion.type === 'multiple_choice' || currentQuestion.type === 'multiple_response') && (
                             <NumberInput
-                                label="Кількість відповідей"
+                                label={currentQuestion.type === 'fill_blank' ? 'Кількість варіантів слів' : 'Кількість відповідей'}
                                 value={currentQuestion.numberOfAnswers}
                                 onChange={handleNumberOfAnswersChange}
                                 min={2}
@@ -336,16 +520,28 @@ export const AddQuestionForm = () => {
                 )}
 
                 {/* SUBMIT QUESTION */}
+                <Checkbox
+                    label="Також зберегти в банк питань"
+                    description="Увімкніть, щоб повторно використовувати це питання в інших вікторинах. Інакше воно залишиться лише в цій вікторині."
+                    checked={Boolean(currentQuestion.saveToBank)}
+                    onChange={(event) => updateCurrentQuestion({ saveToBank: event.currentTarget.checked })}
+                />
                 <Button
                     leftSection={<IconPlus size={18} />}
-                    onClick={addQuestion}
+                    loading={adding}
+                    onClick={async () => {
+                        setAdding(true);
+                        try { await addQuestion(); }
+                        finally { setAdding(false); }
+                    }}
                     variant="gradient"
                     gradient={{ from: 'blue', to: 'purple' }}
                     size="lg"
                     fullWidth
                 >
-                    Додати запитання
+                    {editingQuestionId !== null ? 'Зберегти зміни питання' : 'Додати запитання'}
                 </Button>
+                {editingQuestionId !== null && <Button variant="light" color="gray" disabled={adding} onClick={cancelQuestionEdit}>Скасувати редагування</Button>}
             </Stack>
         </Card>
     );

@@ -4,21 +4,36 @@ import {CreateQuizDto} from './dto/create-quiz.dto';
 import {UpdateQuizDto} from './dto/update-quiz.dto';
 import {AuthGuard} from "@/guards/auth.guard";
 import * as authTypes from "@/auth/types/auth.types";
+import {GenerateQuizDto} from './dto/generate-quiz.dto';
+import {QuizGenerationService} from './quiz-generation.service';
 
 @Controller('quizzes')
 export class QuizzesController {
-    constructor(private readonly quizzesService: QuizzesService) {
+    constructor(private readonly quizzesService: QuizzesService, private readonly quizGenerationService: QuizGenerationService) {
+    }
+
+    @UseGuards(AuthGuard)
+    @Post('generate')
+    generate(@Body() dto: GenerateQuizDto) {
+        return this.quizGenerationService.generate(dto);
     }
 
     @UseGuards(AuthGuard)
     @Post()
     create(@Body() createQuizDto: CreateQuizDto, @Req() req) {
-        return this.quizzesService.create(createQuizDto, req.user);
+        return this.quizzesService.create(createQuizDto, req.user.id);
     }
 
+    @UseGuards(AuthGuard)
+    @Post(':id/duplicate')
+    duplicate(@Param('id') id: string, @Req() req) {
+        return this.quizzesService.duplicate(id, req.user.id);
+    }
+
+    @UseGuards(AuthGuard)
     @Get()
-    findAll() {
-        return this.quizzesService.findAll();
+    findAll(@Req() req) {
+        return this.quizzesService.findByUser(req.user.id);
     }
 
     @UseGuards(AuthGuard)
@@ -27,18 +42,31 @@ export class QuizzesController {
         return this.quizzesService.findByUser(req.user.id);
     }
 
+    @UseGuards(AuthGuard)
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.quizzesService.findOne(id);
+    findOne(@Param('id') id: string, @Req() req) {
+        return this.quizzesService.access(id, req.user.id);
     }
 
+    @UseGuards(AuthGuard)
+    @Get(':id/collaborators')
+    collaborators(@Param('id') id:string,@Req() req) {return this.quizzesService.collaborators(id,req.user.id);}
+    @UseGuards(AuthGuard)
+    @Post(':id/collaborators')
+    share(@Param('id') id:string,@Req() req,@Body() dto:{email:string,role:string}) {return this.quizzesService.share(id,req.user.id,dto);}
+    @UseGuards(AuthGuard)
+    @Delete(':id/collaborators/:member')
+    revoke(@Param('id') id:string,@Param('member') member:string,@Req() req) {return this.quizzesService.revoke(id,req.user.id,Number(member));}
+
+    @UseGuards(AuthGuard)
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateQuizDto: UpdateQuizDto) {
-        return this.quizzesService.update(+id, updateQuizDto);
+    update(@Param('id') id: string, @Body() updateQuizDto: UpdateQuizDto, @Req() req: authTypes.AuthenticatedRequest) {
+        return this.quizzesService.update(id, updateQuizDto, req.user.id);
     }
 
+    @UseGuards(AuthGuard)
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.quizzesService.remove(+id);
+    remove(@Param('id') id: string, @Req() req: authTypes.AuthenticatedRequest) {
+        return this.quizzesService.remove(id, req.user.id);
     }
 }

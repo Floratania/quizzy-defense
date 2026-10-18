@@ -1,0 +1,1 @@
+import{MigrationInterface,QueryRunner}from'typeorm';export class AssignmentRoomCode1760000013000 implements MigrationInterface{async up(q:QueryRunner){await q.query(`ALTER TABLE "quiz_assignments" ADD "room_code" varchar(12) NOT NULL DEFAULT ''`)}async down(q:QueryRunner){await q.query(`ALTER TABLE "quiz_assignments" DROP COLUMN "room_code"`)}}

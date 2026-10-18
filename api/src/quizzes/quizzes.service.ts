@@ -1,4 +1,4 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from '@nestjs/common';
 import {CreateQuizDto} from './dto/create-quiz.dto';
 import {UpdateQuizDto} from './dto/update-quiz.dto';
 import {InjectRepository} from "@nestjs/typeorm";
@@ -6,6 +6,7 @@ import {Repository} from "typeorm";
 import {Quiz} from "@/quizzes/entities/quiz.entity";
 import {Question} from "@/questions/entities/question.entity";
 import {Answer} from "@/answers/entities/answer.entity";
+import {QuestionType} from "@/questions/entities/question.entity";
 
 @Injectable()
 export class QuizzesService {
@@ -20,17 +21,30 @@ export class QuizzesService {
     }
 
     async create(dto: CreateQuizDto, userId: number) {
+        dto.questions.forEach((question) => this.validateInteractiveQuestion(question));
         const quiz = this.quizRepository.create({
             title: dto.title,
             description: dto.description,
+            topic: dto.topic?.trim() || 'Без теми',
+            passThreshold: dto.passThreshold ?? 60, availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null,
+            availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : null, maxAttempts: dto.maxAttempts ?? 0,
+            requireFullscreen: dto.requireFullscreen ?? false, trackTabSwitches: dto.trackTabSwitches ?? false,
+            feedbackMode: dto.feedbackMode,
+            shuffleQuestions: dto.shuffleQuestions ?? false,
+            shuffleAnswers: dto.shuffleAnswers ?? false,
             userId: userId,
-            questions: dto.questions?.map(q => this.questionRepository.create({
+            questions: dto.questions?.map((q, position) => this.questionRepository.create({
                 text: q.text,
+                explanation: q.explanation || null,
                 mediaUrl: q.mediaUrl || null,
                 timeLimit: q.timeLimit,
                 points: q.points,
+                position,
+                type: q.type,
+                configuration: q.configuration ?? null,
                 answers: q.answers?.map(a => this.answerRepository.create({
                     text: a.text,
+                    mediaUrl: a.mediaUrl || null,
                     isCorrect: a.isCorrect,
                 })),
             })),
@@ -38,6 +52,36 @@ export class QuizzesService {
 
 
         return await this.quizRepository.save(quiz);
+    }
+
+    private validateInteractiveQuestion(question: CreateQuizDto['questions'][number]) {
+        if (question.type === QuestionType.MATCHING) {
+            const pairs = question.configuration?.pairs;
+            if (!Array.isArray(pairs) || pairs.length < 2) {
+                throw new BadRequestException('Matching question requires at least two pairs');
+            }
+        }
+        if (question.type === QuestionType.ORDERING) {
+            const items = question.configuration?.items;
+            if (!Array.isArray(items) || items.length < 2) {
+                throw new BadRequestException('Ordering question requires at least two items');
+            }
+        }
+        if (question.type === QuestionType.OPEN_TEXT
+            && !question.answers.some((answer) => answer.isCorrect && answer.text.trim())) {
+            throw new BadRequestException('Text question requires a correct answer');
+        }
+        if (question.type === QuestionType.FILL_BLANK) {
+            const blankCount = question.text.split('___').length - 1;
+            const items = question.configuration?.items;
+            if (!Array.isArray(items) || blankCount < 2 || blankCount > 8 || items.length !== blankCount) {
+                throw new BadRequestException('Fill blank question requires 2-8 blanks and the same number of words');
+            }
+        }
+        if (question.type === QuestionType.MULTIPLE_RESPONSE
+            && question.answers.filter((answer) => answer.isCorrect).length < 2) {
+            throw new BadRequestException('Multiple response question requires at least two correct answers');
+        }
     }
 
 
@@ -63,24 +107,84 @@ export class QuizzesService {
     }
 
 
+    async access(id: string, userId: number, edit = false) {
+        const quiz = await this.findOne(id);
+        if (quiz.userId === userId) return {...quiz, accessRole: 'OWNER'};
+        const rows = await this.quizRepository.query('SELECT role FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2', [id,userId]);
+        if (!rows.length || (edit && rows[0].role !== 'EDITOR')) throw new ForbiddenException('Недостатньо прав доступу');
+        return {...quiz, accessRole: rows[0].role};
+    }
+    async collaborators(id: string, userId: number) {
+        const quiz = await this.findOne(id);
+        if (quiz.userId !== userId) throw new ForbiddenException();
+        return this.quizRepository.query('SELECT c."userId",c.role,u.name,u.email FROM quiz_collaborators c JOIN "user" u ON u.id=c."userId" WHERE c."quizId"=$1',[id]);
+    }
+    async share(id: string, userId: number, dto: {email:string,role:string}) {
+        await this.collaborators(id,userId);
+        if (!['VIEWER','EDITOR'].includes(dto.role) || typeof dto.email !== 'string') throw new BadRequestException();
+        const users = await this.quizRepository.query('SELECT id FROM "user" WHERE lower(email)=lower($1) AND role=$2',[dto.email.trim(),'TEACHER']);
+        if (!users.length) throw new BadRequestException('Викладача з такою поштою не знайдено');
+        if (users[0].id === userId) throw new BadRequestException('Ви вже власник');
+        await this.quizRepository.query('INSERT INTO quiz_collaborators ("quizId","userId",role) VALUES ($1,$2,$3) ON CONFLICT ("quizId","userId") DO UPDATE SET role=EXCLUDED.role',[id,users[0].id,dto.role]);
+        return this.collaborators(id,userId);
+    }
+    async revoke(id:string,userId:number,member:number) {
+        await this.collaborators(id,userId);
+        await this.quizRepository.query('DELETE FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2',[id,member]);
+        return this.collaborators(id,userId);
+    }
     async findByUser(id: number) {
-        console.log()
-        const quiz = await this.quizRepository.find({
-            where: { userId: id },
+        const rows = await this.quizRepository.query('SELECT "quizId",role FROM quiz_collaborators WHERE "userId"=$1',[id]);
+        const owned = await this.quizRepository.find({where:{userId:id}});
+        const shared = await Promise.all(rows.map(async row => {
+            const quiz = await this.quizRepository.findOne({where:{id:row.quizId}});
+            return quiz ? {...quiz,accessRole:row.role} : null;
+        }));
+        return [...owned.map(q=>({...q,accessRole:'OWNER'})),...shared.filter(Boolean)];
+    }
+
+    async update(id: string, dto: UpdateQuizDto, userId: number) {
+        const quiz = await this.access(id, userId, true);
+        if (!dto.questions) throw new BadRequestException('Questions are required');
+        dto.questions.forEach((question) => this.validateInteractiveQuestion(question));
+        await this.questionRepository.delete({ quizId: id });
+        Object.assign(quiz, {
+            title: dto.title ?? quiz.title,
+            description: dto.description,
+            topic: dto.topic?.trim() || quiz.topic,
+            passThreshold: dto.passThreshold ?? quiz.passThreshold,
+            availableFrom: dto.availableFrom === undefined ? quiz.availableFrom : dto.availableFrom ? new Date(dto.availableFrom) : null,
+            availableUntil: dto.availableUntil === undefined ? quiz.availableUntil : dto.availableUntil ? new Date(dto.availableUntil) : null,
+            maxAttempts: dto.maxAttempts ?? quiz.maxAttempts, requireFullscreen: dto.requireFullscreen ?? quiz.requireFullscreen,
+            trackTabSwitches: dto.trackTabSwitches ?? quiz.trackTabSwitches,
+            feedbackMode: dto.feedbackMode ?? quiz.feedbackMode,
+            shuffleQuestions: dto.shuffleQuestions ?? quiz.shuffleQuestions,
+            shuffleAnswers: dto.shuffleAnswers ?? quiz.shuffleAnswers,
+            questions: dto.questions.map((question, position) => this.questionRepository.create({
+                ...question,
+                position,
+                answers: question.answers.map((answer) => this.answerRepository.create(answer)),
+            })),
         });
-
-        if (!quiz) {
-            throw new NotFoundException(`Quiz for user ${id} not found`);
-        }
-
-        return quiz;
+        return this.quizRepository.save(quiz);
     }
 
-    update(id: number, updateQuizDto: UpdateQuizDto) {
-        return `This action updates a #${id} quiz`;
+    async remove(id: string, userId: number) {
+        const quiz = await this.quizRepository.findOne({ where: { id, userId } });
+        if (!quiz) throw new NotFoundException(`Quiz with id ${id} not found`);
+        await this.quizRepository.softRemove(quiz);
+        return { id, deleted: true };
     }
 
-    remove(id: number) {
-        return `This action removes a #${id} quiz`;
+    async duplicate(id: string, userId: number) {
+        const source = await this.quizRepository.findOne({ where: { id, userId }, relations: { questions: { answers: true } } });
+        if (!source) throw new NotFoundException(`Quiz with id ${id} not found`);
+        return this.create({
+            title: `${source.title} — копія`, description: source.description, topic: source.topic,
+            passThreshold: source.passThreshold, availableFrom: source.availableFrom?.toISOString(), availableUntil: source.availableUntil?.toISOString(),
+            maxAttempts: source.maxAttempts, requireFullscreen: source.requireFullscreen, trackTabSwitches: source.trackTabSwitches,
+            feedbackMode: source.feedbackMode, shuffleQuestions: source.shuffleQuestions, shuffleAnswers: source.shuffleAnswers,
+            questions: source.questions.map((q) => ({ text: q.text, explanation: q.explanation || undefined, mediaUrl: q.mediaUrl || undefined, timeLimit: q.timeLimit, points: q.points, type: q.type, configuration: q.configuration, answers: q.answers.map((a) => ({ text: a.text, mediaUrl: a.mediaUrl || undefined, isCorrect: a.isCorrect })) })),
+        }, userId);
     }
 }

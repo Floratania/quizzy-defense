@@ -3,14 +3,19 @@ import {socket} from "../ws/socket.js";
 
 
 export const gameService = {
-    joinSession(data) {
-        connectionService.ensureConnected();
+    async joinSession(data) {
+        await connectionService.ensureConnected();
         socket.emit("join_session", data);
     },
 
     hostJoin(sessionId) {
         connectionService.ensureConnected();
         socket.emit("host_join_session", { sessionId });
+    },
+
+    resumeSession(sessionId, playerId) {
+        connectionService.ensureConnected();
+        socket.emit('resume_session', { sessionId, playerId, resumeToken:localStorage.getItem('resumeToken') });
     },
 
     startGame(sessionId) {

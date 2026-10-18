@@ -45,7 +45,7 @@ export class SessionReportsService {
         });
 
         const answers = await this.answersRepo.find({
-            where: { player: In(players.map((p) => p.id)) },
+            where: { player: { id: In(players.map((p) => p.id)) } },
             relations: ['question', 'selectedAnswer'],
         });
 
@@ -72,7 +72,7 @@ export class SessionReportsService {
         const totalPlayers = players.length;
         const totalQuestions = questions.length;
         const totalAnswers = answers.length;
-        const totalCorrect = answers.filter(a => a.selectedAnswer?.isCorrect).length;
+        const totalCorrect = answers.filter(a => a.isCorrect).length;
         const globalAccuracy = totalCorrect / totalAnswers || 0;
 
         const avgAnswerTime =
@@ -88,7 +88,7 @@ export class SessionReportsService {
             avgAnswerTime,
             perQuestionAccuracy: questions.map(q => {
                 const arr = answersByQuestion[q.id] || [];
-                const correct = arr.filter(a => a.selectedAnswer?.isCorrect).length;
+                const correct = arr.filter(a => a.isCorrect).length;
                 return {
                     questionId: q.id,
                     accuracy: arr.length ? correct / arr.length : 0,
@@ -99,7 +99,7 @@ export class SessionReportsService {
         const playerStats = players.map((p) => {
             const ans = answersByPlayer[p.id] || [];
 
-            const correctCount = ans.filter(a => a.selectedAnswer?.isCorrect).length;
+            const correctCount = ans.filter(a => a.isCorrect).length;
             const accuracy = ans.length ? correctCount / ans.length : 0;
             const avgTime = ans.length
                 ? ans.reduce((sum, a) => sum + (a.timeTaken ?? 0), 0) / ans.length
@@ -107,17 +107,22 @@ export class SessionReportsService {
 
             return {
                 playerId: p.id,
+                studentId: p.studentId,
                 nickname: p.nickname,
                 score: p.totalScore,
                 correctCount,
                 accuracy,
                 avgAnswerTime: avgTime,
+                integrityEvents: p.integrityEvents || 0,
                 answers: ans.map(a => ({
+                    answerId: a.id,
                     questionId: a.question_id,
                     questionText: mapQuestions[a.question_id].text,
                     selectedAnswerId: a.selectedAnswerId,
                     selectedAnswerText: a.selectedAnswer?.text,
-                    correct: a.selectedAnswer?.isCorrect ?? false,
+                    submittedAnswer: this.formatSubmittedAnswer(mapQuestions[a.question_id], a),
+                    correct: a.isCorrect,
+                    response: a.response,
                     timeTaken: a.timeTaken,
                     earnedPoints: a.earnedPoints,
                 })),
@@ -142,7 +147,7 @@ export class SessionReportsService {
                 };
             });
 
-            const correctCount = arr.filter(a => a.selectedAnswer?.isCorrect).length;
+            const correctCount = arr.filter(a => a.isCorrect).length;
             const difficulty =
                 arr.length === 0
                     ? 'unknown'
@@ -165,29 +170,53 @@ export class SessionReportsService {
                 difficulty,
                 avgAnswerTime: avgTime,
                 playerBreakdown: arr.map(a => ({
+                    answerId: a.id,
                     playerId: a.player_id,
                     nickname: mapPlayers[a.player_id].nickname,
                     selectedAnswerId: a.selectedAnswerId,
-                    correct: a.selectedAnswer?.isCorrect ?? false,
+                    submittedAnswer: this.formatSubmittedAnswer(q, a),
+                    correct: a.isCorrect,
+                    response: a.response,
                     timeTaken: a.timeTaken,
                     earnedPoints: a.earnedPoints,
                 })),
             };
         });
 
-        const report = this.reportsRepo.create({
-            sessionId,
-            summary,
-            players: playerStats,
-            questions: questionStats,
-        });
+        const existing = await this.reportsRepo.findOne({ where: { sessionId } });
+        const report = existing
+            ? this.reportsRepo.merge(existing, { summary, players: playerStats, questions: questionStats })
+            : this.reportsRepo.create({ sessionId, summary, players: playerStats, questions: questionStats });
 
 
 
         return this.reportsRepo.save(report);
     }
 
+    private formatSubmittedAnswer(question: Question, answer: PlayerAnswer): string {
+        if (answer.selectedAnswer) return answer.selectedAnswer.text;
+        if (question.type === 'open_text') return String(answer.response?.text ?? '—');
+        if (question.type === 'ordering') {
+            const items = new Map((question.configuration?.items ?? []).map((item) => [item.id, item.text]));
+            const order = Array.isArray(answer.response?.order) ? answer.response.order : [];
+            return order.map((id) => items.get(String(id)) ?? String(id)).join(' → ');
+        }
+        if (question.type === 'matching') {
+            const pairs = question.configuration?.pairs ?? [];
+            const left = new Map(pairs.map((pair) => [pair.leftId, pair.left]));
+            const right = new Map(pairs.map((pair) => [pair.rightId, pair.right]));
+            const matches = Array.isArray(answer.response?.matches) ? answer.response.matches : [];
+            return matches.map((match) => {
+                if (!match || typeof match !== 'object') return '—';
+                const value = match as Record<string, unknown>;
+                return `${left.get(String(value.leftId)) ?? value.leftId} → ${right.get(String(value.rightId)) ?? value.rightId}`;
+            }).join('; ');
+        }
+        return '—';
+    }
+
     async getReportBySessionId(sessionId: string) {
+        await this.generateReport(sessionId);
         const report = await this.reportsRepo.findOne({
             where: { sessionId },
             relations: {
@@ -204,6 +233,8 @@ export class SessionReportsService {
             quiz: {
                 id: report.session.quiz.id,
                 title: report.session.quiz.title,
+                topic: report.session.quiz.topic,
+                passThreshold: report.session.quiz.passThreshold,
             },
             summary: report.summary,
             players: report.players,
@@ -223,6 +254,7 @@ export class SessionReportsService {
             .select([
                 'report.sessionId',
                 'report.summary',
+                'report.players',
                 'report.createdAt',
                 'session.status',
                 'quiz.id',
@@ -242,6 +274,10 @@ export class SessionReportsService {
                 globalAccuracy: report.summary.globalAccuracy,
                 avgAnswerTime: report.summary.avgAnswerTime,
             },
+            players: (report.players || []).map((player) => ({
+                playerId: player.playerId, studentId: player.studentId, nickname: player.nickname, score: player.score,
+                accuracy: player.accuracy, correctCount: player.correctCount,
+            })),
             createdAt: report.createdAt,
             status: report.session.status,
         }));

@@ -33,6 +33,7 @@ const AuthPage = () => {
     const { login, register } = useAuth();
 
     const handleSubmit = async () => {
+        setSubmitting(true);
         try {
             if (isLogin) {
                 await login(formData.email, formData.password);
@@ -46,6 +47,7 @@ const AuthPage = () => {
 
             window.location.href = '/';
         } catch (err) {
+            setSubmitting(false);
             console.error(err);
             alert(err?.response?.data?.message || "Something went wrong");
         }

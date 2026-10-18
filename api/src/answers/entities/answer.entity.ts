@@ -21,6 +21,9 @@ export class Answer {
     @Column({ type: 'text' })
     text: string;
 
+    @Column({ type: 'text', nullable: true })
+    mediaUrl: string | null;
+
     @Column({ default: false })
     isCorrect: boolean;
 }

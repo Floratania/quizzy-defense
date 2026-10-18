@@ -1,5 +1,5 @@
-import {Badge, Box, Container, Group, Paper, Progress, Stack, Text, ThemeIcon, Title} from "@mantine/core";
-import {IconCheck} from "@tabler/icons-react";
+import {Badge, Box, Container, Group, Paper, Progress, Stack, Table, Text, ThemeIcon, Title} from "@mantine/core";
+import {IconCheck, IconX} from "@tabler/icons-react";
 import React from "react";
 
 export default function Result({results}) {
@@ -18,8 +18,23 @@ export default function Result({results}) {
                             Результати питання
                         </Title>
 
+                        <Group mb="xl" grow>
+                            <Paper withBorder p="md" ta="center">
+                                <Text c="dimmed">Відповіли</Text>
+                                <Title order={2}>{results.totalAnswers}</Title>
+                            </Paper>
+                            <Paper withBorder p="md" ta="center">
+                                <Text c="dimmed">Правильних</Text>
+                                <Title order={2} c="green">{results.correctAnswers}</Title>
+                            </Paper>
+                            <Paper withBorder p="md" ta="center">
+                                <Text c="dimmed">Точність</Text>
+                                <Title order={2}>{Math.round((results.accuracy || 0) * 100)}%</Title>
+                            </Paper>
+                        </Group>
+
                         <Stack spacing="md">
-                            {results?.answers.map((answer, idx) => {
+                            {results?.answers.map((answer) => {
                                 const percentage = results.totalAnswers > 0
                                     ? (answer.count / results.totalAnswers) * 100
                                     : 0;
@@ -51,6 +66,27 @@ export default function Result({results}) {
                                 );
                             })}
                         </Stack>
+
+                        <Title order={3} mt="xl" mb="md">Відповіді учнів</Title>
+                        <Table striped highlightOnHover>
+                            <Table.Thead>
+                                <Table.Tr><Table.Th>Учень</Table.Th><Table.Th>Відповідь</Table.Th><Table.Th>Результат</Table.Th><Table.Th>Бали</Table.Th></Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {(results.playerBreakdown || []).map((player) => (
+                                    <Table.Tr key={player.playerId}>
+                                        <Table.Td>{player.nickname}</Table.Td>
+                                        <Table.Td>{player.submittedAnswer}</Table.Td>
+                                        <Table.Td>
+                                            <Badge color={player.correct ? 'green' : 'red'} leftSection={player.correct ? <IconCheck size={12}/> : <IconX size={12}/> }>
+                                                {player.correct ? 'Правильно' : 'Неправильно'}
+                                            </Badge>
+                                        </Table.Td>
+                                        <Table.Td>{player.earnedPoints}</Table.Td>
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </Table>
                     </Paper>
                 </Stack>
             </Container>

@@ -1,7 +1,6 @@
 import {Badge, Button, Box, Container, Group, Stack, Text, Title} from "@mantine/core";
 import {IconArrowRight, IconSparkles} from "@tabler/icons-react";
 import {useNavigate} from "react-router";
-import {useAuthContext} from "../../context/AuthContext.jsx";
 import useAuth from "../../hooks/useAuth.js";
 
 const Hero = () => {

@@ -6,7 +6,7 @@ import {
     Min,
     IsUrl,
     IsArray,
-    ValidateNested, IsEnum,
+    ValidateNested, IsEnum, IsObject, MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {CreateAnswerDto} from "@/answers/dto/create-answer.dto";
@@ -16,6 +16,11 @@ export class CreateQuestionDto {
     @IsString()
     @IsNotEmpty()
     text: string;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(10000)
+    explanation?: string;
 
     @IsInt()
     @Min(1)
@@ -31,6 +36,10 @@ export class CreateQuestionDto {
 
     @IsEnum(QuestionType)
     type: QuestionType;
+
+    @IsObject()
+    @IsOptional()
+    configuration?: Record<string, unknown> | null;
 
     @IsArray()
     @ValidateNested({ each: true })

@@ -20,7 +20,7 @@ import {
     Tabs,
     Divider,
     ActionIcon,
-    Accordion, Loader
+    Accordion, Loader, Select
 } from '@mantine/core';
 import {
     IconTrophy,
@@ -33,259 +33,15 @@ import {
     IconTarget,
     IconBolt,
     IconMedal,
-    IconArrowLeft
+    IconArrowLeft,
+    IconDownload
 } from '@tabler/icons-react';
 import {useParams} from "react-router-dom";
 import {useSessionReports} from "../../hooks/useSessionReports.js";
+import apiClient from '../../api/apiClient.js';
 
 // Mock data
-const mockSessionData = {
-    sessionId: "session-123",
-    quiz: {
-        id: "quiz-456",
-        title: "Math Quiz for Kids"
-    },
-    summary: {
-        totalPlayers: 12,
-        totalQuestions: 10,
-        totalAnswers: 120,
-        globalAccuracy: 0.73,
-        avgAnswerTime: 2850,
-        perQuestionAccuracy: [
-            { questionId: "q1", accuracy: 0.75 },
-            { questionId: "q2", accuracy: 0.82 },
-            { questionId: "q3", accuracy: 0.65 },
-            { questionId: "q4", accuracy: 0.90 },
-            { questionId: "q5", accuracy: 0.58 },
-            { questionId: "q6", accuracy: 0.77 },
-            { questionId: "q7", accuracy: 0.83 },
-            { questionId: "q8", accuracy: 0.70 },
-            { questionId: "q9", accuracy: 0.68 },
-            { questionId: "q10", accuracy: 0.62 }
-        ]
-    },
-    players: [
-        {
-            playerId: "p1",
-            nickname: "Mila",
-            place: 1,
-            score: 9800,
-            correctCount: 9,
-            accuracy: 0.90,
-            avgAnswerTime: 2500,
-            answers: [
-                {
-                    questionId: "q1",
-                    questionText: "2 + 2?",
-                    selectedAnswerId: "a3",
-                    selectedAnswerText: "4",
-                    correct: true,
-                    timeTaken: 1800,
-                    earnedPoints: 1000
-                },
-                {
-                    questionId: "q2",
-                    questionText: "5 × 3?",
-                    selectedAnswerId: "a8",
-                    selectedAnswerText: "15",
-                    correct: true,
-                    timeTaken: 2200,
-                    earnedPoints: 1100
-                },
-                {
-                    questionId: "q3",
-                    questionText: "10 - 4?",
-                    selectedAnswerId: "a12",
-                    selectedAnswerText: "6",
-                    correct: true,
-                    timeTaken: 1900,
-                    earnedPoints: 1050
-                }
-            ]
-        },
-        {
-            playerId: "p2",
-            nickname: "Alex",
-            place: 2,
-            score: 8500,
-            correctCount: 8,
-            accuracy: 0.80,
-            avgAnswerTime: 2800,
-            answers: [
-                {
-                    questionId: "q1",
-                    questionText: "2 + 2?",
-                    selectedAnswerId: "a3",
-                    selectedAnswerText: "4",
-                    correct: true,
-                    timeTaken: 2100,
-                    earnedPoints: 950
-                },
-                {
-                    questionId: "q2",
-                    questionText: "5 × 3?",
-                    selectedAnswerId: "a7",
-                    selectedAnswerText: "12",
-                    correct: false,
-                    timeTaken: 3300,
-                    earnedPoints: 0
-                },
-                {
-                    questionId: "q3",
-                    questionText: "10 - 4?",
-                    selectedAnswerId: "a12",
-                    selectedAnswerText: "6",
-                    correct: true,
-                    timeTaken: 2400,
-                    earnedPoints: 900
-                }
-            ]
-        },
-        {
-            playerId: "p3",
-            nickname: "Sam",
-            place: 3,
-            score: 7800,
-            correctCount: 7,
-            accuracy: 0.70,
-            avgAnswerTime: 3100,
-            answers: []
-        },
-        {
-            playerId: "p4",
-            nickname: "Jordan",
-            place: 4,
-            score: 7200,
-            correctCount: 7,
-            accuracy: 0.70,
-            avgAnswerTime: 3400,
-            answers: []
-        },
-        {
-            playerId: "p5",
-            nickname: "Taylor",
-            place: 5,
-            score: 6900,
-            correctCount: 6,
-            accuracy: 0.60,
-            avgAnswerTime: 3200,
-            answers: []
-        },
-        {
-            playerId: "p6",
-            nickname: "Morgan",
-            place: 6,
-            score: 6500,
-            correctCount: 6,
-            accuracy: 0.60,
-            avgAnswerTime: 3500,
-            answers: []
-        },
-        {
-            playerId: "p7",
-            nickname: "Casey",
-            place: 7,
-            score: 5800,
-            correctCount: 5,
-            accuracy: 0.50,
-            avgAnswerTime: 3800,
-            answers: []
-        },
-        {
-            playerId: "p8",
-            nickname: "Riley",
-            place: 8,
-            score: 5200,
-            correctCount: 5,
-            accuracy: 0.50,
-            avgAnswerTime: 4000,
-            answers: []
-        }
-    ],
-    questions: [
-        {
-            questionId: "q1",
-            text: "2 + 2?",
-            correctAnswerId: "a3",
-            answerStats: [
-                { answerId: "a1", text: "3", count: 2, percentage: 0.17 },
-                { answerId: "a2", text: "5", count: 1, percentage: 0.08 },
-                { answerId: "a3", text: "4", count: 9, percentage: 0.75 }
-            ],
-            difficulty: "easy",
-            avgAnswerTime: 2000,
-            playerBreakdown: [
-                {
-                    playerId: "p1",
-                    nickname: "Mila",
-                    selectedAnswerId: "a3",
-                    correct: true,
-                    timeTaken: 1800,
-                    earnedPoints: 1000
-                },
-                {
-                    playerId: "p2",
-                    nickname: "Alex",
-                    selectedAnswerId: "a3",
-                    correct: true,
-                    timeTaken: 2100,
-                    earnedPoints: 950
-                }
-            ]
-        },
-        {
-            questionId: "q2",
-            text: "5 × 3?",
-            correctAnswerId: "a8",
-            answerStats: [
-                { answerId: "a7", text: "12", count: 2, percentage: 0.18 },
-                { answerId: "a8", text: "15", count: 10, percentage: 0.82 }
-            ],
-            difficulty: "medium",
-            avgAnswerTime: 2500,
-            playerBreakdown: []
-        },
-        {
-            questionId: "q3",
-            text: "10 - 4?",
-            correctAnswerId: "a12",
-            answerStats: [
-                { answerId: "a11", text: "5", count: 2, percentage: 0.17 },
-                { answerId: "a12", text: "6", count: 8, percentage: 0.65 },
-                { answerId: "a13", text: "7", count: 2, percentage: 0.18 }
-            ],
-            difficulty: "easy",
-            avgAnswerTime: 2200,
-            playerBreakdown: []
-        },
-        {
-            questionId: "q4",
-            text: "12 ÷ 3?",
-            correctAnswerId: "a16",
-            answerStats: [
-                { answerId: "a15", text: "3", count: 1, percentage: 0.10 },
-                { answerId: "a16", text: "4", count: 11, percentage: 0.90 }
-            ],
-            difficulty: "easy",
-            avgAnswerTime: 1800,
-            playerBreakdown: []
-        },
-        {
-            questionId: "q5",
-            text: "7 + 8?",
-            correctAnswerId: "a20",
-            answerStats: [
-                { answerId: "a19", text: "14", count: 3, percentage: 0.25 },
-                { answerId: "a20", text: "15", count: 7, percentage: 0.58 },
-                { answerId: "a21", text: "16", count: 2, percentage: 0.17 }
-            ],
-            difficulty: "medium",
-            avgAnswerTime: 3200,
-            playerBreakdown: []
-        }
-    ],
-    createdAt: "2025-02-12T10:03:00.000Z"
-};
+
 
 export default function QuizSessionStatistics() {
     const { id } = useParams();
@@ -363,6 +119,7 @@ export default function QuizSessionStatistics() {
 function StatisticsContent({ data }) {
     const [activeTab, setActiveTab] = useState('overview');
     const [selectedPlayer, setSelectedPlayer] = useState(null);
+    const [pdfStudent, setPdfStudent] = useState('all');
 
     const formatTime = (ms) => {
         const seconds = Math.floor(ms / 1000);
@@ -388,9 +145,11 @@ function StatisticsContent({ data }) {
                             Сесія: {data.sessionId} • {new Date(data.createdAt).toLocaleString()}
                         </Text>
                     </Box>
-                    <Button leftSection={<IconArrowLeft size={16} />} variant="light">
-                        Повернутися до панелі
-                    </Button>
+                    <Group>
+                        <Select value={pdfStudent} onChange={setPdfStudent} data={[{ value: 'all', label: 'Усі учні' }, ...data.players.map((player) => ({ value: player.playerId, label: player.nickname }))]} w={190} />
+                        <Button leftSection={<IconDownload size={16} />} color="teal" onClick={exportStudentsPdf}>Звіт по учнях PDF</Button>
+                        <Button leftSection={<IconArrowLeft size={16} />} variant="light">Повернутися до панелі</Button>
+                    </Group>
                 </Group>
 
                 <Grid>
@@ -668,7 +427,7 @@ function StatisticsContent({ data }) {
                                                             </Badge>
                                                         )}
                                                         <Text size="sm" c="dimmed">
-                                                            Відповідь: {answer.selectedAnswerText}
+                                                            Відповідь: {answer.submittedAnswer || answer.selectedAnswerText || '—'}
                                                         </Text>
                                                     </Group>
                                                 </Box>
@@ -745,7 +504,8 @@ function StatisticsContent({ data }) {
 
                 <Accordion>
                     {data.questions.map((question, idx) => {
-                        const accuracy = Math.round(data.summary.perQuestionAccuracy[idx]?.accuracy * 100);
+                        const accuracyEntry = data.summary.perQuestionAccuracy.find((entry) => entry.questionId === question.questionId);
+                        const accuracy = Math.round((accuracyEntry?.accuracy || 0) * 100);
                         return (
                             <Accordion.Item key={question.questionId} value={question.questionId}>
                                 <Accordion.Control>
@@ -804,9 +564,11 @@ function StatisticsContent({ data }) {
                                                     <Table.Thead>
                                                         <Table.Tr>
                                                             <Table.Th>Гравець</Table.Th>
+                                                            <Table.Th>Відповідь</Table.Th>
                                                             <Table.Th>Результат</Table.Th>
                                                             <Table.Th>Час</Table.Th>
                                                             <Table.Th>Бали</Table.Th>
+                                                            <Table.Th>Оцінювання</Table.Th>
                                                         </Table.Tr>
                                                     </Table.Thead>
                                                     <Table.Tbody>
@@ -820,6 +582,7 @@ function StatisticsContent({ data }) {
                                                                         <Text size="sm">{pb.nickname}</Text>
                                                                     </Group>
                                                                 </Table.Td>
+                                                                <Table.Td>{pb.submittedAnswer || '—'}</Table.Td>
                                                                 <Table.Td>
                                                                     {pb.correct ? (
                                                                         <Badge color="teal" size="sm" leftSection={<IconCheck size={12} />}>
@@ -837,6 +600,7 @@ function StatisticsContent({ data }) {
                                                                 <Table.Td>
                                                                     <Text size="sm" fw={600}>{pb.earnedPoints}</Text>
                                                                 </Table.Td>
+                                                                <Table.Td><Button size="xs" variant="light" disabled={!pb.answerId} onClick={() => gradeAnswer(pb)}>Оцінити</Button></Table.Td>
                                                             </Table.Tr>
                                                         ))}
                                                     </Table.Tbody>
@@ -853,6 +617,39 @@ function StatisticsContent({ data }) {
         </Stack>
     );
 
+    const MatrixTab = () => {
+        const threshold = data.quiz.passThreshold ?? 60;
+        return <Stack gap="lg">
+            <Card withBorder><Title order={3} mb="md">Матриця помилок</Title><Table withTableBorder withColumnBorders>
+                <Table.Thead><Table.Tr><Table.Th>Учень</Table.Th>{data.questions.map((q,i)=><Table.Th key={q.questionId}>П{i+1}</Table.Th>)}<Table.Th>Результат</Table.Th></Table.Tr></Table.Thead>
+                <Table.Tbody>{data.players.map((p)=><Table.Tr key={p.playerId}><Table.Td>{p.nickname}</Table.Td>{data.questions.map((q)=>{const a=p.answers.find((x)=>x.questionId===q.questionId);return <Table.Td key={q.questionId} bg={a?.correct?'green.0':'red.0'} ta="center">{a?.correct?'✓':'✕'}</Table.Td>})}<Table.Td><Badge color={p.accuracy*100>=threshold?'green':'red'}>{p.accuracy*100>=threshold?'Склав':'Не склав'}</Badge></Table.Td></Table.Tr>)}</Table.Tbody>
+            </Table></Card>
+            <Card withBorder><Title order={3} mb="md">Рекомендації учням</Title><Stack>{data.players.map((p)=>{const wrong=p.answers.filter((a)=>!a.correct);return <Paper key={p.playerId} withBorder p="sm"><Text fw={600}>{p.nickname}</Text><Text size="sm" c={wrong.length?'red':'green'}>{wrong.length ? `Повторити: ${wrong.map((a)=>a.questionText).join('; ')}` : 'Матеріал засвоєно, помилок немає'}</Text></Paper>})}</Stack></Card>
+        </Stack>;
+    };
+    const gradeAnswer = async (answer) => {
+        const value = window.prompt('Введіть кількість балів', String(answer.earnedPoints || 0));
+        if (value === null) return;
+        const isCorrect = window.confirm('Позначити відповідь як правильну?');
+        await apiClient.patch(`/player-answers/${answer.answerId}/grade`, { earnedPoints: Number(value), isCorrect });
+        window.location.reload();
+    };
+
+    const exportStudentsPdf = () => {
+        const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+        const threshold = data.quiz.passThreshold ?? 60;
+        const selectedStudents = pdfStudent === 'all' ? data.players : data.players.filter((player) => player.playerId === pdfStudent);
+        const students = selectedStudents.map((player) => {
+            const accuracy = Math.round((player.accuracy || 0) * 100);
+            const rows = (player.answers || []).map((answer, index) => `<tr><td>${index + 1}. ${safe(answer.questionText)}</td><td>${safe(answer.submittedAnswer || answer.selectedAnswerText || '—')}</td><td class="${answer.correct ? 'ok' : 'bad'}">${answer.correct ? 'Правильно' : 'Неправильно'}</td><td>${answer.earnedPoints || 0}</td></tr>`).join('');
+            return `<section><h2>${safe(player.nickname)}</h2><div class="summary"><b>${accuracy >= threshold ? 'Тест складено' : 'Тест не складено'}</b> · Точність: ${accuracy}% · Бали: ${player.score || 0} · Правильно: ${player.correctCount || 0}/${data.summary.totalQuestions} · Виходів із вкладки: ${player.integrityEvents || 0}</div><table><thead><tr><th>Питання</th><th>Відповідь учня</th><th>Результат</th><th>Бали</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+        }).join('');
+        const win = window.open('', '_blank');
+        if (!win) return;
+        win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Звіт по учнях</title><style>@page{size:A4;margin:14mm}body{font-family:Arial,sans-serif;color:#1f2937}section{page-break-after:always}section:last-child{page-break-after:auto}.summary{padding:10px;background:#f3f4f6;margin:10px 0 14px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d1d5db;padding:7px;text-align:left}th{background:#e5e7eb}.ok{color:#047857;font-weight:bold}.bad{color:#b91c1c;font-weight:bold}.meta{color:#6b7280}</style></head><body><h1>${safe(data.quiz.title)}</h1><p class="meta">Звіт по учнях · ${new Date(data.createdAt).toLocaleString('uk-UA')} · Поріг: ${threshold}%</p>${students}</body></html>`);
+        win.document.close(); win.focus(); setTimeout(() => win.print(), 200);
+    };
+
     return (
         <Container size="xl" py="xl">
             <Tabs value={activeTab} onChange={setActiveTab}>
@@ -866,6 +663,7 @@ function StatisticsContent({ data }) {
                     <Tabs.Tab value="questions" leftSection={<IconList size={16} />}>
                         Питання
                     </Tabs.Tab>
+                    <Tabs.Tab value="matrix" leftSection={<IconTarget size={16} />}>Матриця та рекомендації</Tabs.Tab>
                 </Tabs.List>
 
                 <Box mt="xl">
@@ -880,6 +678,7 @@ function StatisticsContent({ data }) {
                     <Tabs.Panel value="questions">
                         <QuestionsTab />
                     </Tabs.Panel>
+                    <Tabs.Panel value="matrix"><MatrixTab /></Tabs.Panel>
                 </Box>
             </Tabs>
         </Container>

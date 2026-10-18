@@ -1,8 +1,10 @@
 import { Box, Container, Paper, Stack, Group, Title, ThemeIcon, Button } from "@mantine/core";
 import { IconTrophy } from "@tabler/icons-react";
 import {LeaderboardList} from "../Question/LeaderboardList.jsx";
+import { useNavigate } from "react-router-dom";
 
 export default function HostLeaderBoard({ leaderboard, nextQuestion, isGameFinished }) {
+    const navigate = useNavigate();
     return (
         <Box
             style={{
@@ -19,7 +21,7 @@ export default function HostLeaderBoard({ leaderboard, nextQuestion, isGameFinis
                                        gradient={{ from: "amber.3", to: "amber.5" }}>
                                 <IconTrophy size={28} />
                             </ThemeIcon>
-                            <Title order={1}>Таблиця лідерів</Title>
+                            <Title order={1}>{isGameFinished ? 'Гру завершено' : 'Таблиця лідерів'}</Title>
                         </Group>
 
                         <LeaderboardList leaderboard={leaderboard} />
@@ -34,6 +36,18 @@ export default function HostLeaderBoard({ leaderboard, nextQuestion, isGameFinis
                                 fullWidth
                             >
                                 Наступне питання
+                            </Button>
+                        )}
+                        {isGameFinished && (
+                            <Button
+                                size="lg"
+                                radius="lg"
+                                variant="gradient"
+                                gradient={{ from: 'blue', to: 'violet' }}
+                                onClick={() => navigate('/admin/quizzes')}
+                                fullWidth
+                            >
+                                Повернутися в головне меню
                             </Button>
                         )}
                     </Stack>

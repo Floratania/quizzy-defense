@@ -1,5 +1,6 @@
-import {Badge, Box, Container, Paper, Stack, Text, Title} from "@mantine/core";
+import {Badge, Box, Container, Image, Paper, Stack, Text} from "@mantine/core";
 import React from "react";
+import RichText from '../Question/RichText.jsx';
 
 export default function Preview({preview}) {
     return (
@@ -20,6 +21,7 @@ export default function Preview({preview}) {
                     style={{ background: "white", textAlign: "center" }}
                 >
                     <Stack spacing="xl">
+                        {preview.mediaUrl && <Image src={preview.mediaUrl} alt={preview.text} radius="md" mah={320} fit="contain" />}
                         <Badge
                             size="lg"
                             variant="gradient"
@@ -27,9 +29,9 @@ export default function Preview({preview}) {
                         >
                             Приготуйтесь!
                         </Badge>
-                        <Title order={1} style={{ fontSize: "3rem", color: "#1f2937" }}>
-                            {preview.text}
-                        </Title>
+                        <div style={{ fontSize: "1.5rem", color: "#1f2937" }}>
+                            <RichText>{preview.text}</RichText>
+                        </div>
                         <Text size="lg" color="dimmed">
                             Питання скоро розпочнеться...
                         </Text>

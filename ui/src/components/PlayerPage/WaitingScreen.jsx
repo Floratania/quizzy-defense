@@ -3,7 +3,7 @@ import React from 'react';
 import { Box, Container, Paper, Title, Text, Stack, Avatar, Loader } from '@mantine/core';
 import { IconSparkles } from '@tabler/icons-react';
 
-export const WaitingScreen = ({ nickname }) => {
+export const WaitingScreen = ({ nickname, teamName }) => {
     return (
         <Box
             style={{
@@ -37,6 +37,7 @@ export const WaitingScreen = ({ nickname }) => {
                             <Title order={2} mb="xs" style={{ color: '#1f2937' }}>
                                 Welcome, {nickname}!
                             </Title>
+                            {teamName && <Text fw={600} c="violet">{teamName}</Text>}
                             <Text size="lg" c="dimmed">
                                 Waiting for the game to start...
                             </Text>

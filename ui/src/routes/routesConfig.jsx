@@ -1,4 +1,4 @@
-import {createBrowserRouter} from 'react-router';
+import {createBrowserRouter, Navigate} from 'react-router';
 import App from '../App';
 import QuizCreator from "../pages/QuizCreator.jsx";
 import AuthPage from "../pages/AuthPage.jsx";
@@ -16,6 +16,9 @@ import QuizReportsList from "../components/Dashboard/QuizReportsList.jsx";
 import QuestionScreenTest from "../components/QuestionScreenTest.jsx";
 import QuestionMock from "../components/QuestionMick.jsx";
 import KahootGameScreen from "../pages/Test.jsx";
+import ClassesPage from '../components/Dashboard/ClassesPage.jsx';
+import PracticePage from '../pages/PracticePage.jsx';
+import FormattingGuidePage from '../pages/FormattingGuidePage.jsx';
 
 const router = createBrowserRouter([
     {
@@ -35,6 +38,7 @@ const router = createBrowserRouter([
             {path: 'host/:quizId', Component: HostPage},
             {path: 'player', Component: PlayerPage},
             {path: 'join', Component: JoinPage},
+            {path: 'help/formatting', element: <Navigate to="/admin/help/formatting" replace />},
             {path: 'manage', Component: CreateEditQuizPage},
             {path: 'stats', Component: QuizSessionStatistics},
             {path: 'test', Component: KahootGameScreen},
@@ -52,10 +56,13 @@ const router = createBrowserRouter([
                         element: <QuizList/>,
                     },
                     { path: "quizzes", Component: QuizList },
+                    { path: 'quizzes/:quizId/practice', Component: PracticePage },
                     { path: "quizzes/new", Component: CreateEditQuizPage },
                     { path: "quizzes/:id/edit", Component: CreateEditQuizPage },
                     { path: "reports/:id", Component: QuizSessionStatistics },
                     { path: "reports", Component: QuizReportsList },
+                    { path: "classes", Component: ClassesPage },
+                    { path: 'help/formatting', Component: FormattingGuidePage },
                 ]
             }
         ],

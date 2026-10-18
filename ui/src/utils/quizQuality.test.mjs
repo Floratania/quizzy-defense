@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {inspectQuiz} from './quizQuality.js';
+import {gradePractice,playablePractice} from './practiceQuiz.js';
+const q={id:'q',text:'**Питання** $x^2$',type:'multiple_choice',timeLimit:30,answers:[{id:'a',text:'так',isCorrect:true},{id:'b',text:'ні',isCorrect:false}]};
+test('valid formatted question',()=>assert.equal(inspectQuiz({questions:[q]}).length,0));
+test('empty quiz blocks launch',()=>assert.ok(inspectQuiz({questions:[]}).some(i=>i.severity==='error')));
+test('duplicates are warnings',()=>assert.ok(inspectQuiz({questions:[q,q]}).some(i=>i.severity==='warning')));
+test('missing correct answer blocks launch',()=>assert.ok(inspectQuiz({questions:[{...q,answers:q.answers.map(a=>({...a,isCorrect:false}))}]}).some(i=>i.severity==='error')));
+test('practice hides correct flags and grades locally',()=>{assert.ok(playablePractice(q).answers.every(a=>a.isCorrect===undefined));assert.equal(gradePractice(q,{answerId:'a'}),1);assert.equal(gradePractice(q,{answerId:'b'}),0);});
+test('practice partial response resists duplicate IDs',()=>assert.equal(gradePractice({...q,type:'multiple_response',answers:[{id:'a',isCorrect:true},{id:'b',isCorrect:true}]},{response:{answerIds:['a','a','a']}}),0.5));

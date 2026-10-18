@@ -4,9 +4,10 @@ import {GameSessionsController} from './game-sessions.controller';
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {GameSession} from "@/game-sessions/entities/game-session.entity";
 import {Quiz} from "@/quizzes/entities/quiz.entity";
+import {GameTeamsModule} from "@/game-teams/game-teams.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([GameSession, Quiz])],
+    imports: [TypeOrmModule.forFeature([GameSession, Quiz]), GameTeamsModule],
     controllers: [GameSessionsController],
     providers: [GameSessionsService],
     exports: [GameSessionsService],

@@ -6,9 +6,14 @@ import {
     IsArray,
     ValidateNested,
     MaxLength,
+    IsEnum,
+    IsBoolean,
+    IsInt,
+    Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {CreateQuestionDto} from "@/questions/dto/create-question.dto";
+import {QuizFeedbackMode} from '@/quizzes/entities/quiz.entity';
 
 export class CreateQuizDto {
     @IsString()
@@ -19,6 +24,29 @@ export class CreateQuizDto {
     @IsString()
     @IsOptional()
     description?: string | null;
+
+    @IsString()
+    @IsOptional()
+    @MaxLength(100)
+    topic?: string;
+    @IsOptional() @Type(() => Number) @IsInt() @Min(0) passThreshold?: number;
+    @IsOptional() @IsString() availableFrom?: string;
+    @IsOptional() @IsString() availableUntil?: string;
+    @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxAttempts?: number;
+    @IsOptional() @IsBoolean() requireFullscreen?: boolean;
+    @IsOptional() @IsBoolean() trackTabSwitches?: boolean;
+
+    @IsOptional()
+    @IsEnum(QuizFeedbackMode)
+    feedbackMode?: QuizFeedbackMode;
+
+    @IsOptional()
+    @IsBoolean()
+    shuffleQuestions?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    shuffleAnswers?: boolean;
 
     @IsArray()
     @ValidateNested({ each: true })

@@ -1,4 +1,4 @@
-import {IsUUID, IsOptional, IsInt, Min} from 'class-validator';
+import {IsUUID, IsOptional, IsInt, Min, IsObject} from 'class-validator';
 
 export class CreatePlayerAnswerDto {
     @IsUUID()
@@ -6,7 +6,11 @@ export class CreatePlayerAnswerDto {
 
     @IsUUID()
     @IsOptional()
-    answerId: string;
+    answerId?: string;
+
+    @IsObject()
+    @IsOptional()
+    response?: Record<string, unknown>;
 
     @IsInt()
     @Min(0)

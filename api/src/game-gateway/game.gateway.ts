@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { JoinSessionDto } from './dto/join-session.dto';
 import {CreatePlayerAnswerDto} from "@/player-answers/dto/create-player-answer.dto";
 import {GameFlowService} from "@/game-gateway/game-gateway.service";
+import {GamePlayersService} from '@/game-players/game-players.service';
 
 @WebSocketGateway({
     cors: { origin: '*' },
@@ -19,7 +20,12 @@ export class GameGateway {
 
     constructor(
         private readonly flow: GameFlowService, // ← беремо новий сервіс
+        private readonly players: GamePlayersService,
     ) {}
+
+    async handleDisconnect(client: Socket) {
+        await this.flow.playerDisconnected(client);
+    }
 
     @SubscribeMessage('host_join_session')
     hostJoin(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionId: string }) {
@@ -29,6 +35,20 @@ export class GameGateway {
     @SubscribeMessage('join_session')
     join(@ConnectedSocket() client: Socket, @MessageBody() dto: JoinSessionDto) {
         return this.flow.playerJoin(client, dto);
+    }
+    @SubscribeMessage('integrity_event')
+    async integrity(@ConnectedSocket() client: Socket, @MessageBody() dto?: { hidden?: boolean }) {
+        if (typeof dto?.hidden !== 'boolean') return;
+        const event = await this.players.recordIntegrityEvent(client.id, dto.hidden);
+        if (event) {
+            this.server.to(`host:${event.sessionId}`).emit('integrity_updated', event);
+            await this.flow.logSessionEvent(event.playerId, 'TAB_HIDDEN');
+        }
+    }
+
+    @SubscribeMessage('resume_session')
+    resume(@ConnectedSocket() client: Socket, @MessageBody() dto: { sessionId: string; playerId: string; resumeToken?: string }) {
+        return this.flow.playerResume(client, dto.sessionId, dto.playerId, dto.resumeToken);
     }
 
     @SubscribeMessage('start_game')

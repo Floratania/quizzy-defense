@@ -10,9 +10,19 @@ import {Answer} from "@/answers/entities/answer.entity";
 
 export enum QuestionType {
     MULTIPLE_CHOICE = 'multiple_choice',
+    MULTIPLE_RESPONSE = 'multiple_response',
     TRUE_FALSE = 'true_false',
-    OPEN_TEXT = 'open_text'
+    OPEN_TEXT = 'open_text',
+    FILL_BLANK = 'fill_blank',
+    MATCHING = 'matching',
+    ORDERING = 'ordering',
 }
+
+export type QuestionConfiguration = {
+    pairs?: Array<{ leftId: string; left: string; rightId: string; right: string }>;
+    items?: Array<{ id: string; text: string; correctPosition: number }>;
+    caseSensitive?: boolean;
+};
 
 
 @Entity({ name: 'questions' })
@@ -29,12 +39,17 @@ export class Question {
 
     @Column({ type: 'text' })
     text: string;
+    @Column({ type: 'text', nullable: true })
+    explanation: string | null;
 
     @Column({ type: 'text', nullable: true })
     mediaUrl: string | null;
 
     @Column({ type: 'int', default: 100 })
     points: number;
+
+    @Column({ type: 'int', default: 0 })
+    position: number;
 
     @Column({ type: 'int', default: 20 })
     timeLimit: number;
@@ -48,4 +63,7 @@ export class Question {
         default: QuestionType.MULTIPLE_CHOICE,
     })
     type: QuestionType;
+
+    @Column({ type: 'jsonb', nullable: true })
+    configuration: QuestionConfiguration | null;
 }

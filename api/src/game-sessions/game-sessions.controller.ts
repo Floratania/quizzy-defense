@@ -21,23 +21,31 @@ export class GameSessionsController {
     }
 
     @UseGuards(AuthGuard)
+    @Get('my/active')
+    getMyActive(@Req() req: authTypes.AuthenticatedRequest) {
+        return this.service.getHostActiveSessions(req.user.id);
+    }
+
+    @UseGuards(AuthGuard)
     @Post(':id/start')
     start(@Param('id') id: string) {
         return this.service.start(id);
     }
 
+    @UseGuards(AuthGuard)
     @Post(':id/finish')
-    finish(@Param('id') id: string) {
-        return this.service.finish(id);
-    }
-
-    @Get(':id')
-    getById(@Param('id') id: string) {
-        return this.service.getById(id);
+    finish(@Param('id') id: string, @Req() req: authTypes.AuthenticatedRequest) {
+        return this.service.finishForHost(id, req.user.id);
     }
 
     @Get('by-code/:roomCode')
     getByRoomCode(@Param('roomCode') code: string) {
         return this.service.getByRoomCode(code);
+    }
+
+
+    @Get(':id')
+    getById(@Param('id') id: string) {
+        return this.service.getById(id);
     }
 }

@@ -1,3 +1,4 @@
+import StudentReviewPage from '../pages/StudentReviewPage.jsx';
 import StudentPage from '../pages/StudentPage.jsx';
 import AccountRolesPage from '../pages/AccountRolesPage.jsx';
 import {createBrowserRouter, Navigate} from 'react-router';
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
         children: [
             {index: true, Component: HomePage},
             {path:'student',Component:StudentPage},
+            {path:'student/review',Component:StudentReviewPage},
             {
                 path: 'auth',
                 element: (

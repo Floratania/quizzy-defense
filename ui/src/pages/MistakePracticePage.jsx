@@ -6,15 +6,18 @@ import { QuestionScreen } from '../components/PlayerPage/QuestionScreen.jsx';
 import RichText from '../components/Question/RichText.jsx';
 import { gradePractice, playablePractice } from '../utils/practiceQuiz.js';
 
-function MistakePracticeContent() {
-    const { player, sessionId } = usePlayerGameContext();
+export function MistakePracticeContent({savedResult}) {
+    const context = usePlayerGameContext();
+    const player=context.player||{};
+    const sessionId=savedResult?'saved':context.sessionId;
+    const returnTo=savedResult?'/student':'/player';
     const [index, setIndex] = useState(0);
     const [attempt, setAttempt] = useState(0);
     const [grade, setGrade] = useState(null);
     const [corrected, setCorrected] = useState({});
     const [waitExpired, setWaitExpired] = useState(false);
     useEffect(() => { const timer = setTimeout(() => setWaitExpired(true), 10000); return () => clearTimeout(timer); }, []);
-    const result = player.finalResult;
+    const result = savedResult || player.finalResult;
     const mistakes = result?.answers?.filter((answer) => !answer.correct) || [];
     const current = mistakes[index];
     const next = () => { setIndex((value) => value + 1); setGrade(null); setAttempt(0); };
@@ -22,10 +25,10 @@ function MistakePracticeContent() {
 
     return <Box bg="#f8f9fa" mih="100vh"><Container size="sm" py="md">
         <Stack gap="sm">
-            <Group justify="space-between"><Title order={2}>Робота над помилками</Title><Button component={Link} to="/player" variant="default" size="sm">До результатів</Button></Group>
+            <Group justify="space-between"><Title order={2}>Робота над помилками</Title><Button component={Link} to={returnTo} variant="default" size="sm">{savedResult?'До кабінету':'До результатів'}</Button></Group>
             <Text size="sm" c="dimmed">Повторення без таймера. Початкові бали та результати тесту не змінюються.</Text>
             {!sessionId ? <Paper withBorder p="lg"><Text>Спочатку пройди тест на цьому пристрої.</Text><Button component={Link} to="/join" mt="md">Приєднатися до тесту</Button></Paper>
-                : !result ? <Paper withBorder p="lg">{!waitExpired && !player.gameFinished ? <Group><Loader size="sm" /><Text>Відновлюємо результати…</Text></Group> : <><Text>Результати поки недоступні. Дочекайся завершення сеансу або повернися до гри.</Text><Button component={Link} to="/player" mt="md">Повернутися до гри</Button></>}</Paper>
+                : !result ? <Paper withBorder p="lg">{!waitExpired && !player.gameFinished ? <Group><Loader size="sm" /><Text>Відновлюємо результати…</Text></Group> : <><Text>Результати поки недоступні. Дочекайся завершення сеансу або повернися до гри.</Text><Button component={Link} to={returnTo} mt="md">Повернутися до гри</Button></>}</Paper>
                 : !Array.isArray(result.answers) ? <Alert color="blue">Викладач налаштував показ лише підсумкових балів. Детальні відповіді та тренування для цього тесту недоступні.</Alert>
                 : !mistakes.length ? <Paper withBorder p="lg"><Title order={3}>Помилок немає!</Title><Text mt="xs">Усі призначені питання виконано правильно.</Text></Paper>
                 : !current ? <Paper withBorder p="lg"><Title order={3}>Повторення завершено</Title><Text mt="xs">Виправлено питань: {Object.keys(corrected).length} із {mistakes.length}.</Text><Button mt="md" onClick={() => { setIndex(0); setGrade(null); setAttempt(0); setCorrected({}); }}>Повторити ще раз</Button></Paper>

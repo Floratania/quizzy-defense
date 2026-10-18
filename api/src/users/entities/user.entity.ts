@@ -21,6 +21,8 @@ export class User {
 
     @Column({ default: false }) teacherRequested: boolean;
 
+    @Column({ default: false }) teacherPromptSeen: boolean;
+
     @OneToMany(() => Quiz, (quiz) => quiz.user)
     quizzes: Quiz[];
 

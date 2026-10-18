@@ -112,6 +112,7 @@ export const QuizBasicInfo = () => {
                 <TextInput type="datetime-local" label="Доступна від" value={formData.availableFrom || ''} onChange={(e) => updateFormData({ availableFrom: e.currentTarget.value })} />
                 <TextInput type="datetime-local" label="Доступна до" value={formData.availableUntil || ''} onChange={(e) => updateFormData({ availableUntil: e.currentTarget.value })} />
                 <Checkbox label="Вимагати повноекранний режим" checked={Boolean(formData.requireFullscreen)} onChange={(e) => updateFormData({ requireFullscreen: e.currentTarget.checked })} />
+                <Checkbox label="Показувати учасникам рейтинг після кожного питання" description="Якщо вимкнено, учасники побачать рейтинг лише наприкінці. Ведучий бачить його між раундами." checked={Boolean(formData.showQuestionLeaderboard)} onChange={(e) => updateFormData({ showQuestionLeaderboard: e.currentTarget.checked })} />
                 <Checkbox label="Фіксувати виходи з вкладки" checked={Boolean(formData.trackTabSwitches)} onChange={(e) => updateFormData({ trackTabSwitches: e.currentTarget.checked })} />
             </Stack>
         </Card>

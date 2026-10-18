@@ -20,7 +20,7 @@ for(const role of ['owner','viewer','editor','stranger']){const email=role+'@col
 const token=key=>users[key].accessToken;
 const question=text=>({text,type:'open_text',timeLimit:30,points:1000,answers:[{text:'Київ',isCorrect:true},{text:'Kyiv',isCorrect:true}]});
 const payload={title:'Collaboration check',questions:[question('First'),question('Second')]};
-const quiz=await call('/quizzes','POST',payload,token('owner'),201); const id=quiz.id;
+const quiz=await call('/quizzes','POST',payload,token('owner'),201); const id=quiz.id;assert.equal(quiz.showQuestionLeaderboard,false);
 await call('/quizzes/'+id,'GET',null,token('stranger'),403);
 await call('/quizzes/'+id+'/history','GET',null,token('stranger'),403);
 await call('/game-sessions','POST',{quizId:id},token('stranger'),403);
@@ -89,18 +89,20 @@ const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('ow
 const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');c.socket.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
 console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
 
-const timedQuiz=await call('/quizzes','POST',{title:'Personalized deadline regression',trackTabSwitches:true,questionSelection:{easy:2,medium:0,hard:0},questions:Array.from({length:6},(_,i)=>({...question('Deadline '+i),difficulty:'easy',timeLimit:2}))},token('owner'),201);
+const timedQuiz=await call('/quizzes','POST',{title:'Personalized deadline regression',showQuestionLeaderboard:true,trackTabSwitches:true,questionSelection:{easy:2,medium:0,hard:0},questions:Array.from({length:6},(_,i)=>({...question('Deadline '+i),difficulty:'easy',timeLimit:2}))},token('owner'),201);
+assert.equal(timedQuiz.showQuestionLeaderboard,true);
 const timed=await call('/game-sessions','POST',{quizId:timedQuiz.id},token('owner'),201);
 const ta=await guest(timed.roomCode,'Timed A'),tb=await guest(timed.roomCode,'Timed B'),silent=await guest(timed.roomCode,'Silent');
 const isolated=new Client({...config,database:dbName});await isolated.connect();
 try {for(const [i,p] of [ta,tb,silent].entries())await isolated.query('UPDATE session_players SET question_order=$1::jsonb WHERE id=$2',[JSON.stringify(timedQuiz.questions.slice(i*2,i*2+2).map(q=>q.id)),p.joined.playerId]);}finally{await isolated.end();}
 const host=io(base,{transports:['websocket'],autoConnect:false,auth:{token:token('owner')}});sockets.push(host);const hc=event(host,'connect');host.connect();await hc;const hj=event(host,'host_joined');host.emit('host_join_session',{sessionId:timed.id});await hj;
+let playerBoards=0;tb.socket.on('leaderboard',()=>playerBoards++);
 let resultCount=0;host.on('question_results',()=>resultCount++);
 const started=[ta,tb,silent].map(p=>event(p.socket,'question_started'));const result=event(host,'question_results'),board=event(host,'leaderboard'),silentTimeout=event(silent.socket,'answer_received');
 host.emit('start_game',{sessionId:timed.id});const questions=await Promise.all(started);assert.notEqual(questions[0].id,questions[1].id);
 const integrity=event(host,'integrity_updated');ta.socket.emit('integrity_event',{hidden:true,reason:'blur'});assert.equal((await integrity).integrityEvents,1);ta.socket.emit('integrity_event',{hidden:false});
 const accepted=[ta,tb].map(p=>event(p.socket,'answer_received'));[ta,tb].forEach((p,i)=>p.socket.emit('submit_answer',{questionId:questions[i].id,response:{text:'Київ'},timeTaken:0}));for(const answer of await Promise.all(accepted))assert.equal(answer.correct,true);
-assert.equal((await silentTimeout).timedOut,true);assert.equal((await result).roundClosed,true);await board;assert.equal(resultCount,1);
+assert.equal((await silentTimeout).timedOut,true);assert.equal((await result).roundClosed,true);await board;await new Promise(r=>setTimeout(r,100));assert.equal(resultCount,1);assert.equal(playerBoards,1);
 const next=event(tb.socket,'question_started');host.emit('next_question',{sessionId:timed.id});host.emit('next_question',{sessionId:timed.id});const nextQuestion=await next;assert.notEqual(nextQuestion.id,questions[1].id);
 const finished=event(host,'game_finished');await finished;assert.equal(resultCount,2);
 const timedReport=await call('/session-reports/'+timed.id,'GET',null,token('owner'));assert.equal(timedReport.players.length,3);

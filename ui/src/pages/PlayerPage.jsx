@@ -90,7 +90,7 @@ const PlayerPageContent = () => {
         );
     }
 
-    if (player.leaderboard) {
+    if (player.leaderboard && player.settings?.showQuestionLeaderboard === true) {
         return <LeaderboardScreen
             mode="player"
             leaderboard={player.leaderboard}

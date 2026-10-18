@@ -43,6 +43,8 @@ export class Quiz {
     @Column({ name: 'feedback_mode', type: 'varchar', length: 30, default: QuizFeedbackMode.IMMEDIATE })
     feedbackMode: QuizFeedbackMode;
 
+    @Column({ name: 'show_question_leaderboard', default: false }) showQuestionLeaderboard: boolean;
+
     @Column({ name: 'shuffle_questions', default: false })
     shuffleQuestions: boolean;
 

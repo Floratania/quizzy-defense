@@ -55,6 +55,7 @@ export class GameSessionsService {
             settings: {
                 ...(quiz.questionSelection ? { questionSelection: quiz.questionSelection } : {}),
                 ...(dto.mode === GameMode.SURVIVAL ? { survivalMistakeLimit: dto.survivalMistakeLimit ?? 1 } : {}),
+                showQuestionLeaderboard: quiz.showQuestionLeaderboard,
                 passThreshold: quiz.passThreshold, maxAttempts: quiz.maxAttempts,
                 requireFullscreen: quiz.requireFullscreen, trackTabSwitches: quiz.trackTabSwitches,
                 ...([GameMode.TEAM, GameMode.TOURNAMENT].includes(dto.mode as GameMode) ? {

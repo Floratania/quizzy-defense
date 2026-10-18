@@ -423,7 +423,7 @@ export class GameFlowService {
                 await this.finishGame(sessionId, leaderboard);
                 return;
             }
-            this.gateway.server.to(sessionId).emit('leaderboard', leaderboard);
+            this.gateway.server.to(updatedSession.settings?.showQuestionLeaderboard === true ? sessionId : `host:${sessionId}`).emit('leaderboard', leaderboard);
             if (updatedSession.mode === GameMode.TOURNAMENT) {
                 const { totalQuestions } = await this.sessions.getQuestionAt(sessionId, 0);
                 this.gateway.server.to(sessionId).emit(

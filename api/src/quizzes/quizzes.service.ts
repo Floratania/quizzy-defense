@@ -32,6 +32,7 @@ export class QuizzesService {
             passThreshold: dto.passThreshold ?? 60, availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null,
             availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : null, maxAttempts: dto.maxAttempts ?? 0,
             requireFullscreen: dto.requireFullscreen ?? false, trackTabSwitches: dto.trackTabSwitches ?? false,
+            showQuestionLeaderboard: dto.showQuestionLeaderboard ?? false,
             feedbackMode: dto.feedbackMode,
             shuffleQuestions: dto.shuffleQuestions ?? false,
             shuffleAnswers: dto.shuffleAnswers ?? false,
@@ -188,6 +189,7 @@ export class QuizzesService {
                 availableUntil: dto.availableUntil === undefined ? quiz.availableUntil : dto.availableUntil ? new Date(dto.availableUntil) : null,
                 maxAttempts: dto.maxAttempts ?? quiz.maxAttempts, requireFullscreen: dto.requireFullscreen ?? quiz.requireFullscreen,
                 trackTabSwitches: dto.trackTabSwitches ?? quiz.trackTabSwitches,
+                showQuestionLeaderboard: dto.showQuestionLeaderboard ?? quiz.showQuestionLeaderboard,
                 feedbackMode: dto.feedbackMode ?? quiz.feedbackMode,
                 shuffleQuestions: dto.shuffleQuestions ?? quiz.shuffleQuestions,
                 shuffleAnswers: dto.shuffleAnswers ?? quiz.shuffleAnswers,
@@ -218,7 +220,7 @@ export class QuizzesService {
             title: `${source.title} — копія`, description: source.description, topic: source.topic,
             passThreshold: source.passThreshold, availableFrom: source.availableFrom?.toISOString(), availableUntil: source.availableUntil?.toISOString(),
             maxAttempts: source.maxAttempts, requireFullscreen: source.requireFullscreen, trackTabSwitches: source.trackTabSwitches,
-            feedbackMode: source.feedbackMode, shuffleQuestions: source.shuffleQuestions, shuffleAnswers: source.shuffleAnswers,
+            showQuestionLeaderboard: source.showQuestionLeaderboard, feedbackMode: source.feedbackMode, shuffleQuestions: source.shuffleQuestions, shuffleAnswers: source.shuffleAnswers,
             questions: source.questions.map((q) => ({ text: q.text, difficulty: q.difficulty, explanation: q.explanation || undefined, mediaUrl: q.mediaUrl || undefined, timeLimit: q.timeLimit, points: q.points, type: q.type, configuration: q.configuration, answers: q.answers.map((a) => ({ text: a.text, mediaUrl: a.mediaUrl || undefined, isCorrect: a.isCorrect })) })),
         }, userId);
     }

@@ -93,7 +93,7 @@ export class GameFlowService {
             client.emit('game_started');
             if (question) {
                 const personalized = Boolean(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT);
-                client.emit('question_started', { ...(personalized ? { timeLimit: question.timeLimit } : this.toPlayableQuestion(question)), endsAt: this.roundDeadlines.get(sessionId), currentQuestionIndex: session.currentQuestionIndex + 1, personalized });
+                client.emit('question_started', { ...(personalized ? { timeLimit: question.timeLimit } : this.toPlayableQuestion(question)), endsAt: this.roundDeadlines.get(sessionId), currentQuestionIndex: session.currentQuestionIndex + 1, totalQuestions: sessionQuestionCount(session), personalized });
             }
         }
     }
@@ -189,7 +189,7 @@ export class GameFlowService {
                 const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
                 this.gateway.server.to(sessionId).except(playerSockets).emit(
                     'question_started',
-                    { ...(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT ? {} : this.toPlayableQuestion(question, session.quiz.shuffleAnswers)), timeLimit: roundTimeLimit, endsAt, personalized: Boolean(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT), currentQuestionIndex: session.currentQuestionIndex + 1 },
+                    { ...(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT ? {} : this.toPlayableQuestion(question, session.quiz.shuffleAnswers)), timeLimit: roundTimeLimit, endsAt, personalized: Boolean(session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT), currentQuestionIndex: session.currentQuestionIndex + 1, totalQuestions: sessionQuestionCount(session) },
                 );
                 for (const player of session.players) {
                     const playerQuestion = playerQuestions.get(player.id);
@@ -201,7 +201,7 @@ export class GameFlowService {
                     }
                 }
             } else {
-                const payload = { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), endsAt, currentQuestionIndex: session.currentQuestionIndex + 1 };
+                const payload = { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), endsAt, currentQuestionIndex: session.currentQuestionIndex + 1, totalQuestions: sessionQuestionCount(session) };
                 this.gateway.server.to(sessionId).emit('question_started', payload);
             }
 

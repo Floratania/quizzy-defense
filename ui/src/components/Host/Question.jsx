@@ -25,7 +25,7 @@ export default function Question({question, players, currentQuestionIndex, teamL
                     <Group position="apart">
                         <Group>
                             <Badge size="lg" variant="light" color="blue">
-                                Питання {currentQuestionIndex}
+                                Питання {currentQuestionIndex}{question.totalQuestions ? ` із ${question.totalQuestions}` : ''}
                             </Badge>
                             <Badge
                                 size="lg"
@@ -39,12 +39,23 @@ export default function Question({question, players, currentQuestionIndex, teamL
                         <TimerBadge timeLimit={question.timeLimit} endsAt={question.endsAt} />
                     </Group>
 
+                    {question.totalQuestions > 0 && (
+                        <Paper withBorder radius="md" p="md">
+                            <Text size="sm" mb="xs">Прогрес квізу: {currentQuestionIndex} із {question.totalQuestions} питань</Text>
+                            <Progress
+                                value={Math.min(100, Math.max(0, currentQuestionIndex / question.totalQuestions * 100))}
+                                aria-label={`Питання ${currentQuestionIndex} із ${question.totalQuestions}`}
+                                color="violet" size="md" radius="xl"
+                            />
+                        </Paper>
+                    )}
+
                     {question.personalized && <Paper withBorder p="sm"><Text size="sm">Учасники отримують різні питання. Відповіді перевіряються за особистим питанням кожного.</Text></Paper>}
                     {/* Question Card */}
                     {!question.personalized && <Paper shadow="xl" radius="xl" p={40} style={{ background: "white" }}>
                         <Stack spacing="lg">
                             <Badge size="md" color="blue.3" variant="light">
-                                Питання {currentQuestionIndex}
+                                Питання {currentQuestionIndex}{question.totalQuestions ? ` із ${question.totalQuestions}` : ''}
                             </Badge>
                             <div style={{ fontSize: "1.5rem", color: "#1f2937" }}>
                                 <RichText>{question.text}</RichText>

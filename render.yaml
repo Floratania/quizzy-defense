@@ -34,6 +34,12 @@ services:
         value: 22.16.0
       - key: VITE_API_URL
         sync: false
+      - key: VITE_CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: VITE_CLOUDINARY_UPLOAD_PRESET
+        sync: false
+      - key: VITE_CLOUDINARY_API_FOLDER
+        value: quizzy
     routes:
       - type: rewrite
         source: /*

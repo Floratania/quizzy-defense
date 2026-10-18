@@ -2,13 +2,13 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const FOLDER = import.meta.env.VITE_CLOUDINARY_API_FOLDER;
 
-if (!CLOUD_NAME) throw new Error("Missing Cloudinary CLOUD_NAME");
-if (!UPLOAD_PRESET) throw new Error("Missing Cloudinary UPLOAD_PRESET");
-
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
 export async function uploadToCloudinary(file) {
     if (!file) return null;
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+        throw new Error('Завантаження зображень ще не налаштовано.');
+    }
 
     const formData = new FormData();
     formData.append("file", file);

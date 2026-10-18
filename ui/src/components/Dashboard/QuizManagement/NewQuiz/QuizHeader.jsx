@@ -25,6 +25,11 @@ export const QuizHeader = () => {
         }
     };
 
+    const selectionInvalid = formData.questionSelection && (
+        Object.values(formData.questionSelection).reduce((sum, value) => sum + Number(value || 0), 0) < 1
+        || Object.entries(formData.questionSelection).some(([level, count]) => count > formData.questionsData.filter((q) => (q.difficulty || 'medium') === level).length)
+    );
+
     return (
         <Paper shadow="sm" p="lg" radius="lg" style={{ background: "white" }}>
             <Group justify="space-between">
@@ -65,7 +70,7 @@ export const QuizHeader = () => {
                         variant="gradient"
                         gradient={{ from: "teal.6", to: "green.7" }}
                         onClick={handleSubmit}
-                        disabled={formData.questionsData.length === 0 || saving || editingQuestionId !== null}
+                        disabled={formData.questionsData.length === 0 || selectionInvalid || saving || editingQuestionId !== null}
                     >
                         {isEdit ? "Зберегти зміни" : "Створити вікторину"}
                     </Button>

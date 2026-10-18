@@ -6,13 +6,16 @@ import {
     Min,
     IsUrl,
     IsArray,
-    ValidateNested, IsEnum, IsObject, MaxLength,
+    ValidateNested, IsEnum, IsObject, MaxLength, IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {CreateAnswerDto} from "@/answers/dto/create-answer.dto";
 import {QuestionType} from "@/questions/entities/question.entity";
 
 export class CreateQuestionDto {
+    @IsOptional()
+    @IsIn(['easy', 'medium', 'hard'])
+    difficulty?: 'easy' | 'medium' | 'hard';
     @IsString()
     @IsNotEmpty()
     text: string;

@@ -92,6 +92,7 @@ export const QuestionsList = () => {
                                 <Badge size="md" color="gray" variant="light">
                                     {questionTypes[q.type] || "Unknown"}
                                 </Badge>
+                                <Badge size="sm" variant="light" color={q.difficulty === 'hard' ? 'red' : q.difficulty === 'easy' ? 'teal' : 'yellow'}>{{ easy: 'Легка', medium: 'Середня', hard: 'Складна' }[q.difficulty || 'medium']}</Badge>
 
                                 <Group gap="xs">
                                     <IconClock size={14} color="gray" />

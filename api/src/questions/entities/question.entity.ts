@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import {Quiz} from "@/quizzes/entities/quiz.entity";
 import {Answer} from "@/answers/entities/answer.entity";
+import type { Difficulty } from '@/quizzes/question-selection';
 
 export enum QuestionType {
     MULTIPLE_CHOICE = 'multiple_choice',
@@ -29,6 +30,9 @@ export type QuestionConfiguration = {
 export class Question {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({ type: 'varchar', length: 10, default: 'medium' })
+    difficulty: Difficulty;
 
     @ManyToOne(() => Quiz, (quiz) => quiz.questions, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'quiz_id' })

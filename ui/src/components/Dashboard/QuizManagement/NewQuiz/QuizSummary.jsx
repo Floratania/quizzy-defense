@@ -23,6 +23,7 @@ export const QuizSummary = () => {
                 Підсумок Вікторини
             </Title>
             <Stack gap="md">
+                {formData.questionSelection && <Text fw={600}>Кожному учаснику: {Object.values(formData.questionSelection).reduce((sum, count) => sum + Number(count || 0), 0)} питань із {formData.questionsData.length}</Text>}
                 <Paper p="md" radius="md" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 100%)' }}>
                     <Group justify="space-between">
                         <Text size="sm" fw={500}>Загальна кількість запитань</Text>
@@ -34,7 +35,7 @@ export const QuizSummary = () => {
 
                 <Paper p="md" radius="md" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' }}>
                     <Group justify="space-between">
-                        <Text size="sm" fw={500}>Загальна кількість балів</Text>
+                        <Text size="sm" fw={500}>{formData.questionSelection ? 'Балів у повному пулі' : 'Загальна кількість балів'}</Text>
                         <Badge size="xl" variant="white">
                             {formData.questionsData.reduce((sum, q) => sum + q.points, 0)}
                         </Badge>
@@ -43,7 +44,7 @@ export const QuizSummary = () => {
 
                 <Paper p="md" radius="md" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 100%)' }}>
                     <Group justify="space-between">
-                        <Text size="sm" fw={500}>Орієнтовна тривалість</Text>
+                        <Text size="sm" fw={500}>{formData.questionSelection ? 'Тривалість повного пулу' : 'Орієнтовна тривалість'}</Text>
                         <Badge size="xl" variant="white">
                             {Math.ceil(formData.questionsData.reduce((sum, q) => sum + q.timeLimit, 0) / 60)}хв.
                         </Badge>

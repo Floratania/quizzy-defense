@@ -1,3 +1,4 @@
+import { sessionQuestionCount, validateSelection } from '@/quizzes/question-selection';
 import {
     Injectable,
     NotFoundException,
@@ -35,6 +36,7 @@ export class GameSessionsService {
             const access = await this.quizzesRepo.query('SELECT 1 FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2', [quiz.id, userId]);
             if (!access.length) throw new ForbiddenException('Немає доступу до запуску цього квізу');
         }
+        validateSelection(quiz.questions, quiz.questionSelection);
         const now = new Date();
         const errors=quizErrors(quiz.questions);
         if(errors.length) throw new BadRequestException(errors);
@@ -51,6 +53,7 @@ export class GameSessionsService {
             status: GameSessionStatus.WAITING,
             mode: dto.mode ?? GameMode.CLASSIC,
             settings: {
+                ...(quiz.questionSelection ? { questionSelection: quiz.questionSelection } : {}),
                 ...(dto.mode === GameMode.SURVIVAL ? { survivalMistakeLimit: dto.survivalMistakeLimit ?? 1 } : {}),
                 passThreshold: quiz.passThreshold, maxAttempts: quiz.maxAttempts,
                 requireFullscreen: quiz.requireFullscreen, trackTabSwitches: quiz.trackTabSwitches,
@@ -190,7 +193,7 @@ export class GameSessionsService {
         });
         if (!session) throw new NotFoundException('Session not found');
         const questions = [...session.quiz.questions].sort((a, b) => a.position - b.position);
-        return { session, question: questions[index] ?? null, totalQuestions: questions.length };
+        return { session, question: questions[index] ?? null, totalQuestions: sessionQuestionCount(session) };
     }
 
     async getRoundState(sessionId: string) {
@@ -201,12 +204,15 @@ export class GameSessionsService {
         if (!session) throw new NotFoundException('Session not found');
         const orderedQuestions = [...session.quiz.questions].sort((a, b) => a.position - b.position);
         const questionsById = new Map(orderedQuestions.map((question) => [question.id, question]));
-        const canonicalQuestion = orderedQuestions[session.currentQuestionIndex] ?? null;
+        const totalQuestions = sessionQuestionCount(session);
+        const firstOrder = session.players[0]?.questionOrder;
+        const canonicalQuestion = session.currentQuestionIndex >= totalQuestions ? null
+            : (firstOrder ? questionsById.get(firstOrder[session.currentQuestionIndex]) : orderedQuestions[session.currentQuestionIndex]) ?? null;
         const playerQuestions = new Map(session.players.map((player) => [
             player.id,
-            questionsById.get(player.questionOrder?.[session.currentQuestionIndex] ?? canonicalQuestion?.id ?? '') ?? canonicalQuestion,
+            (player.questionOrder ? questionsById.get(player.questionOrder[session.currentQuestionIndex]) ?? null : canonicalQuestion),
         ]));
-        return { session, canonicalQuestion, playerQuestions, totalQuestions: orderedQuestions.length };
+        return { session, canonicalQuestion, playerQuestions, totalQuestions };
     }
 
     async getPlayerQuestion(sessionId: string, playerId: string, index: number) {
@@ -252,6 +258,7 @@ export class GameSessionsService {
         if (session.status !== GameSessionStatus.WAITING)
             throw new BadRequestException('Game already started');
 
+        validateSelection(session.quiz.questions, session.quiz.questionSelection);
         const errors=quizErrors(session.quiz.questions);
         if(errors.length) throw new BadRequestException(errors);
 
@@ -292,19 +299,7 @@ export class GameSessionsService {
 
 
     async getCurrentQuestion(sessionId: string) {
-        const session = await this.sessionsRepo.findOne({
-            where: { id: sessionId },
-            relations: ['quiz', 'quiz.questions', 'quiz.questions.answers'],
-        });
-
-        if (!session) throw new NotFoundException('Session not found');
-
-        const questions = [...session.quiz.questions].sort((a, b) => a.position - b.position);
-        const question = questions[session.currentQuestionIndex];
-
-        if (!question) return null;
-
-        return question;
+        return (await this.getRoundState(sessionId)).canonicalQuestion;
     }
 
     async increaseQuestionIndex(sessionId: string) {
@@ -327,6 +322,6 @@ export class GameSessionsService {
 
         const nextIndex = session.currentQuestionIndex + 1;
 
-        return session.quiz.questions[nextIndex] ?? null;
+        return nextIndex < sessionQuestionCount(session) ? session.quiz.questions[nextIndex] ?? null : null;
     }
 }

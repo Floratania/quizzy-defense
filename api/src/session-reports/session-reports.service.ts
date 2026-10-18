@@ -1,3 +1,4 @@
+import { sessionQuestionCount } from '@/quizzes/question-selection';
 // session-reports.service.ts
 
 import {Injectable, NotFoundException, ForbiddenException, BadRequestException} from "@nestjs/common";
@@ -70,7 +71,7 @@ export class SessionReportsService {
         }
 
         const totalPlayers = players.length;
-        const totalQuestions = questions.length;
+        const totalQuestions = sessionQuestionCount({ ...session, quiz: { ...session.quiz, questions } });
         const totalAnswers = answers.length;
         const totalCorrect = answers.filter(a => a.isCorrect).length;
         const globalAccuracy = totalCorrect / totalAnswers || 0;
@@ -83,6 +84,7 @@ export class SessionReportsService {
         const summary = {
             totalPlayers,
             totalQuestions,
+            poolQuestionCount: questions.length,
             totalAnswers,
             globalAccuracy,
             avgAnswerTime,
@@ -100,7 +102,8 @@ export class SessionReportsService {
             const ans = answersByPlayer[p.id] || [];
 
             const correctCount = ans.filter(a => a.isCorrect).length;
-            const accuracy = ans.length ? correctCount / ans.length : 0;
+            const assignedQuestionIds = p.questionOrder || questions.map((q) => q.id);
+            const accuracy = assignedQuestionIds.length ? correctCount / assignedQuestionIds.length : 0;
             const avgTime = ans.length
                 ? ans.reduce((sum, a) => sum + (a.timeTaken ?? 0), 0) / ans.length
                 : 0;
@@ -111,6 +114,8 @@ export class SessionReportsService {
                 nickname: p.nickname,
                 score: p.totalScore,
                 correctCount,
+                assignedQuestionIds,
+                totalQuestions: assignedQuestionIds.length,
                 accuracy,
                 avgAnswerTime: avgTime,
                 integrityEvents: p.integrityEvents || 0,
@@ -134,7 +139,7 @@ export class SessionReportsService {
             (p as any).place = i + 1;
         });
 
-        const questionStats = questions.map((q) => {
+        const questionStats = questions.filter((q) => !players.length || players.some((p) => !p.questionOrder || p.questionOrder.includes(q.id))).map((q) => {
             const arr = answersByQuestion[q.id] || [];
 
             const answerStats = q.answers.map((opt) => {

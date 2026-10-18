@@ -14,8 +14,13 @@ import {
 import { Type } from 'class-transformer';
 import {CreateQuestionDto} from "@/questions/dto/create-question.dto";
 import {QuizFeedbackMode} from '@/quizzes/entities/quiz.entity';
+import { QuestionSelectionDto } from './question-selection.dto';
 
 export class CreateQuizDto {
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => QuestionSelectionDto)
+    questionSelection?: QuestionSelectionDto | null;
     @IsString()
     @IsNotEmpty()
     @MaxLength(200)

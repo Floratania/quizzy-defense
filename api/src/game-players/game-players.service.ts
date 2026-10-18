@@ -1,3 +1,4 @@
+import { selectBalancedQuestions, QuestionSelection } from '@/quizzes/question-selection';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -79,6 +80,8 @@ export class GamePlayersService {
             completedAt: null,
             eliminatedAt: null,
             questionOrder: (() => {
+                const selection = session.settings?.questionSelection as QuestionSelection | undefined ?? session.quiz.questionSelection;
+                if (selection) return selectBalancedQuestions(session.quiz.questions, selection);
                 const ids = [...session.quiz.questions].sort((a, b) => a.position - b.position).map((question) => question.id);
                 const randomized = session.quiz.shuffleQuestions || Boolean(session.settings?.randomForEachStudent) ? this.shuffle(ids) : ids;
                 const limit = Number(session.settings?.questionCount || 0);

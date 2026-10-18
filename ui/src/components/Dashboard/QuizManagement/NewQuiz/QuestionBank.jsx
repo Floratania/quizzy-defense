@@ -57,7 +57,7 @@ const QuestionBankContents = () => {
     };
     const autoPick = async () => {
         const selected = await pickQuestionsFromBank(topic || '', counts);
-        selected.forEach((item) => addQuestionFromBank(item.payload));
+        selected.forEach((item) => addQuestionFromBank({ ...item.payload, difficulty: item.difficulty }));
         notifications.show({ color: 'green', message: `Додано питань: ${selected.length}` });
     };
     const showUsage = async (id) => { const usage=await getQuestionUsage(id); alert(usage.length ? `Використано у:\n${usage.map((x)=>`• ${x.title}`).join('\n')}` : 'Питання ще не використовувалось у збережених вікторинах'); };
@@ -104,7 +104,7 @@ const QuestionBankContents = () => {
                                 <Group gap={6} wrap="nowrap">
                                     <Tooltip label="Додати до квізу" withArrow>
                                         <ActionIcon aria-label="Додати до квізу" color="teal" variant="light" size="lg" onClick={() => {
-                                            addQuestionFromBank(item.payload);
+                                            addQuestionFromBank({ ...item.payload, difficulty: item.difficulty });
                                             notifications.show({ color: 'green', message: 'Питання додано до квізу. Його можна редагувати у списку запитань.' });
                                         }}><IconPlus size={18} /></ActionIcon>
                                     </Tooltip>

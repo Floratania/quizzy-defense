@@ -10,7 +10,14 @@ export default function PracticePage() {
     const {quizId}=useParams();const navigate=useNavigate();
     const [quiz,setQuiz]=useState(null);const [error,setError]=useState('');
     const [index,setIndex]=useState(0);const [results,setResults]=useState([]);
-    useEffect(()=>{let active=true;apiClient.get(`/quizzes/${quizId}`).then(({data})=>{if(active)setQuiz(data);}).catch(()=>{if(active)setError('Не вдалося завантажити квіз');});return()=>{active=false;};},[quizId]);
+    useEffect(()=>{let active=true;apiClient.get(`/quizzes/${quizId}`).then(({data})=>{if(active){
+        if(data.questionSelection) data.questions = ['easy','medium','hard'].flatMap(level => {
+            const pool = data.questions.filter(q => (q.difficulty || 'medium') === level);
+            for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+            return pool.slice(0,data.questionSelection[level]);
+        });
+        setQuiz(data);
+    }}).catch(()=>{if(active)setError('Не вдалося завантажити квіз');});return()=>{active=false;};},[quizId]);
     const question=quiz?.questions?.slice().sort((a,b)=>a.position-b.position)[index];
     const playable=useMemo(()=>question?playablePractice(question):null,[question]);
     const submitAnswer=useCallback(payload=>setResults(current=>current[index]!==undefined?current:[...current,gradePractice(question,payload)]),[index,question]);

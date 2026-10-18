@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import {Question} from "@/questions/entities/question.entity";
 import {User} from "@/users/entities/user.entity";
+import type { QuestionSelection } from '../question-selection';
 
 export enum QuizFeedbackMode {
     IMMEDIATE = 'IMMEDIATE',
@@ -23,6 +24,9 @@ export class Quiz {
 
     @Column({ length: 200 })
     title: string;
+
+    @Column({ type: 'jsonb', nullable: true })
+    questionSelection: QuestionSelection | null;
 
     @Column({ type: 'text', nullable: true })
     description: string | null;

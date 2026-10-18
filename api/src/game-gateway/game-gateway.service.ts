@@ -1,3 +1,4 @@
+import { sessionQuestionCount } from '@/quizzes/question-selection';
 import {GamePlayersService} from "@/game-players/game-players.service";
 import {forwardRef, Inject, Injectable} from "@nestjs/common";
 import {PlayerAnswersService} from "@/player-answers/player-answers.service";
@@ -119,7 +120,7 @@ export class GameFlowService {
     async startGame(sessionId: string) {
         const existing = await this.sessions.getById(sessionId);
         if (existing.mode === GameMode.TOURNAMENT) {
-            if (existing.quiz.questions.length < 3) {
+            if (sessionQuestionCount(existing) < 3) {
                 throw new Error('Tournament requires at least 3 questions');
             }
             if (existing.teams.some((team) => team.players.length === 0)) {
@@ -131,7 +132,7 @@ export class GameFlowService {
         this.gateway.server.to(sessionId).emit('game_started');
         if (session.mode === GameMode.PROGRESS) {
             const players = await this.players.getPlayers(sessionId);
-            const totalQuestions = session.quiz.questions.length;
+            const totalQuestions = sessionQuestionCount(session);
             this.gateway.server.to(sessionId).emit('progress_snapshot', players.map((player) => ({
                 playerId: player.id,
                 nickname: player.nickname,
@@ -151,7 +152,7 @@ export class GameFlowService {
 
         if (!question) return this.finishGame(sessionId);
 
-        if (session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT) {
+        if (session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.mode === GameMode.TOURNAMENT) {
             const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
             this.gateway.server.to(sessionId).except(playerSockets).emit('question_preview', { text: question.text, mediaUrl: question.mediaUrl });
             for (const player of session.players) {
@@ -169,7 +170,7 @@ export class GameFlowService {
                 const current=playerQuestions.get(player.id);
                 if(current&&!player.eliminatedAt) await this.players.startQuestionClock(player.id,current.id);
             }
-            if (session.quiz.shuffleQuestions || session.quiz.shuffleAnswers || session.mode === GameMode.TOURNAMENT) {
+            if (session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions || session.quiz.shuffleAnswers || session.mode === GameMode.TOURNAMENT) {
                 const playerSockets = session.players.map((player) => player.socketId).filter(Boolean) as string[];
                 this.gateway.server.to(sessionId).except(playerSockets).emit(
                     'question_started',
@@ -359,7 +360,7 @@ export class GameFlowService {
                 this.gateway.server.to(sessionId).emit('player_eliminated_host', { playerId: player.id, reason: 'timeout' });
             }
         }
-        const stats = session.quiz.shuffleQuestions
+        const stats = (session.quiz.questionSelection || session.settings?.questionSelection || session.quiz.shuffleQuestions)
             ? await this.answers.getRoundStats(sessionId, roundQuestionIds, expectedByPlayer)
             : await this.answers.getQuestionStats(sessionId, questionId);
 

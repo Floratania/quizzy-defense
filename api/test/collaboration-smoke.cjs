@@ -58,7 +58,31 @@ await call('/quizzes/'+id,'GET',null,token('viewer'),403);
 await call('/game-sessions','POST',{quizId:id},token('viewer'),403);
 assert.equal((await call('/quizzes/my','GET',null,token('viewer'))).length,0);
 history=await call('/quizzes/'+id+'/history','GET',null,token('owner'));assert.deepEqual(history.slice(0,2).map(h=>h.action),['REVOKED','ROLE_CHANGED']);
+
+const {io}=require('../../ui/node_modules/socket.io-client');
+const sockets=[];
+const event=(socket,name)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Timed out: '+name)),8000);socket.once(name,data=>{clearTimeout(timer);resolve(data);});});
+async function guest(code,name){const socket=io(base,{transports:['websocket'],autoConnect:false});sockets.push(socket);const connected=event(socket,'connect');socket.connect();await connected;const joined=event(socket,'joined_successfully');socket.emit('join_session',{roomCode:code,nickname:name});return {socket,joined:await joined};}
+try {
+const levels=['easy','medium','hard'];
+const pool=levels.flatMap((difficulty,level)=>Array.from({length:level===0?18:16},(_,i)=>({...question(difficulty+' '+i),difficulty})));
+const balanced=await call('/quizzes','POST',{title:'Balanced 50',questionSelection:{easy:8,medium:8,hard:8},questions:pool},token('owner'),201);
+const difficultyById=new Map(balanced.questions.map(q=>[q.id,q.difficulty]));
+const game=await call('/game-sessions','POST',{quizId:balanced.id},token('owner'),201);
+const a=await guest(game.roomCode,'Balanced A');const b=await guest(game.roomCode,'Balanced B');
+let state=await call('/game-sessions/'+game.id);
+for(const p of state.players){assert.equal(p.questionOrder.length,24);assert.equal(new Set(p.questionOrder).size,24);for(const level of levels)assert.equal(p.questionOrder.filter(id=>difficultyById.get(id)===level).length,8);}
+const firstOrder=state.players.find(p=>p.id===a.joined.playerId).questionOrder;
+assert.notDeepEqual(firstOrder,state.players.find(p=>p.id===b.joined.playerId).questionOrder);
+const restored=io(base,{transports:['websocket'],autoConnect:false});sockets.push(restored);let connected=event(restored,'connect');restored.connect();await connected;const resumed=event(restored,'session_resumed');restored.emit('resume_session',{...a.joined});await resumed;
+state=await call('/game-sessions/'+game.id);assert.deepEqual(firstOrder,state.players.find(p=>p.id===a.joined.playerId).questionOrder);
+const qa=event(restored,'question_started');const qb=event(b.socket,'question_started');restored.emit('start_game',{sessionId:game.id});
+assert.equal(difficultyById.get((await qa).id),'easy');assert.equal(difficultyById.get((await qb).id),'easy');
+await call('/game-sessions/'+game.id+'/finish','POST',{},token('owner'),201);
+const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('owner'));assert.equal(balancedReport.summary.totalQuestions,24);assert.equal(balancedReport.summary.poolQuestionCount,50);for(const p of balancedReport.players){assert.equal(p.assignedQuestionIds.length,24);assert.equal(p.totalQuestions,24);}
+const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');c.socket.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
+console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
+} finally {sockets.forEach(s=>s.disconnect());}
 await call('/quizzes/'+id,'DELETE',null,token('owner'));
 console.log('Collaboration, audit and host isolation: '+checks+' HTTP checks passed');
 })().catch(e=>{console.error(e.message);process.exitCode=1;}).finally(async()=>{if(child){child.kill();await new Promise(r=>setTimeout(r,700));}if(admin._connected){await admin.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1',[dbName]);await admin.query('DROP DATABASE IF EXISTS '+dbName);await admin.end();}console.log('Isolated test database removed');});
-

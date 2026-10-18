@@ -198,7 +198,7 @@ export const AddQuestionForm = () => {
             <Stack gap="xs">
 
                 <Grid gutter="xs" align="end">
-                    <Grid.Col span={{ base: 12, sm: 5 }}>
+                    <Grid.Col span={{ base: 12, sm: 4 }}>
                         <Select label="Тип питання" data={questionTypes} value={currentQuestion.type} onChange={handleQuestionTypeChange} size="sm" />
                     </Grid.Col>
                     <Grid.Col span={{ base: 4, sm: 2 }}>
@@ -207,9 +207,12 @@ export const AddQuestionForm = () => {
                     <Grid.Col span={{ base: 4, sm: 2 }}>
                         <NumberInput label="Бали" value={currentQuestion.points} onChange={(points) => updateCurrentQuestion({ points })} min={100} max={10000} step={100} size="sm" />
                     </Grid.Col>
-                    {['multiple_choice', 'multiple_response'].includes(currentQuestion.type) && <Grid.Col span={{ base: 4, sm: 3 }}>
+                    {['multiple_choice', 'multiple_response'].includes(currentQuestion.type) && <Grid.Col span={{ base: 4, sm: 2 }}>
                         <NumberInput label="Варіантів" value={currentQuestion.numberOfAnswers} onChange={handleNumberOfAnswersChange} min={2} max={6} size="sm" />
                     </Grid.Col>}
+                    <Grid.Col span={{ base: 6, sm: 2 }}>
+                        <Select label="Складність" size="sm" data={[{ value: 'easy', label: 'Легка' }, { value: 'medium', label: 'Середня' }, { value: 'hard', label: 'Складна' }]} value={currentQuestion.difficulty || 'medium'} onChange={(difficulty) => updateCurrentQuestion({ difficulty })} allowDeselect={false} />
+                    </Grid.Col>
                 </Grid>
 
                 {/* QUESTION TEXT */}

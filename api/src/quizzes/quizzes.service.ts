@@ -1,3 +1,4 @@
+import { validateSelection } from './question-selection';
 import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from '@nestjs/common';
 import {CreateQuizDto} from './dto/create-quiz.dto';
 import {UpdateQuizDto} from './dto/update-quiz.dto';
@@ -22,8 +23,10 @@ export class QuizzesService {
 
     async create(dto: CreateQuizDto, userId: number) {
         dto.questions.forEach((question) => this.validateInteractiveQuestion(question));
+        validateSelection(dto.questions, dto.questionSelection);
         const quiz = this.quizRepository.create({
             title: dto.title,
+            questionSelection: dto.questionSelection || null,
             description: dto.description,
             topic: dto.topic?.trim() || 'Без теми',
             passThreshold: dto.passThreshold ?? 60, availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null,
@@ -35,6 +38,7 @@ export class QuizzesService {
             userId: userId,
             questions: dto.questions?.map((q, position) => this.questionRepository.create({
                 text: q.text,
+                difficulty: q.difficulty || 'medium',
                 explanation: q.explanation || null,
                 mediaUrl: q.mediaUrl || null,
                 timeLimit: q.timeLimit,
@@ -169,11 +173,14 @@ export class QuizzesService {
         if (!dto.questions) throw new BadRequestException('Questions are required');
         const questions = dto.questions;
         questions.forEach((question) => this.validateInteractiveQuestion(question));
+        const selection = dto.questionSelection === undefined ? quiz.questionSelection : dto.questionSelection;
+        validateSelection(questions, selection);
         const previous = { title: quiz.title, questionCount: quiz.questions.length };
         return this.quizRepository.manager.transaction(async (manager) => {
             await manager.delete(Question, { quizId: id });
             Object.assign(quiz, {
                 title: dto.title ?? quiz.title,
+                questionSelection: selection,
                 description: dto.description,
                 topic: dto.topic?.trim() || quiz.topic,
                 passThreshold: dto.passThreshold ?? quiz.passThreshold,
@@ -207,11 +214,12 @@ export class QuizzesService {
         const source = await this.access(id, userId);
         if (!source) throw new NotFoundException(`Quiz with id ${id} not found`);
         return this.create({
+            questionSelection: source.questionSelection,
             title: `${source.title} — копія`, description: source.description, topic: source.topic,
             passThreshold: source.passThreshold, availableFrom: source.availableFrom?.toISOString(), availableUntil: source.availableUntil?.toISOString(),
             maxAttempts: source.maxAttempts, requireFullscreen: source.requireFullscreen, trackTabSwitches: source.trackTabSwitches,
             feedbackMode: source.feedbackMode, shuffleQuestions: source.shuffleQuestions, shuffleAnswers: source.shuffleAnswers,
-            questions: source.questions.map((q) => ({ text: q.text, explanation: q.explanation || undefined, mediaUrl: q.mediaUrl || undefined, timeLimit: q.timeLimit, points: q.points, type: q.type, configuration: q.configuration, answers: q.answers.map((a) => ({ text: a.text, mediaUrl: a.mediaUrl || undefined, isCorrect: a.isCorrect })) })),
+            questions: source.questions.map((q) => ({ text: q.text, difficulty: q.difficulty, explanation: q.explanation || undefined, mediaUrl: q.mediaUrl || undefined, timeLimit: q.timeLimit, points: q.points, type: q.type, configuration: q.configuration, answers: q.answers.map((a) => ({ text: a.text, mediaUrl: a.mediaUrl || undefined, isCorrect: a.isCorrect })) })),
         }, userId);
     }
 }

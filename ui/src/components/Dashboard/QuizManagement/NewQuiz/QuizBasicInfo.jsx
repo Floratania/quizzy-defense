@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Title, Stack, TextInput, Textarea, Text, Select, Checkbox, NumberInput } from "@mantine/core";
+import { Card, Title, Stack, TextInput, Textarea, Text, Select, Checkbox, NumberInput, Paper, SimpleGrid } from "@mantine/core";
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
 
 export const QuizBasicInfo = () => {
@@ -67,7 +67,6 @@ export const QuizBasicInfo = () => {
 
                 <TextInput label="Папка для банку питань" value={formData.bankFolder || 'Загальна'} onChange={(e) => updateFormData({ bankFolder: e.currentTarget.value })} />
                 <TextInput label="Теги для банку" description="Через кому" placeholder="формули, 7 клас, контрольна" value={formData.bankTags || ''} onChange={(e) => updateFormData({ bankTags: e.currentTarget.value })} />
-                <Select label="Складність питань, що зберігаються до банку" value={formData.bankDifficulty || 'medium'} onChange={(bankDifficulty) => updateFormData({ bankDifficulty })} data={[{value:'easy',label:'Легка'},{value:'medium',label:'Середня'},{value:'hard',label:'Складна'}]} />
 
                 <Select
                     label="Коли показувати результат учаснику"
@@ -80,6 +79,23 @@ export const QuizBasicInfo = () => {
                         { value: 'END_SCORE_ONLY', label: 'Наприкінці — лише підсумкові бали' },
                     ]}
                 />
+
+                <Paper withBorder p="sm" radius="md">
+                    <Stack gap="xs">
+                        <Checkbox label="Індивідуальні набори за складністю" checked={Boolean(formData.questionSelection)} onChange={(event) => updateFormData({ questionSelection: event.currentTarget.checked ? { easy: 0, medium: Math.min(24, formData.questionsData.filter((q) => (q.difficulty || 'medium') === 'medium').length), hard: 0 } : null })} />
+                        <Text size="xs" c="dimmed">Кожен учасник отримує випадкові питання без повторів у своєму наборі, з однаковою кількістю легких, середніх і складних. Окремі питання між учасниками можуть збігатися.</Text>
+                        {formData.questionSelection && <>
+                            <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                                {Object.entries({ easy: 'Легких', medium: 'Середніх', hard: 'Складних' }).map(([level, label]) => {
+                                    const available = formData.questionsData.filter((q) => (q.difficulty || 'medium') === level).length;
+                                    return <NumberInput key={level} label={`${label} · доступно ${available}`} min={0} max={1000} allowDecimal={false} allowNegative={false} value={formData.questionSelection[level]} error={formData.questionSelection[level] > available ? 'Недостатньо питань' : undefined} onChange={(value) => updateFormData({ questionSelection: { ...formData.questionSelection, [level]: Number(value) || 0 } })} />;
+                                })}
+                            </SimpleGrid>
+                            <Text size="sm" fw={500}>Учень отримає {Object.values(formData.questionSelection).reduce((a, b) => a + Number(b || 0), 0)} із {formData.questionsData.length} питань.</Text>
+                            <Text size="xs" c="dimmed">Складність задає викладач для кожного питання. Для рівних умов задавайте однакові бали й час питанням одного рівня. У спільній грі рівні йдуть від легкого до складного.</Text>
+                        </>}
+                    </Stack>
+                </Paper>
 
                 <Checkbox
                     label="Перемішувати питання окремо для кожного учасника"

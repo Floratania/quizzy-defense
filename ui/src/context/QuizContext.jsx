@@ -18,6 +18,7 @@ export const useQuizContext = () => {
 
 const createDefaultQuestion = () => ({
     type: "multiple_choice",
+    difficulty: 'medium',
     text: "",
     explanation: '',
     image: null,
@@ -65,6 +66,7 @@ export function QuizProvider({ children }) {
 
     const [formData, setFormData] = useState({
         title: "",
+        questionSelection: null,
         description: "",
         topic: "",
         bankFolder: "Загальна",
@@ -132,6 +134,7 @@ export function QuizProvider({ children }) {
 
             setFormData({
                 title: quiz.title,
+                questionSelection: quiz.questionSelection || null,
                 description: quiz.description,
                 topic: quiz.topic || "",
                 passThreshold: quiz.passThreshold ?? 60, availableFrom: quiz.availableFrom?.slice(0,16) || '',
@@ -144,6 +147,7 @@ export function QuizProvider({ children }) {
                 questionsData: quiz.questions.map((q) => ({
                     id: q.id,
                     type: q.type,
+                    difficulty: q.difficulty || 'medium',
                     text: q.text,
                     explanation: q.explanation || '',
                     timeLimit: q.timeLimit,
@@ -268,6 +272,7 @@ export function QuizProvider({ children }) {
 
     const transformQuizData = (form) => ({
         title: form.title,
+        questionSelection: form.questionSelection || null,
         description: form.description || null,
         topic: form.topic?.trim() || 'Без теми',
         passThreshold: Number(form.passThreshold) || 0, availableFrom: form.availableFrom || null,
@@ -278,6 +283,7 @@ export function QuizProvider({ children }) {
         shuffleAnswers: Boolean(form.shuffleAnswers),
         questions: form.questionsData.map((q) => ({
             text: q.text,
+            difficulty: q.difficulty || 'medium',
             explanation: q.explanation || undefined,
             timeLimit: q.timeLimit,
             points: q.points,
@@ -316,7 +322,7 @@ export function QuizProvider({ children }) {
             topic: formData.topic?.trim() || 'Без теми',
             folder: formData.bankFolder || 'Загальна',
             tags: (formData.bankTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
-            difficulty: formData.bankDifficulty || 'medium',
+            difficulty: uploaded.difficulty || 'medium',
             payload,
         });
         window.dispatchEvent(new Event('question-bank-updated'));

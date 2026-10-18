@@ -11,6 +11,7 @@ export class AccountController {
  private async admin(id:number) { const u=await this.data.getRepository(User).findOneBy({id}); if(u?.role!=='ADMIN')throw new ForbiddenException('Лише адміністратор підтверджує викладачів'); }
  @Post('teacher-request') async request(@Req()r) { const repo=this.data.getRepository(User); const u=await repo.findOneByOrFail({id:r.user.id}); if(u.role==='STUDENT')await repo.update(u.id,{teacherRequested:true,teacherPromptSeen:true}); return {requested:true}; }
  @Post('teacher-prompt-seen') async promptSeen(@Req()r){await this.data.getRepository(User).update(r.user.id,{teacherPromptSeen:true});return {seen:true};}
+ @Get('assignments') assignments(@Req()r){return this.learning.assignments(r.user.id);}
  @Get('student-summary') summary(@Req()r){return this.learning.summary(r.user.id);}
  @Get('student-review') review(@Req()r,@Query('playerId')playerId?:string,@Query('topic')topic?:string){return this.learning.review(r.user.id,playerId,topic);}
  @Get('teacher-requests') async requests(@Req()r) { await this.admin(r.user.id);return this.data.getRepository(User).find({where:{role:'STUDENT',teacherRequested:true},select:{id:true,name:true,email:true},order:{id:'DESC'}}); }

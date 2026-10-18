@@ -10,6 +10,20 @@ export class StudentLearningService {
  private async completed(userId:number) {
   return (await this.data.getRepository(GamePlayer).find({where:{studentId:userId},relations:['session','session.quiz'],order:{joinedAt:'DESC'}})).filter(p=>p.session.quiz&&(p.session.status==='FINISHED'||Boolean(p.completedAt)));
  }
+ async assignments(userId:number) {
+  const rows=await this.data.query(`SELECT a.id,a.room_code AS "roomCode",a.due_at AS "dueAt",a.max_attempts AS "maxAttempts",a.variant_settings AS "variantSettings",q.title,q.topic,q.available_from AS "quizFrom",q.available_until AS "quizUntil",q.max_attempts AS "quizMaxAttempts",c.name AS "className",u.name AS "teacherName",s.id AS "sessionId",s.status AS "sessionStatus" FROM quiz_assignments a JOIN class_students m ON m.class_id=a.class_id JOIN learning_classes c ON c.id=a.class_id JOIN "user" u ON u.id=c.teacher_id JOIN quizzes q ON q.id=a.quiz_id JOIN game_sessions s ON s."roomCode"=a.room_code WHERE m.student_id=$1 ORDER BY a."createdAt" DESC`,[userId]);
+  const players=await this.data.getRepository(GamePlayer).find({where:{studentId:userId},order:{joinedAt:'DESC'}});
+  const now=Date.now();
+  return rows.map(a=>{
+   const attempts=players.filter(p=>p.session_id===a.sessionId),active=attempts.find(p=>!p.completedAt),completed=attempts.some(p=>Boolean(p.completedAt));
+   const starts=[a.quizFrom,a.variantSettings?.availableFrom].filter(Boolean).map(d=>new Date(d).getTime());
+   const ends=[a.quizUntil,a.dueAt].filter(Boolean).map(d=>new Date(d).getTime());
+   const availableFrom=starts.length?new Date(Math.max(...starts)).toISOString():null,dueAt=ends.length?new Date(Math.min(...ends)).toISOString():null;
+   const exhausted=attempts.length>=a.maxAttempts&&!active;
+   const status=completed&&exhausted?'COMPLETED':a.sessionStatus==='FINISHED'?'CLOSED':dueAt&&now>new Date(dueAt).getTime()?'OVERDUE':availableFrom&&now<new Date(availableFrom).getTime()?'UPCOMING':exhausted?'EXHAUSTED':'OPEN';
+   return {id:a.id,title:a.title,topic:a.topic,className:a.className,teacherName:a.teacherName,availableFrom,dueAt,status,attemptsUsed:attempts.length,maxAttempts:a.maxAttempts,sessionId:status==='OPEN'?a.sessionId:undefined,roomCode:status==='OPEN'?a.roomCode:undefined,activePlayer:status==='OPEN'&&active?{id:active.id,nickname:active.nickname}:null};
+  });
+ }
  async summary(userId:number){
   const players=await this.completed(userId);const attempts:any[]=[];
   for(const p of players){const result=await this.answers.getPlayerFinalResult(p.id,false);attempts.push({playerId:p.id,title:p.session.quiz.title,topic:p.session.quiz.topic||'Без теми',date:p.completedAt||p.joinedAt,reviewAllowed:p.session.quiz.feedbackMode!==QuizFeedbackMode.END_SCORE_ONLY,...result});}

@@ -23,6 +23,7 @@ export default function JoinPage() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const {user} = useAuthContext();
+    useEffect(()=>{if(user?.name)setNickname(current=>current||user.name);},[user?.name]);
     const savedSessionId = localStorage.getItem('sessionId');
     const savedPlayerId = localStorage.getItem('playerId');
 

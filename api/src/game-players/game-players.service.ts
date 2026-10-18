@@ -1,7 +1,7 @@
 import { selectBalancedQuestions, QuestionSelection } from '@/quizzes/question-selection';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { GamePlayer } from './entities/game-player.entity';
 import { GameSession, GameSessionStatus } from '@/game-sessions/entities/game-session.entity';
 import { SessionTeam } from '@/game-teams/entities/session-team.entity';
@@ -45,6 +45,14 @@ export class GamePlayersService {
 
         if (!session) throw new NotFoundException('Session not found');
         const now = new Date();
+        if (session.status === GameSessionStatus.FINISHED) throw new BadRequestException('Тест уже завершено');
+        if (session.settings?.classId) {
+            const membership=studentId && await this.playersRepo.query('SELECT 1 FROM class_students WHERE class_id=$1 AND student_id=$2',[session.settings.classId,studentId]);
+            if(!membership?.length)throw new BadRequestException('Увійдіть в акаунт учня, якому призначено цей тест');
+            if(session.settings.assignmentOpensAt && now < new Date(String(session.settings.assignmentOpensAt)))throw new BadRequestException('Тест ще не відкрито');
+            if(session.settings.assignmentDueAt && now > new Date(String(session.settings.assignmentDueAt)))throw new BadRequestException('Термін виконання завершився');
+        }
+
         if (session.quiz.availableFrom && now < session.quiz.availableFrom) throw new BadRequestException('Quiz is not available yet');
         if (session.quiz.availableUntil && now > session.quiz.availableUntil) throw new BadRequestException('Quiz availability has ended');
         if (session.quiz.maxAttempts > 0) {
@@ -52,7 +60,7 @@ export class GamePlayersService {
             if (attempts >= session.quiz.maxAttempts) throw new BadRequestException('Attempt limit reached');
         }
         const assignmentMaxAttempts=Number(session.settings?.assignmentMaxAttempts||0);
-        if(assignmentMaxAttempts>0){const attempts=await this.playersRepo.count({where:studentId?{studentId,session:{quizId:session.quizId}}:{nickname,session:{quizId:session.quizId}}});if(attempts>=assignmentMaxAttempts)throw new BadRequestException('Assignment attempt limit reached');}
+        if(assignmentMaxAttempts>0){const attempts=await this.playersRepo.count({where:studentId?{studentId,session_id:session.id}:{nickname,session_id:session.id}});if(attempts>=assignmentMaxAttempts)throw new BadRequestException('Assignment attempt limit reached');}
         if (session.status !== GameSessionStatus.WAITING && session.mode !== 'PROGRESS')
             throw new BadRequestException('This session is not open for joining');
 
@@ -109,7 +117,7 @@ export class GamePlayersService {
         return this.playersRepo.manager.getRepository(SessionEvent).find({ where: { sessionId }, order: { createdAt: 'DESC', id: 'DESC' }, take: 200 });
     }
     async startQuestionClock(id:string,questionId:string){
-        await this.playersRepo.update(id,{activeQuestionId:questionId,questionStartedAt:new Date()});
+        await this.playersRepo.update({id,activeQuestionId:Raw(alias=>`${alias} IS DISTINCT FROM :questionId`,{questionId})},{activeQuestionId:questionId,questionStartedAt:new Date()});
     }
 
     async recordIntegrityEvent(socketId: string, hidden = true) {

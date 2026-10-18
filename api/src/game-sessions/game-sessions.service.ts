@@ -6,7 +6,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, Repository } from 'typeorm';
+import { In, LessThan, Raw, Repository } from 'typeorm';
 import { GameMode, GameSession, GameSessionStatus } from './entities/game-session.entity';
 import { Quiz } from '@/quizzes/entities/quiz.entity';
 import { CreateGameSessionDto } from './dto/create-game-session.dto';
@@ -23,7 +23,7 @@ export class GameSessionsService {
         private readonly teams: GameTeamsService,
     ) {}
 
-    async create(dto: CreateGameSessionDto, userId: number): Promise<GameSession> {
+    async create(dto: CreateGameSessionDto, userId: number, allowScheduled = false): Promise<GameSession> {
         const quiz = await this.quizzesRepo.findOne({
             where: { id: dto.quizId },
             relations: ['questions','questions.answers'],
@@ -40,7 +40,7 @@ export class GameSessionsService {
         const now = new Date();
         const errors=quizErrors(quiz.questions);
         if(errors.length) throw new BadRequestException(errors);
-        if (quiz.availableFrom && now < quiz.availableFrom) throw new BadRequestException('Quiz is not available yet');
+        if (!allowScheduled && quiz.availableFrom && now < quiz.availableFrom) throw new BadRequestException('Quiz is not available yet');
         if (quiz.availableUntil && now > quiz.availableUntil) throw new BadRequestException('Quiz availability has ended');
 
         const roomCode = await this.generateUniqueRoomCode();
@@ -167,7 +167,7 @@ export class GameSessionsService {
         const staleBefore = new Date(Date.now() - 6 * 60 * 60 * 1000);
         const emptyLobbyBefore = new Date(Date.now() - 10 * 60 * 1000);
         await this.sessionsRepo.update(
-            { userId, status: In([GameSessionStatus.WAITING, GameSessionStatus.RUNNING]), updatedAt: LessThan(staleBefore) },
+            { userId, status: In([GameSessionStatus.WAITING, GameSessionStatus.RUNNING]), updatedAt: LessThan(staleBefore), settings: Raw(alias => `NOT (${alias} ? 'classId')`) },
             { status: GameSessionStatus.FINISHED },
         );
 
@@ -175,9 +175,9 @@ export class GameSessionsService {
             where: { userId, status: In([GameSessionStatus.WAITING, GameSessionStatus.RUNNING]) },
             relations: ['players'],
         });
-        const completed = candidates.filter((session) =>
+        const completed = candidates.filter((session) => !session.settings?.classId && (
             (session.status === GameSessionStatus.RUNNING && session.players.length > 0 && session.players.every((player) => Boolean(player.completedAt)))
-            || (session.status === GameSessionStatus.WAITING && session.players.length === 0 && session.createdAt < emptyLobbyBefore),
+            || (session.status === GameSessionStatus.WAITING && session.players.length === 0 && session.createdAt < emptyLobbyBefore)),
         );
         if (completed.length > 0) {
             completed.forEach((session) => { session.status = GameSessionStatus.FINISHED; });

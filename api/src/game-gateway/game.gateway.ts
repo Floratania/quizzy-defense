@@ -33,8 +33,8 @@ export class GameGateway {
     }
 
     @SubscribeMessage('join_session')
-    join(@ConnectedSocket() client: Socket, @MessageBody() dto: JoinSessionDto) {
-        return this.flow.playerJoin(client, dto);
+    async join(@ConnectedSocket() client: Socket, @MessageBody() dto: JoinSessionDto) {
+        try { return await this.flow.playerJoin(client, dto); } catch(error) {client.emit('join_error',error instanceof Error?error.message:'Не вдалося приєднатися');}
     }
     @SubscribeMessage('integrity_event')
     async integrity(@ConnectedSocket() client: Socket, @MessageBody() dto?: { hidden?: boolean; reason?: string }) {

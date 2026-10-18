@@ -124,13 +124,39 @@ await call('/game-sessions/'+game.id+'/finish','POST',{},token('owner'),201);
 const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('owner'));assert.equal(balancedReport.summary.totalQuestions,24);assert.equal(balancedReport.summary.poolQuestionCount,50);for(const p of balancedReport.players){assert.equal(p.assignedQuestionIds.length,24);assert.equal(p.totalQuestions,24);}
 const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');controls.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
 console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
+const cls=await call('/learning-classes','POST',{name:'Assigned class'},token('owner'),201);
+await call('/learning-classes/'+cls.id+'/students','POST',{name:'Test Pupil',email:pupilEmail,password:'unused-existing-password'},token('owner'),201);
+const tomorrow=new Date(Date.now()+86400000).toISOString(),later=new Date(Date.now()+172800000).toISOString();
+const futureQuiz=await call('/quizzes','POST',{title:'Future assigned quiz',availableFrom:tomorrow,questions:[{...question('Future'),timeLimit:1}]},token('owner'),201);
+const futureAssignment=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:futureQuiz.id,availableFrom:tomorrow,dueAt:later,maxAttempts:1},token('owner'),201);
+let assigned=await call('/account/assignments','GET',null,token('pupil'));assert.equal(assigned.length,1);assert.equal(assigned[0].status,'UPCOMING');assert.ok(!assigned[0].roomCode);assert.ok(!('token' in assigned[0]));
+assert.equal((await call('/account/assignments','GET',null,token('viewer'))).length,0);
+async function rejectedJoin(code,authToken){const socket=io(base,{transports:['websocket'],auth:{token:authToken},autoConnect:false});sockets.push(socket);const connected=event(socket,'connect');socket.connect();await connected;const denied=event(socket,'join_error');socket.emit('join_session',{roomCode:code,nickname:'Blocked'});return denied;}
+assert.match(await rejectedJoin(futureAssignment.roomCode,token('pupil')),/not available|не відкрито/);
+assert.match(await rejectedJoin(futureAssignment.roomCode,token('viewer')),/призначено/);
+const openQuiz=await call('/quizzes','POST',{title:'Open assigned quiz',questions:[{...question('One second'),timeLimit:1}]},token('owner'),201);
+const openAssignment=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:openQuiz.id,dueAt:later,maxAttempts:1},token('owner'),201);
+const assignedPupil=await guest(openAssignment.roomCode,'Assigned Pupil',token('pupil'));
+const ownFinish=event(assignedPupil.socket,'game_finished');const assignedQuestion=event(assignedPupil.socket,'question_started');assignedPupil.socket.emit('resume_session',assignedPupil.joined);await assignedQuestion;await ownFinish;
+assigned=await call('/account/assignments','GET',null,token('pupil'));assert.equal(assigned.find(a=>a.id===openAssignment.id).status,'COMPLETED');
+await call('/game-sessions/my/active','GET',null,token('owner'));
+const assignedSession=await call('/game-sessions/by-code/'+openAssignment.roomCode);assert.equal(assignedSession.status,'RUNNING');
+const secondPupil=await call('/learning-classes/'+cls.id+'/students','POST',{name:'Second Pupil',email:'second-pupil@example.test',password:'Quizzy-test-2026!'},token('owner'),201);
+const secondLogin=await call('/auth/login','POST',{email:'second-pupil@example.test',password:'Quizzy-test-2026!'});
+assert.equal((await call('/account/assignments','GET',null,secondLogin.accessToken)).find(a=>a.id===openAssignment.id).status,'OPEN');
+await guest(openAssignment.roomCode,'Second Pupil',secondLogin.accessToken);
+const overdue=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:openQuiz.id,dueAt:new Date(Date.now()-60000).toISOString()},token('owner'),201);
+assert.equal((await call('/account/assignments','GET',null,token('pupil'))).find(a=>a.id===overdue.id).status,'OVERDUE');
+assert.match(await rejectedJoin(overdue.roomCode,token('pupil')),/Термін виконання/);
+console.log('Assignments: class-only visibility, scheduled opening, deadline, independent completion and late class participants passed');
+
 
 const timedQuiz=await call('/quizzes','POST',{title:'Personalized deadline regression',showQuestionLeaderboard:true,trackTabSwitches:true,questionSelection:{easy:2,medium:0,hard:0},questions:Array.from({length:6},(_,i)=>({...question('Deadline '+i),difficulty:'easy',timeLimit:2}))},token('owner'),201);
 assert.equal(timedQuiz.showQuestionLeaderboard,true);
 const timed=await call('/game-sessions','POST',{quizId:timedQuiz.id},token('owner'),201);
 const ta=await guest(timed.roomCode,'Timed A'),tb=await guest(timed.roomCode,'Timed B'),silent=await guest(timed.roomCode,'Silent');
 const pupilPlayer=await guest(timed.roomCode,'Test Pupil',token('pupil'));
-const activeSummary=await call('/account/student-summary','GET',null,token('pupil'));assert.equal(activeSummary.stats.attempts,0);assert.equal(activeSummary.teacherPromptSeen,true);
+const activeSummary=await call('/account/student-summary','GET',null,token('pupil'));assert.equal(activeSummary.stats.attempts,1);assert.equal(activeSummary.teacherPromptSeen,true);
 const isolated=new Client({...config,database:dbName});await isolated.connect();
 try {for(const [i,p] of [ta,tb,silent].entries())await isolated.query('UPDATE session_players SET question_order=$1::jsonb WHERE id=$2',[JSON.stringify(timedQuiz.questions.slice(i*2,i*2+2).map(q=>q.id)),p.joined.playerId]);}finally{await isolated.end();}
 const host=io(base,{transports:['websocket'],autoConnect:false,auth:{token:token('owner')}});sockets.push(host);const hc=event(host,'connect');host.connect();await hc;const hj=event(host,'host_joined');host.emit('host_join_session',{sessionId:timed.id});await hj;
@@ -144,7 +170,7 @@ assert.equal((await silentTimeout).timedOut,true);assert.equal((await result).ro
 const next=event(tb.socket,'question_started');host.emit('next_question',{sessionId:timed.id});host.emit('next_question',{sessionId:timed.id});const nextQuestion=await next;assert.notEqual(nextQuestion.id,questions[1].id);
 const finished=event(host,'game_finished');await finished;assert.equal(resultCount,2);
 const timedReport=await call('/session-reports/'+timed.id,'GET',null,token('owner'));assert.equal(timedReport.players.length,4);
-const learning=await call('/account/student-summary','GET',null,token('pupil'));assert.equal(learning.stats.attempts,1);assert.equal(learning.stats.questions,2);assert.equal(learning.stats.accuracy,0);assert.equal(learning.topics.length,1);
+const learning=await call('/account/student-summary','GET',null,token('pupil'));assert.equal(learning.stats.attempts,2);assert.equal(learning.stats.questions,3);assert.equal(learning.stats.accuracy,0);assert.equal(learning.topics.length,1);
 const review=await call('/account/student-review?playerId='+pupilPlayer.joined.playerId,'GET',null,token('pupil'));assert.equal(review.answers.length,2);
 await call('/account/student-review?playerId='+pupilPlayer.joined.playerId,'GET',null,token('viewer'),404);
 const hiddenQuiz=await call('/quizzes','POST',{title:'Hidden answers',feedbackMode:'END_SCORE_ONLY',questions:[question('Secret')]},token('owner'),201);

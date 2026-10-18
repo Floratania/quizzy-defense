@@ -311,7 +311,7 @@ export class GameFlowService {
         client.emit('session_resumed', { ok: true, settings: session.settings });
         if (stored.socketId !== client.id && session.status !== 'FINISHED') await this.logSessionEvent(player.id, 'RECONNECTED');
 
-        if (session.status === 'FINISHED') return client.emit('game_finished', {
+        if (session.status === 'FINISHED' || (stored.completedAt && session.settings?.classId)) return client.emit('game_finished', {
             feedbackMode: session.quiz.feedbackMode,
             result: await this.answers.getPlayerFinalResult(player.id, session.quiz.feedbackMode !== QuizFeedbackMode.END_SCORE_ONLY),
         });
@@ -326,6 +326,7 @@ export class GameFlowService {
         if (await this.answers.hasPlayerAnswered(playerId, question.id)) {
             return client.emit('answer_received', { submitted: true });
         }
+        if(session.mode===GameMode.PROGRESS)return this.sendProgressQuestion(player);
         client.emit('question_started', { ...this.toPlayableQuestion(question, session.quiz.shuffleAnswers), endsAt: player.questionStartedAt ? new Date(player.questionStartedAt).getTime() + question.timeLimit * 1000 : undefined });
     }
 
@@ -335,14 +336,17 @@ export class GameFlowService {
         const totalQuestions = state.totalQuestions;
         if (!player.socketId || !question) return;
         await this.players.startQuestionClock(player.id,question.id);
+        const clock=await this.players.getOne(player.id);
+        const endsAt=(clock?.questionStartedAt?new Date(clock.questionStartedAt).getTime():Date.now())+question.timeLimit*1000;
         setTimeout(async()=>{
             const current=await this.players.getOne(player.id);
             if(current?.socketId && current.activeQuestionId===question.id && !await this.answers.hasPlayerAnswered(player.id,question.id)) {
                 await this.submitAnswer(current.socketId,{questionId:question.id,response:{timedOut:true},timeTaken:0}).catch(()=>undefined);
             }
-        },question.timeLimit*1000);
+        },Math.max(0,endsAt-Date.now()));
         this.gateway.server.to(player.socketId).emit('question_started', {
             ...this.toPlayableQuestion(question, state.session.quiz.shuffleAnswers),
+            endsAt,
             currentQuestionIndex: player.currentQuestionIndex + 1,
             totalQuestions,
         });
@@ -364,6 +368,10 @@ export class GameFlowService {
 
         if (player.completedAt) {
             if (player.socketId) this.gateway.server.to(player.socketId).emit('player_completed');
+            if (state.session.settings?.classId) {
+                if(player.socketId)this.gateway.server.to(player.socketId).emit('game_finished',{feedbackMode:state.session.quiz.feedbackMode,result:await this.answers.getPlayerFinalResult(player.id,state.session.quiz.feedbackMode!==QuizFeedbackMode.END_SCORE_ONLY)});
+                return;
+            }
             const allPlayers = await this.players.getPlayers(sessionId);
             if (allPlayers.length > 0 && allPlayers.every((item) => item.completedAt)) await this.finishGame(sessionId);
             return;

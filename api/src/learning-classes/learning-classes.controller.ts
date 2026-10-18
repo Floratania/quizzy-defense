@@ -7,5 +7,5 @@ import {AuthGuard} from '@/guards/auth.guard';import {LearningClassesService} fr
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/students') student(@Param('id')id:string,@Body()d:{name:string,email:string,password:string},@Req()r){return this.service.addStudent(id,r.user.id,d)}
  @UseGuards(AuthGuard, TeacherGuard) @Patch(':id/students/:studentId') updateStudent(@Param('id')id:string,@Param('studentId')studentId:string,@Body()d:{name?:string,email?:string,password?:string},@Req()r){return this.service.updateStudent(id,Number(studentId),r.user.id,d)}
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/assignments') assign(@Param('id')id:string,@Body()d:any,@Req()r){return this.service.assign(id,r.user.id,d)}
- @Get('assignment/:token') assignment(@Param('token')token:string){return this.service.assignment(token)}
+ @UseGuards(AuthGuard, TeacherGuard) @Get('assignment/:token') assignment(@Param('token')token:string){return this.service.assignment(token)}
 }

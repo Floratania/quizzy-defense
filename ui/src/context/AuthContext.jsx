@@ -65,6 +65,8 @@ export function AuthProvider({ children }) {
           //     setLoading(false);
           //     return;
           // }
+      } catch {
+        // A new visitor has no refresh cookie yet; guest routes remain available.
       } finally {
         setLoading(false);
       }

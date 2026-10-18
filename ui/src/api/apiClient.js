@@ -10,7 +10,7 @@ let isRefreshing = false;
 let refreshSubscribers = [];
 
 function onRefreshed(token) {
-  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers.forEach(({ resolve }) => resolve(token));
   refreshSubscribers = [];
 }
 
@@ -30,13 +30,15 @@ apiClient.interceptors.response.use(
     if (
       err.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes('/auth/login')
+      !['/auth/login', '/auth/signup', '/auth/refresh'].some((path) => originalRequest.url.includes(path))
     ) {
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          refreshSubscribers.push((token) => {
+        return new Promise((resolve, reject) => {
+          refreshSubscribers.push({ reject, resolve: (token) => {
+            originalRequest._retry = true;
             originalRequest.headers.Authorization = `Bearer ${token}`;
             resolve(apiClient(originalRequest));
+          }
           });
         });
       }
@@ -45,14 +47,18 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await apiClient.get('/auth/refresh');
+        const { data } = await axios.get('/auth/refresh', {
+          baseURL: apiClient.defaults.baseURL,
+          withCredentials: true,
+        });
         setAccessToken(data.accessToken);
 
         onRefreshed(data.accessToken);
         return apiClient(originalRequest);
       } catch (refreshError) {
         clearAccessToken();
-        window.location.href = '/auth';
+        refreshSubscribers.forEach(({ reject }) => reject(refreshError));
+        refreshSubscribers = [];
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

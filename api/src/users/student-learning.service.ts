@@ -31,7 +31,7 @@ export class StudentLearningService {
   for(const a of attempts){const t=groups.get(a.topic)||{topic:a.topic,attempts:0,correct:0,questions:0,reviewAvailable:false};t.attempts++;t.correct+=a.correctCount;t.questions+=a.totalAnswers;t.reviewAvailable ||= a.reviewAllowed;groups.set(a.topic,t);}
   const correct=attempts.reduce((n,a)=>n+a.correctCount,0),questions=attempts.reduce((n,a)=>n+a.totalAnswers,0);
   const user=await this.data.getRepository(User).findOneByOrFail({id:userId});
-  return {teacherPromptSeen:user.teacherPromptSeen,stats:{attempts:attempts.length,correct,questions,accuracy:questions?Math.round(correct/questions*100):0,passed:attempts.filter(a=>a.passed).length},topics:[...groups.values()].map(t=>({...t,accuracy:t.questions?Math.round(t.correct/t.questions*100):0})).sort((a,b)=>a.accuracy-b.accuracy),attempts};
+  return {studentCode:user.studentCode,teacherPromptSeen:user.teacherPromptSeen,stats:{attempts:attempts.length,correct,questions,accuracy:questions?Math.round(correct/questions*100):0,passed:attempts.filter(a=>a.passed).length},topics:[...groups.values()].map(t=>({...t,accuracy:t.questions?Math.round(t.correct/t.questions*100):0})).sort((a,b)=>a.accuracy-b.accuracy),attempts};
  }
  async review(userId:number,playerId?:string,topic?:string){
   let players=await this.completed(userId);

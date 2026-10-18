@@ -125,7 +125,20 @@ const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('ow
 const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');controls.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
 console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
 const cls=await call('/learning-classes','POST',{name:'Assigned class'},token('owner'),201);
-await call('/learning-classes/'+cls.id+'/students','POST',{name:'Test Pupil',email:pupilEmail,password:'unused-existing-password'},token('owner'),201);
+const studentProfile=await call('/account/student-summary','GET',null,token('pupil'));assert.match(studentProfile.studentCode,/^QZ-[A-F0-9]{12}$/);
+assert.equal((await call('/account/student-summary','GET',null,token('pupil'))).studentCode,studentProfile.studentCode);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{studentCode:studentProfile.studentCode.toLowerCase()},token('owner'),201);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{studentCode:studentProfile.studentCode,email:pupilEmail},token('owner'),400);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{studentCode:'QZ-invalid'},token('owner'),400);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{email:pupilEmail.toUpperCase()},token('owner'),201);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{email:pupilEmail},token('owner'),201);
+assert.equal((await call('/learning-classes','GET',null,token('owner'))).find(c=>c.id===cls.id).students.length,1);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{email:pupilEmail},token('viewer'),404);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{email:pupilEmail},token('pupil'),403);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{email:'missing@example.test'},token('owner'),404);
+await call('/learning-classes/'+cls.id+'/students/existing','POST',{email:users.viewer.user.email},token('owner'),404);
+await call('/learning-classes/'+cls.id+'/students/'+pupil.id,'PATCH',{password:'unwanted-password'},token('owner'),400);
+
 const tomorrow=new Date(Date.now()+86400000).toISOString(),later=new Date(Date.now()+172800000).toISOString();
 const futureQuiz=await call('/quizzes','POST',{title:'Future assigned quiz',availableFrom:tomorrow,questions:[{...question('Future'),timeLimit:1}]},token('owner'),201);
 const futureAssignment=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:futureQuiz.id,availableFrom:tomorrow,dueAt:later,maxAttempts:1},token('owner'),201);

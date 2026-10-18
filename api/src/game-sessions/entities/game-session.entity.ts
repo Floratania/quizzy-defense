@@ -61,6 +61,9 @@ export class GameSession {
     @Column({name: 'user_id'})
     userId: number;
 
+    @Column({ default: false })
+    reportSharedWithOwner: boolean;
+
     @OneToMany(() => GamePlayer, (p) => p.session)
     players: GamePlayer[];
 

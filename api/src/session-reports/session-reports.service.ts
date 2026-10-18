@@ -1,6 +1,6 @@
 // session-reports.service.ts
 
-import {Injectable, NotFoundException} from "@nestjs/common";
+import {Injectable, NotFoundException, ForbiddenException, BadRequestException} from "@nestjs/common";
 import {InjectRepository} from "@nestjs/typeorm";
 import {In, Repository} from "typeorm";
 import {GameSession} from "@/game-sessions/entities/game-session.entity";
@@ -215,7 +215,12 @@ export class SessionReportsService {
         return '—';
     }
 
-    async getReportBySessionId(sessionId: string) {
+    async getReportBySessionId(sessionId: string, userId: number) {
+        const session = await this.sessionsRepo.findOne({ where: { id: sessionId }, relations: ['quiz', 'user'] });
+        if (!session) throw new NotFoundException('Session not found');
+        if (session.userId !== userId && !(session.reportSharedWithOwner && session.quiz?.userId === userId)) {
+            throw new ForbiddenException('Немає доступу до результатів цього сеансу');
+        }
         await this.generateReport(sessionId);
         const report = await this.reportsRepo.findOne({
             where: { sessionId },
@@ -230,6 +235,10 @@ export class SessionReportsService {
 
         return {
             sessionId: report.sessionId,
+            canManageReport: session.userId === userId,
+            canShareWithOwner: session.userId === userId && session.quiz?.userId !== userId && session.status === 'FINISHED',
+            reportSharedWithOwner: session.reportSharedWithOwner,
+            hostName: session.user?.name,
             quiz: {
                 id: report.session.quiz.id,
                 title: report.session.quiz.title,
@@ -246,17 +255,33 @@ export class SessionReportsService {
 
 
 
-    async getAllSummaries() {
+    async shareWithOwner(sessionId: string, userId: number, shared: boolean) {
+        const session = await this.sessionsRepo.findOne({ where: { id: sessionId }, relations: ['quiz'] });
+        if (!session) throw new NotFoundException('Session not found');
+        if (session.userId !== userId) throw new ForbiddenException('Лише викладач, який проводив тест, може ділитися результатами');
+        if (!session.quiz || session.quiz.userId === userId) throw new BadRequestException('Ви вже власник цього квізу');
+        if (shared && session.status !== 'FINISHED') throw new BadRequestException('Спочатку завершіть тест');
+        if (shared) await this.generateReport(sessionId);
+        await this.sessionsRepo.update(sessionId, { reportSharedWithOwner: shared });
+        return { shared };
+    }
+
+    async getAllSummaries(userId: number) {
         const reports = await this.reportsRepo
             .createQueryBuilder('report')
             .innerJoin('report.session', 'session')
             .innerJoin('session.quiz', 'quiz')
+            .leftJoin('session.user', 'host')
+            .where('session.user_id = :userId OR (session."reportSharedWithOwner" = true AND quiz.user_id = :userId)', { userId })
             .select([
                 'report.sessionId',
                 'report.summary',
                 'report.players',
                 'report.createdAt',
                 'session.status',
+                'session.userId',
+                'session.reportSharedWithOwner',
+                'host.name',
                 'quiz.id',
                 'quiz.title',
             ])
@@ -280,6 +305,9 @@ export class SessionReportsService {
             })),
             createdAt: report.createdAt,
             status: report.session.status,
+            sharedByTeacher: report.session.userId !== userId,
+            hostName: report.session.user?.name,
+            reportSharedWithOwner: report.session.reportSharedWithOwner,
         }));
     }
 

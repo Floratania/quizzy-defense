@@ -50,7 +50,7 @@ export default function QuizSharingModal({ quiz, onClose }) {
             {owner && <Tabs.Panel value="access" pt="md">
                 <Stack gap="sm">
                     <Text size="sm">Викладач має бути зареєстрований у Quizzy з цією поштою. Квіз з’явиться в його кабінеті.</Text>
-                    <Text size="xs" c="dimmed">Перегляд: питання, відповіді, історія змін і власні запуски для учнів. Редагування: додатково зміна квізу. Лише власник керує доступом і видаляє квіз. Результати сеансів залишаються у викладача, який їх запускає.</Text>
+                    <Text size="xs" c="dimmed">Перегляд: питання, відповіді, історія змін і власні запуски для учнів. Редагування: додатково зміна квізу. Лише власник керує доступом і видаляє квіз. Викладач може окремо поділитися результатами завершеного сеансу з власником — кнопкою у звіті.</Text>
                     <form onSubmit={async (event) => {
                         event.preventDefault();
                         if (await mutate(() => apiClient.post(`/quizzes/${quiz.id}/collaborators`, { email: email.trim(), role }))) setEmail('');

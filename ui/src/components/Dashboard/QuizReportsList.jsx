@@ -290,6 +290,8 @@ function ReportsListContent() {
                                 <Table.Tr key={session.sessionId}>
                                     <Table.Td>
                                         <Text fw={600}>{session.quiz.title}</Text>
+                                        {session.sharedByTeacher && <Badge size="xs" color="violet">Поділився: {session.hostName || 'Викладач'}</Badge>}
+                                        {!session.sharedByTeacher && session.reportSharedWithOwner && <Badge size="xs" color="teal">Доступно власнику квізу</Badge>}
                                     </Table.Td>
                                     <Table.Td>
                                         <Group gap="xs">

@@ -14,7 +14,7 @@ await new Promise((resolve,reject)=>{const server=require('node:net').createServ
 await admin.connect();await admin.query('CREATE DATABASE '+dbName);
 const env={...process.env,DATABASE_URL:'',DB_DATABASE:dbName,PORT:'3002',JWT_SECRET:'isolated-test-secret',NODE_ENV:'development'};
 const log=fs.openSync('.tmp/collaboration-api.log','w'); child=spawn(process.execPath,['dist/main.js'],{env,stdio:['ignore',log,log],windowsHide:true});
-for(let i=0;i<90;i++){try{await fetch(base);break;}catch{await new Promise(r=>setTimeout(r,500));}if(i===89)throw new Error('Server failed to start');}
+for(let i=0;i<180;i++){try{await fetch(base);break;}catch{await new Promise(r=>setTimeout(r,500));}if(i===179)throw new Error('Server failed to start');}
 const users={};
 for(const role of ['owner','viewer','editor','stranger']){const email=role+'@collaboration.example.test';const password='Quizzy-test-2026!';await call('/auth/signup','POST',{email,password,name:role+' teacher'},null,201);users[role]=await call('/auth/login','POST',{email,password});}
 const token=key=>users[key].accessToken;
@@ -34,6 +34,20 @@ await call('/quizzes/'+id+'/collaborators','POST',{email:'stranger@collaboration
 await call('/quizzes/'+id+'/collaborators/'+users.viewer.user.id,'DELETE',null,token('editor'),403);
 const session=await call('/game-sessions','POST',{quizId:id},token('viewer'),201);assert.equal(session.userId,users.viewer.user.id);assert.ok(session.roomCode);
 await call('/game-sessions/'+session.id+'/finish','POST',{},token('viewer'),201);
+await call('/session-reports','GET',null,null,401);
+await call('/session-reports/'+session.id,'GET',null,token('owner'),403);
+await call('/session-reports/'+session.id,'GET',null,token('stranger'),403);
+assert.equal((await call('/session-reports/'+session.id,'GET',null,token('viewer'))).canManageReport,true);
+assert.equal((await call('/session-reports','GET',null,token('owner'))).length,0);
+await call('/session-reports/'+session.id+'/share-owner','PATCH',{shared:true},token('owner'),403);
+await call('/session-reports/'+session.id+'/share-owner','PATCH',{shared:true},token('viewer'));
+const sharedReport=await call('/session-reports/'+session.id,'GET',null,token('owner'));assert.equal(sharedReport.canManageReport,false);
+const ownerReports=await call('/session-reports','GET',null,token('owner'));assert.equal(ownerReports.length,1);assert.equal(ownerReports[0].sharedByTeacher,true);
+assert.equal((await call('/session-reports','GET',null,token('stranger'))).length,0);
+await call('/session-reports/'+session.id+'/share-owner','PATCH',{shared:false},token('viewer'));
+await call('/session-reports/'+session.id,'GET',null,token('owner'),403);
+assert.equal((await call('/session-reports','GET',null,token('owner'))).length,0);
+
 const updated=await call('/quizzes/'+id,'PATCH',{...payload,title:'Edited by teacher',questions:[question('Second'),question('First')]},token('editor'));assert.equal(updated.title,'Edited by teacher');
 assert.deepEqual((await call('/quizzes/'+id,'GET',null,token('viewer'))).questions.map(q=>q.text),['Second','First']);
 let history=await call('/quizzes/'+id+'/history','GET',null,token('viewer'));assert.equal(history[0].action,'EDITED');assert.equal(history[0].actorName,'editor teacher');
@@ -47,3 +61,4 @@ history=await call('/quizzes/'+id+'/history','GET',null,token('owner'));assert.d
 await call('/quizzes/'+id,'DELETE',null,token('owner'));
 console.log('Collaboration, audit and host isolation: '+checks+' HTTP checks passed');
 })().catch(e=>{console.error(e.message);process.exitCode=1;}).finally(async()=>{if(child){child.kill();await new Promise(r=>setTimeout(r,700));}if(admin._connected){await admin.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1',[dbName]);await admin.query('DROP DATABASE IF EXISTS '+dbName);await admin.end();}console.log('Isolated test database removed');});
+

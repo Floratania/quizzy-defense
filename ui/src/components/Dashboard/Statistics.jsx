@@ -120,6 +120,17 @@ function StatisticsContent({ data }) {
     const [activeTab, setActiveTab] = useState('overview');
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [pdfStudent, setPdfStudent] = useState('all');
+    const [sharedWithOwner, setSharedWithOwner] = useState(Boolean(data.reportSharedWithOwner));
+    const [sharingReport, setSharingReport] = useState(false);
+    const [shareError, setShareError] = useState('');
+    const toggleReportSharing = async () => {
+        setSharingReport(true); setShareError('');
+        try {
+            const result = await apiClient.patch(`/session-reports/${data.sessionId}/share-owner`, { shared: !sharedWithOwner });
+            setSharedWithOwner(result.data.shared);
+        } catch (error) { setShareError(error.response?.data?.message || 'Не вдалося змінити доступ до звіту'); }
+        finally { setSharingReport(false); }
+    };
 
     const formatTime = (ms) => {
         const seconds = Math.floor(ms / 1000);
@@ -144,6 +155,15 @@ function StatisticsContent({ data }) {
                         <Text size="sm" c="dimmed" mt="xs">
                             Сесія: {data.sessionId} • {new Date(data.createdAt).toLocaleString()}
                         </Text>
+                        {data.hostName && <Text size="sm">Проводив: {data.hostName}</Text>}
+                        {data.canManageReport === false && <Badge mt="xs" color="violet">Викладач поділився результатами · лише перегляд</Badge>}
+                        {data.canShareWithOwner && <Stack gap={4} mt="sm">
+                            <Text size="xs" c="dimmed">Власник квізу {sharedWithOwner ? 'бачить' : 'отримає'} результати цього сеансу: учасників, відповіді й оцінки.</Text>
+                            <Button size="xs" variant="light" color={sharedWithOwner ? 'red' : 'blue'} loading={sharingReport} onClick={toggleReportSharing}>
+                                {sharedWithOwner ? 'Відкликати доступ власника до звіту' : 'Поділитися результатами з власником квізу'}
+                            </Button>
+                            {shareError && <Text size="xs" c="red">{String(shareError)}</Text>}
+                        </Stack>}
                     </Box>
                     <Group>
                         <Select value={pdfStudent} onChange={setPdfStudent} data={[{ value: 'all', label: 'Усі учні' }, ...data.players.map((player) => ({ value: player.playerId, label: player.nickname }))]} w={190} />
@@ -600,7 +620,7 @@ function StatisticsContent({ data }) {
                                                                 <Table.Td>
                                                                     <Text size="sm" fw={600}>{pb.earnedPoints}</Text>
                                                                 </Table.Td>
-                                                                <Table.Td><Button size="xs" variant="light" disabled={!pb.answerId} onClick={() => gradeAnswer(pb)}>Оцінити</Button></Table.Td>
+                                                                <Table.Td>{data.canManageReport !== false && <Button size="xs" variant="light" disabled={!pb.answerId} onClick={() => gradeAnswer(pb)}>Оцінити</Button>}</Table.Td>
                                                             </Table.Tr>
                                                         ))}
                                                     </Table.Tbody>

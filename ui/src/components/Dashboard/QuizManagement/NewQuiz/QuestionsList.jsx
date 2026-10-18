@@ -20,7 +20,9 @@ import {
     IconCheck,
     IconX,
     IconLibraryPlus,
-    IconPencil
+    IconPencil,
+    IconArrowUp,
+    IconArrowDown
 } from "@tabler/icons-react";
 import { notifications } from '@mantine/notifications';
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
@@ -41,7 +43,7 @@ const questionTypes = {
 };
 
 export const QuestionsList = () => {
-    const { formData, removeQuestion, saveQuestionInBank, editQuestion } = useQuizContext();
+    const { formData, removeQuestion, moveQuestion, saveQuestionInBank, editQuestion } = useQuizContext();
 
     const questions = formData.questionsData || [];
 
@@ -107,6 +109,12 @@ export const QuestionsList = () => {
                             </Group>
 
                             <Group gap="xs">
+                                <ActionIcon title="Перемістити вгору" aria-label={`Перемістити питання ${idx + 1} вгору`} disabled={idx === 0} variant="light" onClick={() => moveQuestion(q.id, -1)}>
+                                    <IconArrowUp size={18} />
+                                </ActionIcon>
+                                <ActionIcon title="Перемістити вниз" aria-label={`Перемістити питання ${idx + 1} вниз`} disabled={idx === questions.length - 1} variant="light" onClick={() => moveQuestion(q.id, 1)}>
+                                    <IconArrowDown size={18} />
+                                </ActionIcon>
                                 <ActionIcon title="Редагувати питання" aria-label="Редагувати питання" color="blue" variant="light" onClick={() => editQuestion(q.id)}>
                                     <IconPencil size={18} />
                                 </ActionIcon>

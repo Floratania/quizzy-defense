@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Card, Title, Stack, Select, TextInput, Box, Text, FileInput,
-    Paper, Group, CloseButton, Image, Grid, NumberInput, Checkbox, Button, Badge, Textarea, Anchor
+    Paper, Group, CloseButton, Image, Grid, NumberInput, Checkbox, Button, Badge, Textarea, Anchor, SimpleGrid
 } from '@mantine/core';
 import { IconPhoto, IconClock, IconStar, IconPlus } from '@tabler/icons-react';
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
@@ -191,11 +191,11 @@ export const AddQuestionForm = () => {
     };
 
     return (
-        <Card ref={formRef} shadow="md" padding="xl" radius="lg" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
-            <Title order={3} mb="lg">{editingQuestionId !== null ? 'Редагування питання' : 'Нове питання'}</Title>
+        <Card ref={formRef} shadow="md" padding="md" radius="lg" style={{ background: 'white', border: '1px solid #e0e7ff' }}>
+            <Title order={3} mb="sm">{editingQuestionId !== null ? 'Редагування питання' : 'Нове питання'}</Title>
             {editingQuestionId !== null && <Text size="sm" c="dimmed" mb="md">Зміни застосовуються лише до питання в цій вікторині. Оригінал у банку залишиться незмінним.</Text>}
 
-            <Stack gap="lg">
+            <Stack gap="sm">
 
                 {/* TYPE SELECT */}
                 <Select
@@ -214,31 +214,38 @@ export const AddQuestionForm = () => {
                         placeholder="Навесні ___ світить яскравіше, а ___ стають довшими."
                         value={currentQuestion.text}
                         onChange={(event) => updateCurrentQuestion({ text: event.target.value.slice(0, 1500) })}
-                        minRows={5}
+                        minRows={3}
+                        autosize
                         maxLength={1500}
                         required
                     />
                 ) : (
                     <Textarea
                         label="Питання"
-                        description="Підтримує форматований текст, формули та програмний код. Правила й готові приклади — у довідці нижче."
                         placeholder="Введіть текст, формули або код"
                         value={currentQuestion.text}
                         onChange={(e) => updateCurrentQuestion({ text: e.target.value.slice(0, 10000) })}
                         maxLength={10000}
-                        minRows={4}
+                        minRows={2}
+                        autosize
                         required
                         size="md"
                     />
                 )}
 
+                <Box component="details">
+                <Text component="summary" size="sm" c="blue" style={{ cursor: 'pointer' }}>Довідка та попередній перегляд</Text>
                 <Anchor href="/admin/help/formatting" target="_blank" rel="noopener noreferrer" size="sm">
                     Як писати формули, код і форматований текст? Відкрити довідку ↗
                 </Anchor>
+                {currentQuestion.text && <Paper withBorder p="sm" mt="xs"><RichText>{currentQuestion.text}</RichText></Paper>}
+                </Box>
 
                 {/* QUESTION IMAGE */}
-                <Textarea label="Пояснення відповіді" description="Необов’язково: розв’язання, коментар або посилання у форматі [Матеріал](https://...). Учень побачить пояснення відповідно до налаштувань показу результатів." value={currentQuestion.explanation || ''} onChange={(event) => updateCurrentQuestion({ explanation: event.currentTarget.value })} minRows={3} maxLength={10000} />
-                {currentQuestion.text && <Paper withBorder p="md"><Text size="sm" c="dimmed">Як виглядатиме питання</Text><RichText>{currentQuestion.text}</RichText></Paper>}
+                <Box component="details" key={`extras-${editingQuestionId}`} open={Boolean(currentQuestion.explanation || currentQuestion.imagePreview) || undefined}>
+                <Text component="summary" size="sm" c="blue" style={{ cursor: 'pointer' }}>Пояснення та зображення (необов’язково)</Text>
+                <Stack gap="sm" mt="xs">
+                <Textarea label="Пояснення відповіді" description="Розв’язання, коментар або посилання у форматі [Матеріал](https://...)." value={currentQuestion.explanation || ''} onChange={(event) => updateCurrentQuestion({ explanation: event.currentTarget.value })} minRows={2} autosize maxLength={10000} />
                 <Box>
                     <Text size="sm" fw={500} mb="xs">Зображення (Необов'язково)</Text>
                     {currentQuestion.imagePreview ? (
@@ -265,6 +272,8 @@ export const AddQuestionForm = () => {
                             onChange={handleQuestionImageUpload}
                         />
                     )}
+                </Box>
+                </Stack>
                 </Box>
 
                 {/* TIME + POINTS */}
@@ -467,11 +476,11 @@ export const AddQuestionForm = () => {
                         )}
 
                         {/* ANSWER LIST */}
-                        <Stack gap="md">
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
                             {currentQuestion.answers
                                 .slice(0, currentQuestion.numberOfAnswers)
                                 .map((answer, idx) => (
-                                    <Paper key={idx} p="md" withBorder radius="md">
+                                    <Paper key={idx} p="xs" withBorder radius="md">
                                         <Stack gap="sm">
                                             <Group>
                                                 <Checkbox
@@ -536,7 +545,7 @@ export const AddQuestionForm = () => {
                                         </Stack>
                                     </Paper>
                                 ))}
-                        </Stack>
+                        </SimpleGrid>
                     </>
                 )}
 
@@ -557,7 +566,7 @@ export const AddQuestionForm = () => {
                     }}
                     variant="gradient"
                     gradient={{ from: 'blue', to: 'purple' }}
-                    size="lg"
+                    size="md"
                     fullWidth
                 >
                     {editingQuestionId !== null ? 'Зберегти зміни питання' : 'Додати запитання'}

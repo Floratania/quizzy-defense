@@ -368,6 +368,17 @@ export function QuizProvider({ children }) {
         }));
     };
 
+    const moveQuestion = (id, direction) => {
+        setFormData((prev) => {
+            const questions = [...prev.questionsData];
+            const index = questions.findIndex((question) => question.id === id);
+            const target = index + direction;
+            if (index < 0 || target < 0 || target >= questions.length) return prev;
+            [questions[index], questions[target]] = [questions[target], questions[index]];
+            return { ...prev, questionsData: questions };
+        });
+    };
+
     const updateFormData = (updates) => {
         setFormData((p) => ({ ...p, ...updates }));
     };
@@ -480,6 +491,7 @@ export function QuizProvider({ children }) {
 
                 addQuestion,
                 removeQuestion,
+                moveQuestion,
                 updateFormData,
                 updateCurrentQuestion,
                 setCurrentQuestion,

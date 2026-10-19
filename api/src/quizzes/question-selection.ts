@@ -34,6 +34,8 @@ export function selectBalancedQuestions<T extends { id: string; difficulty?: str
 }
 
 export function sessionQuestionCount(session: { quiz: { questions: unknown[]; questionSelection?: QuestionSelection | null }; settings?: Record<string, unknown> }): number {
+    const plan = session.settings?.tournamentPlan as {stages:Array<{count:number}>}|undefined;
+    if (plan) return plan.stages.reduce((sum,stage)=>sum+stage.count,0);
     const selection = session.settings?.questionSelection as QuestionSelection | undefined ?? session.quiz.questionSelection;
     if (selection) return selectionCount(selection);
     const legacy = Number(session.settings?.questionCount || 0);

@@ -1,3 +1,4 @@
+import {tournamentBoundaries} from '../game-sessions/tournament-plan';
 import { sessionQuestionCount } from '@/quizzes/question-selection';
 import {GamePlayersService} from "@/game-players/game-players.service";
 import {forwardRef, Inject, Injectable} from "@nestjs/common";
@@ -532,8 +533,7 @@ export class GameFlowService {
         if (session.mode === GameMode.TOURNAMENT) {
             const { totalQuestions } = await this.sessions.getQuestionAt(sessionId, 0);
             const tournament = await this.teams.getTournamentState(sessionId, session.currentQuestionIndex, totalQuestions);
-            const qualificationEnd = Math.max(1, Math.ceil(totalQuestions / 3));
-            const semifinalEnd = Math.max(qualificationEnd + 1, Math.ceil(totalQuestions * 2 / 3));
+            const {qualificationEnd,semifinalEnd} = tournamentBoundaries(session.settings,totalQuestions);
             if ([qualificationEnd, semifinalEnd].includes(session.currentQuestionIndex)) {
                 for (const player of session.players.filter((item) => item.teamId && !tournament.activeTeamIds.includes(item.teamId) && !item.eliminatedAt)) {
                     await this.players.eliminate(player.id);

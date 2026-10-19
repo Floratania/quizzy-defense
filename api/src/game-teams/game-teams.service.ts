@@ -1,3 +1,4 @@
+import {tournamentBoundaries} from '../game-sessions/tournament-plan';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -40,12 +41,11 @@ export class GameTeamsService {
 
     async getTournamentState(sessionId: string, questionIndex: number, totalQuestions: number) {
         const leaderboard = await this.getLeaderboard(sessionId);
-        const qualificationEnd = Math.max(1, Math.ceil(totalQuestions / 3));
-        const semifinalEnd = Math.max(qualificationEnd + 1, Math.ceil(totalQuestions * 2 / 3));
+        const session = await this.sessionsRepo.findOneByOrFail({id: sessionId});
+        const {qualificationEnd,semifinalEnd} = tournamentBoundaries(session.settings,totalQuestions);
         const stage = questionIndex < qualificationEnd
             ? 'QUALIFICATION'
             : questionIndex < semifinalEnd ? 'SEMIFINAL' : 'FINAL';
-        const session = await this.sessionsRepo.findOneByOrFail({id: sessionId});
         type Bracket = { ids: string[]; baseline: Record<string, number> };
         const brackets = (session.settings.tournamentBrackets || {}) as Record<string, Bracket>;
         const rank = (ids: string[], baseline: Record<string, number>) => ids.map(id => leaderboard.find(team => team.id === id)!)
@@ -75,6 +75,8 @@ export class GameTeamsService {
             totalQuestions,
             qualificationEnd,
             semifinalEnd,
+            stageQuestionIndex: questionIndex - (stage === 'FINAL' ? semifinalEnd : stage === 'SEMIFINAL' ? qualificationEnd : 0) + 1,
+            stageQuestionCount: stage === 'FINAL' ? totalQuestions - semifinalEnd : stage === 'SEMIFINAL' ? semifinalEnd - qualificationEnd : qualificationEnd,
             activeTeamIds: activeTeams.map((team) => team.id),
             leaderboard,
             matches,

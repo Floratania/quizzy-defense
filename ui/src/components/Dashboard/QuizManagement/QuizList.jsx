@@ -1,3 +1,4 @@
+import TournamentLaunchModal from './TournamentLaunchModal.jsx';
 import {
     ActionIcon,
     Avatar,
@@ -48,6 +49,7 @@ export default function QuizList() {
     const { activeSessions, closeSession, newSession } = useSession();
     const { reports } = useSessionReports();
     const navigate = useNavigate();
+    const [tournamentQuizId,setTournamentQuizId]=useState(null);
     const [previewQuiz, setPreviewQuiz] = useState(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [quality, setQuality] = useState(null);
@@ -359,28 +361,7 @@ export default function QuizList() {
                                             </Menu.Dropdown>
                                         </Menu>
 
-                                        <Menu position="bottom-start" middlewares={{ flip: false, shift: true }}>
-                                            <Menu.Target>
-                                                <ActionIcon variant="light" color="yellow" title="Турнір">
-                                                    <IconTrophy size={16}/>
-                                                </ActionIcon>
-                                            </Menu.Target>
-                                            <Menu.Dropdown>
-                                                <Menu.Label>Турнір: авто розподіл</Menu.Label>
-                                                {[4, 8].map((count) => (
-                                                    <Menu.Item key={`tournament-auto-${count}`} onClick={() => handleStartTournament(quiz.id, count, 'AUTO')}>
-                                                        {count} команд
-                                                    </Menu.Item>
-                                                ))}
-                                                <Menu.Divider />
-                                                <Menu.Label>Турнір: коди команд</Menu.Label>
-                                                {[4, 8].map((count) => (
-                                                    <Menu.Item key={`tournament-code-${count}`} onClick={() => handleStartTournament(quiz.id, count, 'CODES')}>
-                                                        {count} команд
-                                                    </Menu.Item>
-                                                ))}
-                                            </Menu.Dropdown>
-                                        </Menu>
+                                        <ActionIcon variant="light" color="yellow" title="������" onClick={()=>setTournamentQuizId(quiz.id)}><IconTrophy size={16}/></ActionIcon>
 
                                         <ActionIcon variant="light" color="teal" title="Автоматичний режим" onClick={() => handleStartProgressSession(quiz.id)}>
                                             <IconBolt size={16}/>
@@ -446,6 +427,7 @@ export default function QuizList() {
 
                 </Table>
             </Card>
+            <TournamentLaunchModal quizId={tournamentQuizId} onClose={()=>setTournamentQuizId(null)} onStarted={session=>{setTournamentQuizId(null);navigate(`/host/${session.quizId}?sessionId=${session.id}`);}}/>
             <Modal opened={Boolean(survivalQuizId)} onClose={() => setSurvivalQuizId(null)} title="Запуск режиму виживання" centered>
                 <Stack>
                     <NumberInput label="Кількість помилок до вибування" description="Учень вибуває, коли досягне цієї кількості. Таймаут також є помилкою." value={survivalMistakes} onChange={setSurvivalMistakes} min={1} max={100} allowDecimal={false} allowNegative={false} />

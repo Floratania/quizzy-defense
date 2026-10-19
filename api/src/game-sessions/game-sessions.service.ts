@@ -1,3 +1,4 @@
+import {buildTournamentPlan} from './tournament-plan';
 import { sessionQuestionCount, validateSelection } from '@/quizzes/question-selection';
 import {
     Injectable,
@@ -43,6 +44,7 @@ export class GameSessionsService {
         if (!allowScheduled && quiz.availableFrom && now < quiz.availableFrom) throw new BadRequestException('Quiz is not available yet');
         if (quiz.availableUntil && now > quiz.availableUntil) throw new BadRequestException('Quiz availability has ended');
 
+        const tournamentPlan = dto.mode === GameMode.TOURNAMENT ? buildTournamentPlan(quiz.questions, dto.tournamentQuestionMode, dto.tournamentStagePlan, quiz.questionSelection) : null;
         const roomCode = await this.generateUniqueRoomCode();
 
         const session = this.sessionsRepo.create({
@@ -61,7 +63,7 @@ export class GameSessionsService {
                 ...([GameMode.TEAM, GameMode.TOURNAMENT].includes(dto.mode as GameMode) ? {
                     teamCount: dto.mode === GameMode.TOURNAMENT ? (dto.tournamentTeamCount ?? 4) : (dto.teamCount ?? 2),
                     teamAssignment: dto.teamAssignment ?? 'AUTO',
-                    ...(dto.mode === GameMode.TOURNAMENT ? { tournamentStages: ['QUALIFICATION', 'SEMIFINAL', 'FINAL'] } : {}),
+                    ...(dto.mode === GameMode.TOURNAMENT ? { tournamentStages: ['QUALIFICATION', 'SEMIFINAL', 'FINAL'], tournamentPlan } : {}),
                 } : {}),
             },
             currentQuestionIndex: 0,

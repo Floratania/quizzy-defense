@@ -124,6 +124,21 @@ const levels=['easy','medium','hard'];
 const pool=levels.flatMap((difficulty,level)=>Array.from({length:level===0?18:16},(_,i)=>({...question(difficulty+' '+i),difficulty})));
 const balanced=await call('/quizzes','POST',{title:'Balanced 50',trackTabSwitches:true,questionSelection:{easy:8,medium:8,hard:8},questions:pool},token('owner'),201);
 const difficultyById=new Map(balanced.questions.map(q=>[q.id,q.difficulty]));
+
+const autoTournament=await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'AUTO',tournamentTeamCount:4},token('owner'),201);
+assert.deepEqual(autoTournament.settings.tournamentPlan.stages.map(s=>s.count),[8,8,8]);
+const tournamentStages=[{count:2,difficulty:'easy'},{count:3,difficulty:'medium'},{count:4,difficulty:'hard'}];
+const manualTournament=await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:tournamentStages,tournamentTeamCount:4},token('owner'),201);
+for(let i=0;i<4;i++)await guest(manualTournament.roomCode,'Tournament '+i);
+const tournamentSession=await call('/game-sessions/'+manualTournament.id,'GET',null,token('owner'));
+assert.equal(new Set(tournamentSession.players.map(p=>p.teamId)).size,4);
+for(const player of tournamentSession.players){assert.equal(player.questionOrder.length,9);assert.equal(new Set(player.questionOrder).size,9);assert.deepEqual(player.questionOrder.map(id=>difficultyById.get(id)),['easy','easy','medium','medium','medium','hard','hard','hard','hard']);}
+await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:[{count:18,difficulty:'easy'},{count:1,difficulty:'easy'},{count:1,difficulty:'hard'}]},token('owner'),400);
+await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:[{count:0,difficulty:'easy'}]},token('owner'),400);
+await call('/game-sessions/'+manualTournament.id+'/finish','POST',{},token('owner'),201);
+await call('/game-sessions/'+autoTournament.id+'/finish','POST',{},token('owner'),201);
+console.log('Tournament plans: automatic quotas, manual 2/3/4, four teams with identical difficulty slots and unique questions, invalid pools rejected');
+
 const game=await call('/game-sessions','POST',{quizId:balanced.id},token('owner'),201);
 await call('/game-sessions/'+game.id,'GET',null,null,401);await call('/game-sessions/'+game.id,'GET',null,token('pupil'),403);
 const intruder=io(base,{transports:['websocket'],auth:{token:token('pupil')}});sockets.push(intruder);await event(intruder,'connect');

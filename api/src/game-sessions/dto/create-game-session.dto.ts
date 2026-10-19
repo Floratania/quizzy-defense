@@ -1,8 +1,17 @@
+import {Type} from 'class-transformer';
+import {ValidateNested} from 'class-validator';
 // src/game-sessions/dto/create-game-session.dto.ts
 import { IsUUID, IsOptional, IsInt, Min, MaxLength, IsEnum, Max, IsArray, IsString, IsIn } from 'class-validator';
 import { GameMode } from '../entities/game-session.entity';
 
+class TournamentStageDto {
+ @IsInt() @Min(1) @Max(1000) count:number;
+ @IsIn(['easy','medium','hard']) difficulty:'easy'|'medium'|'hard';
+}
 export class CreateGameSessionDto {
+ @IsOptional() @IsIn(['AUTO','MANUAL']) tournamentQuestionMode?:'AUTO'|'MANUAL';
+ @IsOptional() @IsArray() @ValidateNested({each:true}) @Type(()=>TournamentStageDto) tournamentStagePlan?:TournamentStageDto[];
+
     @IsUUID()
     quizId: string;
 

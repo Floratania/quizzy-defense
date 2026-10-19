@@ -1,13 +1,16 @@
 import {sessionQuestionCount} from '../quizzes/question-selection';
+export function assignmentAvailability(sessionStatus:string|undefined,opens:unknown,due:unknown,now=Date.now()) {
+ if(!sessionStatus||sessionStatus==='FINISHED'||Boolean(due&&new Date(String(due)).getTime()<=now))return 'CLOSED';
+ return opens&&new Date(String(opens)).getTime()>now?'SCHEDULED':'ACTIVE';
+}
 export function classStatistics(students:any[],assignments:any[],sessions:any[],now=Date.now()) {
  const rows:any[]=[];
  const assignmentInfo=assignments.map(assignment=>{
   const session=sessions.find(s=>s.roomCode===assignment.roomCode);
   const questions=session?.quiz?.questions||[];
   const types:Record<string,number>={};for(const q of questions)types[q.type]=(types[q.type]||0)+1;
-  const closed=!session||session.status==='FINISHED'||Boolean(assignment.dueAt&&new Date(assignment.dueAt).getTime()<=now);
-  const opens=session?.settings?.assignmentOpensAt;
-  const upcoming=!closed&&Boolean(opens&&new Date(String(opens)).getTime()>now);
+  const availability=assignmentAvailability(session?.status,session?.settings?.assignmentOpensAt,assignment.dueAt,now);
+  const closed=availability==='CLOSED',upcoming=availability==='SCHEDULED';
   const info={id:assignment.id,title:session?.quiz?.title||'Вікторина недоступна',sessionId:session?.id,closed,upcoming,dueAt:assignment.dueAt,maxAttempts:assignment.maxAttempts,questionTypes:types,totalQuestions:session?.quiz?sessionQuestionCount(session):0};
   for(const student of students){
    const attempts=(session?.players||[]).filter(p=>p.studentId===Number(student.id)).map(p=>{

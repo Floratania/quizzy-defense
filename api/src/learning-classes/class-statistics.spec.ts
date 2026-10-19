@@ -1,9 +1,10 @@
-import {classStatistics} from './class-statistics';
+import {classStatistics,assignmentAvailability} from './class-statistics';
 const students=[{id:1,name:'A',email:'a@test'},{id:2,name:'B',email:'b@test'}];
 const assignments=[{id:'a',roomCode:'123',maxAttempts:2,dueAt:null}];
 const question={id:'q',type:'open_text',points:100};
 const session:any={id:'s',roomCode:'123',status:'RUNNING',settings:{passThreshold:60},quiz:{title:'Quiz',questions:[question]},players:[]};
 describe('Class assignment statistics',()=>{
+ it('exposes class access independently from student completion',()=>{expect(assignmentAvailability('RUNNING',null,null)).toBe('ACTIVE');expect(assignmentAvailability('RUNNING',new Date(Date.now()+10000),null)).toBe('SCHEDULED');expect(assignmentAvailability('FINISHED',null,null)).toBe('CLOSED');expect(assignmentAvailability('RUNNING',null,'2000-01-01')).toBe('CLOSED');});
  it('includes students who never joined and distinguishes upcoming, active and closed assignments',()=>{
   expect(classStatistics(students,assignments,[session]).summary.NOT_STARTED).toBe(2);
   const upcoming={...session,settings:{assignmentOpensAt:new Date(Date.now()+100000).toISOString()}};

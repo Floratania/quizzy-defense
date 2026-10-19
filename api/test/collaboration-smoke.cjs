@@ -295,6 +295,8 @@ await call('/game-sessions/'+unattemptedSession+'/finish','POST',{},token('owner
 classStats=await call('/learning-classes/'+cls.id+'/statistics','GET',null,token('owner'));
 assert.equal(classStats.rows.find(r=>r.assignmentId===unattempted.id&&r.studentId===pupil.id).status,'NOT_COMPLETED');
 assert.equal(classStats.assignments.find(a=>a.id===unattempted.id).closed,true);
+const classAccess=(await call('/learning-classes','GET',null,token('owner'))).find(c=>c.id===cls.id);assert.equal(classAccess.assignments.find(a=>a.id===unattempted.id).accessStatus,'CLOSED');assert.equal(classAccess.assignments.find(a=>a.id===futureAssignment.id).accessStatus,'SCHEDULED');assert.equal(classAccess.assignments.find(a=>a.id===repeatAssignment.id).accessStatus,'ACTIVE');assert.equal(classAccess.assignments.find(a=>a.id===unattempted.id).sessionId,unattemptedSession);
+assert.match(await rejectedJoin(unattempted.roomCode,token('pupil')),/finished|заверш/i);
 assert.equal(classStats.assignments.find(a=>a.id===unattempted.id).questionTypes.open_text,1);
 assert.equal((await call('/quizzes/'+openQuiz.id,'GET',null,token('owner'))).timePenaltyEnabled,false);
 await call('/quizzes/'+openQuiz.id,'PATCH',{title:'Open assigned quiz',questions:[{...question('One second'),timeLimit:1}],timePenaltyEnabled:true},token('owner'));

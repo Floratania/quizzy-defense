@@ -1,6 +1,6 @@
 import {In} from 'typeorm';
 import {GameSession} from '../game-sessions/entities/game-session.entity';
-import {classStatistics} from './class-statistics';
+import {classStatistics,assignmentAvailability} from './class-statistics';
 import {BadRequestException,ForbiddenException,HttpException,Injectable,NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
@@ -39,7 +39,14 @@ export class LearningClassesService {
   return {id:cls.id,name:cls.name,teacherName:teacher.name,joined:inserted.length>0};
  }
  create(name:string,teacherId:number){return this.classes.save(this.classes.create({name:name.trim(),teacherId,joinCode:randomBytes(4).toString('hex').toUpperCase()}));}
- async all(teacherId:number){const classes=await this.classes.findBy({teacherId});return Promise.all(classes.map(async item=>({...item,students:await this.members.createQueryBuilder('m').innerJoinAndSelect(User,'u','u.id=m.student_id').where('m.class_id=:id',{id:item.id}).select(['m.id AS "membershipId"','u.id AS id','u.name AS name','u.email AS email','u.managed_by_teacher_id AS "managedByTeacherId"']).getRawMany(),assignments:await this.assignments.createQueryBuilder('a').innerJoinAndSelect(Quiz,'q','q.id=a.quiz_id').where('a.class_id=:id',{id:item.id}).select(['a.id AS id','a.token AS token','a.room_code AS "roomCode"','a.due_at AS "dueAt"','a.max_attempts AS "maxAttempts"','a.variant_settings AS "variantSettings"','q.id AS "quizId"','q.title AS "quizTitle"']).getRawMany()})));}
+ async all(teacherId:number){
+  const classes=await this.classes.findBy({teacherId});
+  return Promise.all(classes.map(async item=>{
+   const students=await this.members.createQueryBuilder('m').innerJoinAndSelect(User,'u','u.id=m.student_id').where('m.class_id=:id',{id:item.id}).select(['m.id AS "membershipId"','u.id AS id','u.name AS name','u.email AS email','u.managed_by_teacher_id AS "managedByTeacherId"']).getRawMany();
+   const assignments=await this.assignments.createQueryBuilder('a').innerJoin(Quiz,'q','q.id=a.quiz_id').leftJoin(GameSession,'s','s."roomCode"=a.room_code').where('a.class_id=:id',{id:item.id}).select(['a.id AS id','a.token AS token','a.room_code AS "roomCode"','a.due_at AS "dueAt"','a.max_attempts AS "maxAttempts"','a.variant_settings AS "variantSettings"','q.id AS "quizId"','q.title AS "quizTitle"','s.id AS "sessionId"','s.status AS "sessionStatus"','s.settings AS "sessionSettings"']).getRawMany();
+   return {...item,students,assignments:assignments.map(({sessionSettings,sessionStatus,...a})=>({...a,availableFrom:sessionSettings?.assignmentOpensAt||null,accessStatus:assignmentAvailability(sessionStatus,sessionSettings?.assignmentOpensAt,a.dueAt)}))};
+  }));
+ }
  async addExistingStudent(classId:string,teacherId:number,dto:{email?:string,studentCode?:string}) {
   if(!await this.classes.existsBy({id:classId,teacherId}))throw new NotFoundException('Клас не знайдено');
   if(Boolean(dto.email)===Boolean(dto.studentCode))throw new BadRequestException('Вкажіть код або пошту учня');

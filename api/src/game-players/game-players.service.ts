@@ -20,6 +20,15 @@ export class GamePlayersService {
         private readonly teamsRepo: Repository<SessionTeam>,
     ) {}
 
+    async canResume(playerId: string, sessionId: string) {
+        const player = await this.playersRepo.findOne({where:{id:playerId,session_id:sessionId},relations:['session']});
+        if (!player || player.completedAt || player.eliminatedAt) return false;
+        const session = player.session;
+        if (![GameSessionStatus.WAITING, GameSessionStatus.RUNNING].includes(session.status)) return false;
+        const deadline = session.settings?.assignmentDueAt;
+        return !deadline || new Date(String(deadline)).getTime() > Date.now();
+    }
+
     async getLeaderboard(sessionId: string) {
         return this.playersRepo.find({
             where: { session_id: sessionId },

@@ -1,3 +1,4 @@
+import apiClient from '../../api/apiClient.js';
 import React, {useEffect, useState} from "react";
 import {
     Container,
@@ -26,6 +27,24 @@ export default function JoinPage() {
     useEffect(()=>{if(user?.name)setNickname(current=>current||user.name);},[user?.name]);
     const savedSessionId = localStorage.getItem('sessionId');
     const savedPlayerId = localStorage.getItem('playerId');
+
+    const [canResume, setCanResume] = useState(false);
+    useEffect(() => {
+        let active = true;
+        const check = async () => {
+            setCanResume(false);
+            const resumeToken = localStorage.getItem('resumeToken');
+            if (!savedSessionId || !savedPlayerId || !resumeToken) return;
+            try {
+                const {data} = await apiClient.post('/game-players/resume-status', {sessionId:savedSessionId,playerId:savedPlayerId,resumeToken});
+                if (active) setCanResume(data.resumable === true);
+            } catch { /* Unverified or finished attempts never show a Continue action. */ }
+        };
+        check();
+        const onFocus = () => check();
+        window.addEventListener('focus', onFocus);
+        return () => { active = false; window.removeEventListener('focus', onFocus); };
+    }, [savedSessionId, savedPlayerId]);
 
     // --- SOCKET LISTENERS ---
     useEffect(() => {
@@ -109,7 +128,7 @@ export default function JoinPage() {
                         }}
                     >
                         <Stack spacing="lg">
-                            {savedSessionId && savedPlayerId && (
+                            {canResume && (
                                 <Paper withBorder radius="md" p="md" style={{ background: '#ecfdf5' }}>
                                     <Text fw={600} c="teal" mb="xs">Знайдено незавершене проходження</Text>
                                     <Button color="teal" fullWidth onClick={() => navigate('/player')}>Продовжити попередню сесію</Button>

@@ -1,3 +1,4 @@
+import {AuthHandoffService} from './auth-handoff.service';
 import {Module} from '@nestjs/common';
 import {AuthService} from './auth.service';
 import {AuthController} from './auth.controller';
@@ -10,7 +11,7 @@ import {GoogleOAuthModule} from "@/auth/google-oauth/google-oauth.module";
 @Module({
     imports: [TypeOrmModule.forFeature([User, RefreshToken]), GoogleOAuthModule],
     controllers: [AuthController],
-    providers: [AuthService, UsersService],
+    providers: [AuthHandoffService, AuthService, UsersService],
 })
 export class AuthModule {
 }

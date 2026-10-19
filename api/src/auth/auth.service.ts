@@ -107,7 +107,7 @@ export class AuthService {
             name: token.user.name,
         };
 
-        return this.generateJwtTokens(claims);
+        return { accessToken: this.jwtService.sign(claims, {expiresIn:'15m'}), refreshToken: token.token };
     }
 
     async generateJwtTokens(claims: TokenClaims, expiresIn: `${number}${"s" | "m" | "h" | "d"}` = '15m') {
@@ -123,20 +123,7 @@ export class AuthService {
         const expiryDate = new Date();
         expiryDate.setMonth(expiryDate.getMonth() + 1);
 
-        let refreshToken = await this.refreshTokenRepository.findOne({
-            where: {user: {id: userId}},
-        });
-
-        if (refreshToken) {
-            refreshToken.token = token;
-            refreshToken.expiresAt = expiryDate;
-        } else {
-            refreshToken = this.refreshTokenRepository.create({
-                token,
-                user: {id: userId},
-                expiresAt: expiryDate,
-            });
-        }
+        const refreshToken = this.refreshTokenRepository.create({token,user:{id:userId},expiresAt:expiryDate});
 
         return this.refreshTokenRepository.save(refreshToken);
     }

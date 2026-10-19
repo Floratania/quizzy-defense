@@ -1,3 +1,4 @@
+import {beginSessionRestore} from '../auth/browserSession.js';
 import axios from 'axios';
 import { getAccessToken, setAccessToken, clearAccessToken } from '../auth/tokenStore';
 
@@ -30,7 +31,7 @@ apiClient.interceptors.response.use(
     if (
       err.response?.status === 401 &&
       !originalRequest._retry &&
-      !['/auth/login', '/auth/signup', '/auth/refresh'].some((path) => originalRequest.url.includes(path))
+      !['/auth/login', '/auth/signup', '/auth/refresh', '/auth/exchange'].some((path) => originalRequest.url.includes(path))
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -56,7 +57,12 @@ apiClient.interceptors.response.use(
         onRefreshed(data.accessToken);
         return apiClient(originalRequest);
       } catch (refreshError) {
+        const hadSession=Boolean(getAccessToken());
         clearAccessToken();
+        if(hadSession&&!window.location.pathname.startsWith('/auth')){
+          refreshSubscribers=[];
+          return beginSessionRestore();
+        }
         refreshSubscribers.forEach(({ reject }) => reject(refreshError));
         refreshSubscribers = [];
         return Promise.reject(refreshError);

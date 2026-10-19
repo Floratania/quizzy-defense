@@ -19,6 +19,32 @@ const users={};
 for(const role of ['owner','viewer','editor','stranger']){const email=role+'@collaboration.example.test';const password='Quizzy-test-2026!';await call('/auth/signup','POST',{email,password,name:role+' teacher'},null,201);users[role]=await call('/auth/login','POST',{email,password});}
 const token=key=>users[key].accessToken;
 
+// Independent devices, one-time browser proof, and top-level cookie restoration.
+const {createHash}=require('node:crypto');
+const verifier='a'.repeat(43), challenge=createHash('sha256').update(verifier).digest('base64url');
+async function browserLogin(){
+ const r=await fetch(base+'/auth/browser-login',{method:'POST',redirect:'manual',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({email:'owner@collaboration.example.test',password:'Quizzy-test-2026!',challenge})});
+ assert.equal(r.status,303);checks++;
+ const cookie=r.headers.get('set-cookie').split(';')[0];
+ const code=new URL(r.headers.get('location')).searchParams.get('code');assert.match(code,/^[a-f0-9]{64}$/);
+ return {cookie,code};
+}
+const browserA=await browserLogin(), browserB=await browserLogin();assert.notEqual(browserA.cookie,browserB.cookie);
+await call('/auth/exchange','POST',{code:browserA.code,verifier:'b'.repeat(43)},null,401);
+const exchanged=await call('/auth/exchange','POST',{code:browserA.code,verifier});assert.ok(exchanged.accessToken);
+await call('/auth/exchange','POST',{code:browserA.code,verifier},null,401);
+for(const browser of [browserA,browserB]){
+ const restored=await fetch(base+'/auth/restore?challenge='+challenge,{redirect:'manual',headers:{Cookie:browser.cookie}});
+ assert.equal(restored.status,302);const code=new URL(restored.headers.get('location')).searchParams.get('code');assert.ok(code);checks++;
+ const restoredTokens=await call('/auth/exchange','POST',{code,verifier});await call('/auth/me','GET',null,restoredTokens.accessToken);
+}
+const logout=await fetch(base+'/auth/browser-logout',{method:'POST',redirect:'manual',headers:{Cookie:browserB.cookie,Origin:new URL(process.env.FRONTEND_URL||'http://localhost:5173').origin}});assert.equal(logout.status,303);checks++;
+for(const [browser,valid]of [[browserA,true],[browserB,false]]){
+ const restored=await fetch(base+'/auth/restore?challenge='+challenge,{redirect:'manual',headers:{Cookie:browser.cookie}});
+ const url=new URL(restored.headers.get('location'));assert.equal(url.searchParams.has('code'),valid);checks++;
+}
+
+
 const fixtures=new Client({...config,database:dbName});await fixtures.connect();await fixtures.query(`UPDATE "user" SET role='ADMIN' WHERE id=$1`,[users.owner.user.id]);await fixtures.end();
 for(const role of ['viewer','editor','stranger']) {await call('/account/teacher-request','POST',{},token(role),201);await call('/account/role','PATCH',{userId:users[role].user.id,role:'TEACHER'},token('owner'));}
 const pupilEmail='pupil@collaboration.example.test';

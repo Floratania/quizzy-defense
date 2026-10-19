@@ -1,28 +1,21 @@
+import {beginPasswordSignIn,beginBrowserLogout} from '../auth/browserSession.js';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { setAccessToken, clearAccessToken } from '../auth/tokenStore';
+import { getAccessToken, setAccessToken, clearAccessToken } from '../auth/tokenStore';
 import { useAuthService } from '../services/useAuthService';
-import {useNavigate} from "react-router";
+
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const {
-    login: loginService,
     register: registerService,
     refresh: refreshService,
-    logout: logoutService,
     me: meService,
   } = useAuthService();
 
-  const login = async (email, password) => {
-    const data = await loginService(email, password);
-    setAccessToken(data.accessToken);
-    setUser(data.user);
-    navigate('/');
-  };
+  const login = (email,password) => beginPasswordSignIn(email,password);
 
   const register = async (payload) => {
     const data = await registerService(payload);
@@ -34,16 +27,9 @@ export function AuthProvider({ children }) {
     setAccessToken(data.accessToken);
   };
 
-  const logout = async () => {
-    try {
-      await logoutService();
-    } catch (e) {
-      console.error('Logout request failed:', e);
-    } finally {
-      clearAccessToken();
-      setUser(null);
-      navigate('/auth');
-    }
+  const logout = () => {
+    clearAccessToken();setUser(null);
+    return beginBrowserLogout();
   };
 
   const me = async () => {
@@ -60,11 +46,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        await me();
-          // if (!getAccessToken()) {
-          //     setLoading(false);
-          //     return;
-          // }
+        if(getAccessToken()&&window.location.pathname!=='/auth/complete')await me();
       } catch {
         // A new visitor has no refresh cookie yet; guest routes remain available.
       } finally {

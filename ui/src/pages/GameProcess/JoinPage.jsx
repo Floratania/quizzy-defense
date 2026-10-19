@@ -18,7 +18,7 @@ import {useAuthContext} from '../../context/AuthContext.jsx';
 
 export default function JoinPage() {
     const [searchParams] = useSearchParams();
-    const [roomCode, setRoomCode] = useState(searchParams.get('code') || "");
+    const [roomCode, setRoomCode] = useState(searchParams.get('code') || sessionStorage.getItem('quizzy:pending-room') || "");
     const [nickname, setNickname] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -31,6 +31,7 @@ export default function JoinPage() {
     useEffect(() => {
         const onSuccess = (data) => {
             setLoading(false);
+            sessionStorage.removeItem('quizzy:pending-room');
             localStorage.setItem("sessionId", data.sessionId);
             localStorage.setItem("playerId", data.playerId);
             localStorage.setItem('resumeToken',data.resumeToken);
@@ -60,6 +61,7 @@ export default function JoinPage() {
 
     // --- JOIN HANDLER ---
     const handleJoin = async () => {
+        sessionStorage.setItem('quizzy:pending-room',roomCode.trim());
         if (!roomCode.trim() || !nickname.trim()) {
             notifications.show({
                 title: "Дані не заповнені",

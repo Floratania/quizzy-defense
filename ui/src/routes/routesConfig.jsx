@@ -1,3 +1,4 @@
+import AuthCompletePage from '../pages/AuthCompletePage.jsx';
 import StudentReviewPage from '../pages/StudentReviewPage.jsx';
 import StudentPage from '../pages/StudentPage.jsx';
 import AccountRolesPage from '../pages/AccountRolesPage.jsx';
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
         errorElement: <RouteErrorPage />,
         children: [
             {index: true, Component: HomePage},
+            {path:'auth/complete',Component:AuthCompletePage},
             {path:'student',Component:StudentPage},
             {path:'student/review',Component:StudentReviewPage},
             {

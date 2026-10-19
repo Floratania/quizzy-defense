@@ -1,3 +1,4 @@
+import {beginGoogleSignIn} from '../auth/browserSession.js';
 import React, { useState } from 'react';
 import {
     Container,
@@ -75,6 +76,7 @@ const AuthPage = () => {
                 </Stack>
             </Center>
 
+            {new URLSearchParams(window.location.search).has('loginError')&&<Text c="red" mb="md">Перевірте email і пароль та спробуйте увійти ще раз.</Text>}
             <Paper
                 radius="xl"
                 p={40}
@@ -87,7 +89,7 @@ const AuthPage = () => {
                 <Stack gap="lg">
                     <Group grow>
                         <Button
-                            onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`)}
+                            onClick={() => (beginGoogleSignIn())}
                             variant="light"
                             color="violet"
                             leftSection={<IconBrandGoogle size={18} />}

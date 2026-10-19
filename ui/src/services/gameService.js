@@ -8,28 +8,28 @@ export const gameService = {
         socket.emit("join_session", data);
     },
 
-    hostJoin(sessionId) {
-        connectionService.ensureConnected();
+    async hostJoin(sessionId) {
+        await connectionService.ensureConnected();
         socket.emit("host_join_session", { sessionId });
     },
 
-    resumeSession(sessionId, playerId) {
-        connectionService.ensureConnected();
+    async resumeSession(sessionId, playerId) {
+        await connectionService.ensureConnected();
         socket.emit('resume_session', { sessionId, playerId, resumeToken:localStorage.getItem('resumeToken') });
     },
 
-    startGame(sessionId) {
-        connectionService.ensureConnected();
+    async startGame(sessionId) {
+        await connectionService.ensureConnected();
         socket.emit("start_game", { sessionId });
     },
 
-    nextQuestion(sessionId) {
-        connectionService.ensureConnected();
+    async nextQuestion(sessionId) {
+        await connectionService.ensureConnected();
         socket.emit("next_question", { sessionId });
     },
 
-    submitAnswer(data) {
-        connectionService.ensureConnected();
+    async submitAnswer(data) {
+        await connectionService.ensureConnected();
         socket.emit("submit_answer", data);
     },
 };

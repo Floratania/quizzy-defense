@@ -14,7 +14,7 @@ await new Promise((resolve,reject)=>{const server=require('node:net').createServ
 await admin.connect();await admin.query('CREATE DATABASE '+dbName);
 const env={...process.env,DATABASE_URL:'',DB_DATABASE:dbName,PORT:'3002',JWT_SECRET:'isolated-test-secret',NODE_ENV:'development'};
 const log=fs.openSync('.tmp/collaboration-api.log','w'); child=spawn(process.execPath,['dist/main.js'],{env,stdio:['ignore',log,log],windowsHide:true});
-for(let i=0;i<180;i++){try{await fetch(base);break;}catch{await new Promise(r=>setTimeout(r,500));}if(i===179)throw new Error('Server failed to start');}
+for(let i=0;i<180;i++){try{await fetch(base);break;}catch{if(child.exitCode!==null)throw new Error('API exited during startup; inspect .tmp/collaboration-api.log');await new Promise(r=>setTimeout(r,500));}if(i===179)throw new Error('Server failed to start');}
 const users={};
 for(const role of ['owner','viewer','editor','stranger']){const email=role+'@collaboration.example.test';const password='Quizzy-test-2026!';await call('/auth/signup','POST',{email,password,name:role+' teacher'},null,201);users[role]=await call('/auth/login','POST',{email,password});}
 const token=key=>users[key].accessToken;
@@ -125,6 +125,15 @@ const balancedReport=await call('/session-reports/'+game.id,'GET',null,token('ow
 const progress=await call('/game-sessions','POST',{quizId:balanced.id,mode:'PROGRESS'},token('owner'),201);const c=await guest(progress.roomCode,'Balanced C');const qc=event(c.socket,'question_started');controls.emit('start_game',{sessionId:progress.id});assert.equal((await qc).totalQuestions,24);
 console.log('Balanced sets: independent 24-question sets, 8/8/8, stable resume, Classic and Progress passed');
 const cls=await call('/learning-classes','POST',{name:'Assigned class'},token('owner'),201);
+assert.equal((await call('/learning-classes/my','GET',null,token('pupil'))).length,0);
+await call('/learning-classes/join','POST',{code:cls.joinCode},null,401);
+await call('/learning-classes/join','POST',{code:cls.joinCode},token('viewer'),403);
+await call('/learning-classes/join','POST',{code:'bad-code'},token('pupil'),400);
+await call('/learning-classes/join','POST',{code:cls.joinCode,studentId:users.viewer.user.id},token('pupil'),400);
+const selfJoined=await call('/learning-classes/join','POST',{code:cls.joinCode.toLowerCase()},token('pupil'),201);assert.equal(selfJoined.joined,true);assert.equal(selfJoined.id,cls.id);assert.ok(!('students' in selfJoined));
+assert.equal((await call('/learning-classes/join','POST',{code:cls.joinCode},token('pupil'),201)).joined,false);
+assert.equal((await call('/learning-classes/my','GET',null,token('pupil')))[0].id,cls.id);
+
 const studentProfile=await call('/account/student-summary','GET',null,token('pupil'));assert.match(studentProfile.studentCode,/^QZ-[A-F0-9]{12}$/);
 assert.equal((await call('/account/student-summary','GET',null,token('pupil'))).studentCode,studentProfile.studentCode);
 await call('/learning-classes/'+cls.id+'/students/existing','POST',{studentCode:studentProfile.studentCode.toLowerCase()},token('owner'),201);
@@ -161,7 +170,14 @@ await guest(openAssignment.roomCode,'Second Pupil',secondLogin.accessToken);
 const overdue=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:openQuiz.id,dueAt:new Date(Date.now()-60000).toISOString()},token('owner'),201);
 assert.equal((await call('/account/assignments','GET',null,token('pupil'))).find(a=>a.id===overdue.id).status,'OVERDUE');
 assert.match(await rejectedJoin(overdue.roomCode,token('pupil')),/Термін виконання/);
+
+await call('/auth/signup','POST',{name:'Self Join Pupil',email:'self-join@example.test',password:'Quizzy-test-2026!'},null,201);
+const selfLogin=await call('/auth/login','POST',{email:'self-join@example.test',password:'Quizzy-test-2026!'});
+assert.equal((await call('/account/assignments','GET',null,selfLogin.accessToken)).length,0);
+await call('/learning-classes/join','POST',{code:cls.joinCode},selfLogin.accessToken,201);
+assert.equal((await call('/account/assignments','GET',null,selfLogin.accessToken)).find(a=>a.id===openAssignment.id).status,'OPEN');
 console.log('Assignments: class-only visibility, scheduled opening, deadline, independent completion and late class participants passed');
+console.log('Class self-join: authenticated student only, class code, no duplicate membership, assigned tests appear after joining');
 
 
 const timedQuiz=await call('/quizzes','POST',{title:'Personalized deadline regression',showQuestionLeaderboard:true,trackTabSwitches:true,questionSelection:{easy:2,medium:0,hard:0},questions:Array.from({length:6},(_,i)=>({...question('Deadline '+i),difficulty:'easy',timeLimit:2}))},token('owner'),201);

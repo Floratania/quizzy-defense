@@ -1,4 +1,4 @@
-import {BadRequestException,Injectable,NotFoundException} from '@nestjs/common';
+import {BadRequestException,ForbiddenException,HttpException,Injectable,NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 import {randomBytes} from 'crypto';
@@ -12,6 +12,22 @@ import {GameSessionsService} from '@/game-sessions/game-sessions.service';
 @Injectable()
 export class LearningClassesService {
  constructor(@InjectRepository(LearningClass)private classes:Repository<LearningClass>,@InjectRepository(ClassStudent)private members:Repository<ClassStudent>,@InjectRepository(QuizAssignment)private assignments:Repository<QuizAssignment>,@InjectRepository(User)private users:Repository<User>,@InjectRepository(Quiz)private quizzes:Repository<Quiz>,private sessions:GameSessionsService){}
+ private joinAttempts=new Map<number,{count:number,until:number}>();
+ async studentClasses(studentId:number) {
+  return this.members.query(`SELECT c.id,c.name,u.name AS "teacherName" FROM class_students m JOIN learning_classes c ON c.id=m.class_id JOIN "user" u ON u.id=c.teacher_id WHERE m.student_id=$1 ORDER BY m."createdAt" DESC`,[studentId]);
+ }
+ async joinClass(studentId:number,code:string) {
+  const now=Date.now();for(const [id,a] of this.joinAttempts)if(a.until<=now)this.joinAttempts.delete(id);
+  const attempt=this.joinAttempts.get(studentId)||{count:0,until:now+60000};
+  if(++attempt.count>10)throw new HttpException('Забагато спроб. Зачекайте хвилину.',429);
+  this.joinAttempts.set(studentId,attempt);
+  const student=await this.users.findOneBy({id:studentId});if(student?.role!=='STUDENT')throw new ForbiddenException('Приєднання доступне з акаунта учня');
+  const cls=await this.classes.findOneBy({joinCode:code.trim().toUpperCase()});
+  if(!cls)throw new NotFoundException('Клас із таким кодом не знайдено. Перевірте код у вчителя.');
+  const teacher=await this.users.findOneBy({id:cls.teacherId});if(!teacher||!['TEACHER','ADMIN'].includes(teacher.role))throw new NotFoundException('Клас недоступний');
+  const inserted=await this.members.query('INSERT INTO class_students(class_id,student_id) VALUES($1,$2) ON CONFLICT(class_id,student_id) DO NOTHING RETURNING id',[cls.id,studentId]);
+  return {id:cls.id,name:cls.name,teacherName:teacher.name,joined:inserted.length>0};
+ }
  create(name:string,teacherId:number){return this.classes.save(this.classes.create({name:name.trim(),teacherId,joinCode:randomBytes(4).toString('hex').toUpperCase()}));}
  async all(teacherId:number){const classes=await this.classes.findBy({teacherId});return Promise.all(classes.map(async item=>({...item,students:await this.members.createQueryBuilder('m').innerJoinAndSelect(User,'u','u.id=m.student_id').where('m.class_id=:id',{id:item.id}).select(['m.id AS "membershipId"','u.id AS id','u.name AS name','u.email AS email','u.managed_by_teacher_id AS "managedByTeacherId"']).getRawMany(),assignments:await this.assignments.createQueryBuilder('a').innerJoinAndSelect(Quiz,'q','q.id=a.quiz_id').where('a.class_id=:id',{id:item.id}).select(['a.id AS id','a.token AS token','a.room_code AS "roomCode"','a.due_at AS "dueAt"','a.max_attempts AS "maxAttempts"','a.variant_settings AS "variantSettings"','q.id AS "quizId"','q.title AS "quizTitle"']).getRawMany()})));}
  async addExistingStudent(classId:string,teacherId:number,dto:{email?:string,studentCode?:string}) {

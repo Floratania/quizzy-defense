@@ -1,9 +1,12 @@
 import {IsEmail,IsOptional,Matches} from 'class-validator';
+class JoinClassDto { @Matches(/^[A-F0-9]{8}$/i) code:string; }
 class ExistingStudentDto { @IsOptional() @IsEmail() email?:string; @IsOptional() @Matches(/^QZ-[A-F0-9]{12}$/i) studentCode?:string; }
 import {TeacherGuard} from '@/guards/teacher.guard';
 import {Body,Controller,Get,Param,Patch,Post,Req,UseGuards} from '@nestjs/common';
 import {AuthGuard} from '@/guards/auth.guard';import {LearningClassesService} from './learning-classes.service';
 @Controller('learning-classes') export class LearningClassesController {constructor(private service:LearningClassesService){}
+ @UseGuards(AuthGuard) @Post('join') join(@Body()d:JoinClassDto,@Req()r){return this.service.joinClass(r.user.id,d.code)}
+ @UseGuards(AuthGuard) @Get('my') mine(@Req()r){return this.service.studentClasses(r.user.id)}
  @UseGuards(AuthGuard, TeacherGuard) @Get() all(@Req()r){return this.service.all(r.user.id)}
  @UseGuards(AuthGuard, TeacherGuard) @Post() create(@Body()d:{name:string},@Req()r){return this.service.create(d.name,r.user.id)}
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/students/existing') existing(@Param('id')id:string,@Body()d:ExistingStudentDto,@Req()r){return this.service.addExistingStudent(id,r.user.id,d)}

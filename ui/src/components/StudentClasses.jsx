@@ -1,0 +1,10 @@
+import {useEffect,useState} from 'react';
+import {Alert,Button,Group,Paper,Stack,Text,TextInput,Title} from '@mantine/core';
+import apiClient from '../api/apiClient.js';
+export default function StudentClasses(){
+ const [classes,setClasses]=useState([]),[code,setCode]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('');
+ const load=async()=>{const {data}=await apiClient.get('/learning-classes/my');setClasses(data);};
+ useEffect(()=>{let active=true;apiClient.get('/learning-classes/my').then(({data})=>{if(active)setClasses(data);}).catch(()=>{if(active)setError('Не вдалося завантажити класи');});return()=>{active=false;};},[]);
+ const join=async e=>{e.preventDefault();setError('');setSuccess('');setBusy(true);try{const {data}=await apiClient.post('/learning-classes/join',{code:code.trim().toUpperCase()});setSuccess(data.joined?`Ви приєдналися до класу «${data.name}».`:`Ви вже в класі «${data.name}».`);setCode('');window.dispatchEvent(new Event('student-class-joined'));await load();}catch(e){const message=e.response?.data?.message;setError(Array.isArray(message)?'Введіть 8 символів коду класу, отриманого від учителя.':message||'Не вдалося приєднатися');}finally{setBusy(false);}};
+ return <Paper withBorder p="md"><Stack gap="sm"><Title order={3}>Мої класи</Title><form onSubmit={join}><Group align="end"><TextInput label="Код класу від учителя" placeholder="Наприклад A1B2C3D4" maxLength={8} value={code} onChange={e=>setCode(e.currentTarget.value.toUpperCase().replace(/\s/g,''))} style={{flex:1}} required/><Button type="submit" variant="default" loading={busy} disabled={code.length!==8}>Приєднатися</Button></Group></form>{error&&<Alert color="red">{error}</Alert>}{success&&<Text size="sm">{success}</Text>}{classes.length?classes.map(c=><Group key={c.id} justify="space-between"><Text fw={600} size="sm">{c.name}</Text><Text size="sm" c="dimmed">{c.teacherName}</Text></Group>):<Text size="sm" c="dimmed">Введіть код учителя або попросіть додати вас за особистим кодом чи поштою. Код класу відрізняється від коду кімнати тесту.</Text>}</Stack></Paper>;
+}

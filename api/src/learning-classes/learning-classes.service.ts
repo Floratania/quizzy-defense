@@ -40,6 +40,37 @@ export class LearningClassesService {
  }
  async addStudent(classId:string,teacherId:number,dto:{name:string,email:string,password:string}){const cls=await this.classes.findOneBy({id:classId,teacherId});if(!cls)throw new NotFoundException('Class not found');let student=await this.users.findOneBy({email:dto.email});if(!student)student=await this.users.save(this.users.create({name:dto.name,email:dto.email,password:await bcrypt.hash(dto.password,10),role:'STUDENT',managedByTeacherId:teacherId}));if(student.role!=='STUDENT')throw new BadRequestException('Цей акаунт не є учнем');if(await this.members.existsBy({classId,studentId:student.id}))throw new BadRequestException('Student already belongs to class');await this.members.save(this.members.create({classId,studentId:student.id}));return {id:student.id,name:student.name,email:student.email};}
  async updateStudent(classId:string,studentId:number,teacherId:number,dto:{name?:string,email?:string,password?:string}){if(!await this.classes.existsBy({id:classId,teacherId})||!await this.members.existsBy({classId,studentId}))throw new NotFoundException('Student not found in class');const student=await this.users.findOneBy({id:studentId});if(!student)throw new NotFoundException('Student not found');if(student.managedByTeacherId!==teacherId)throw new BadRequestException('Особистий акаунт учня не можна змінювати через клас');if(student.role!=='STUDENT')throw new BadRequestException('Цей акаунт не є учнем');if(dto.email&&dto.email!==student.email&&await this.users.existsBy({email:dto.email}))throw new BadRequestException('Email already in use');if(dto.name?.trim())student.name=dto.name.trim();if(dto.email?.trim())student.email=dto.email.trim();if(dto.password?.trim())student.password=await bcrypt.hash(dto.password,10);student.role='STUDENT';await this.users.save(student);return{id:student.id,name:student.name,email:student.email};}
- async assign(classId:string,teacherId:number,dto:{quizId:string,dueAt?:string,availableFrom?:string,maxAttempts?:number,variantSettings?:Record<string,unknown>}){if(!await this.classes.existsBy({id:classId,teacherId}))throw new NotFoundException('Class not found');if(!await this.quizzes.existsBy({id:dto.quizId,userId:teacherId}))throw new NotFoundException('Quiz not found');const opens=dto.availableFrom?new Date(dto.availableFrom):null;const due=dto.dueAt?new Date(dto.dueAt):null;if((opens&&isNaN(opens.getTime()))||(due&&isNaN(due.getTime()))||(opens&&due&&opens>=due))throw new BadRequestException('Перевірте дату початку та дедлайн');const session=await this.sessions.create({quizId:dto.quizId,mode:'PROGRESS' as any},teacherId,true);await this.sessions.mergeSettings(session.id,{...dto.variantSettings,assignmentMaxAttempts:dto.maxAttempts||1,classId,assignmentOpensAt:opens?.toISOString()||null,assignmentDueAt:due?.toISOString()||null});await this.sessions.start(session.id);return this.assignments.save(this.assignments.create({classId,quizId:dto.quizId,roomCode:session.roomCode,token:randomBytes(24).toString('hex'),dueAt:dto.dueAt?new Date(dto.dueAt):null,maxAttempts:dto.maxAttempts||1,variantSettings:{...dto.variantSettings,availableFrom:opens?.toISOString()||null}}));}
+ async assign(classId:string,teacherId:number,dto:{quizId:string,dueAt?:string,availableFrom?:string,maxAttempts?:number,variantSettings?:Record<string,unknown>}) {
+  if(!await this.classes.existsBy({id:classId,teacherId}))throw new NotFoundException('Клас не знайдено');
+  const quiz=await this.quizzes.findOne({where:{id:dto.quizId},relations:['questions']});
+  if(!quiz)throw new NotFoundException('Вікторину не знайдено');
+  if(quiz.userId!==teacherId){const access=await this.quizzes.query('SELECT 1 FROM quiz_collaborators WHERE "quizId"=$1 AND "userId"=$2',[quiz.id,teacherId]);if(!access.length)throw new NotFoundException('Немає доступу до цієї вікторини');}
+  const opens=dto.availableFrom?new Date(dto.availableFrom):null,due=dto.dueAt?new Date(dto.dueAt):null;
+  if((opens&&isNaN(opens.getTime()))||(due&&isNaN(due.getTime()))||(opens&&due&&opens>=due))throw new BadRequestException('Дата початку має бути раніше дедлайну');
+  const maxAttempts=dto.maxAttempts??1;if(!Number.isInteger(maxAttempts)||maxAttempts<1||maxAttempts>100)throw new BadRequestException('Кількість спроб має бути від 1 до 100');
+  const variant={...dto.variantSettings};
+  const levels=['easy','medium','hard'] as const;
+  const available=Object.fromEntries(levels.map(level=>[level,quiz.questions.filter(q=>(q.difficulty||'medium')===level).length])) as Record<typeof levels[number],number>;
+  let selection:Record<string,number>|undefined;
+  if(variant.questionMode!==undefined&&!['all','count'].includes(String(variant.questionMode)))throw new BadRequestException('Невірний режим вибору питань');
+  if(variant.questionMode==='all'){selection=available;variant.questionCount=quiz.questions.length;}
+  else if(variant.questionCount!==undefined){
+   const count=Number(variant.questionCount);
+   if(!Number.isInteger(count)||count<1||count>quiz.questions.length)throw new BadRequestException(`Оберіть від 1 до ${quiz.questions.length} питань або «Усі питання»`);
+   // Use the same difficulty quotas for every student; sample independently inside each level.
+   selection={easy:0,medium:0,hard:0};
+   const weights=quiz.questionSelection||available,totalWeight=levels.reduce((sum,level)=>sum+weights[level],0);
+   for(let i=0;i<count;i++){
+    const level=levels.filter(level=>selection![level]<available[level]).sort((a,b)=>(weights[b]*count/totalWeight-selection![b])-(weights[a]*count/totalWeight-selection![a]))[0];
+    selection[level]++;
+   }
+   variant.questionMode='count';variant.questionCount=count;
+  }
+  const session=await this.sessions.create({quizId:dto.quizId,mode:'PROGRESS' as any},teacherId,true);
+  await this.sessions.mergeSettings(session.id,{...variant,...(selection?{questionSelection:selection}:{}),assignmentMaxAttempts:maxAttempts,classId,assignmentOpensAt:opens?.toISOString()||null,assignmentDueAt:due?.toISOString()||null});
+  await this.sessions.start(session.id);
+  return this.assignments.save(this.assignments.create({classId,quizId:dto.quizId,roomCode:session.roomCode,token:randomBytes(24).toString('hex'),dueAt:due,maxAttempts,variantSettings:{...variant,availableFrom:opens?.toISOString()||null}}));
+ }
+
  assignment(token:string){return this.assignments.findOneBy({token});}
 }

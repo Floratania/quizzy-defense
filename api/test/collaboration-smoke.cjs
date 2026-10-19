@@ -211,6 +211,23 @@ await call('/account/teacher-prompt-seen','POST',{},token('pupil'),201);
 assert.equal((await call('/account/student-summary','GET',null,token('pupil'))).teacherPromptSeen,true);
 console.log('Student learning: private completed attempts, topic stats, scoped practice, hidden answers protected, one-time prompt persisted');
 console.log('Personalized Classic: different answers accepted; silent-player timeout; one round result; duplicate Next ignored; final round completed; tab exit persisted');
+await call('/quizzes/'+balanced.id+'/collaborators','POST',{email:users.viewer.user.email,role:'VIEWER'},token('owner'),201);
+const sharedClass=await call('/learning-classes','POST',{name:'Shared quiz class'},token('viewer'),201);
+await call('/learning-classes/'+sharedClass.id+'/students/existing','POST',{email:pupilEmail},token('viewer'),201);
+const allAssignment=await call('/learning-classes/'+sharedClass.id+'/assignments','POST',{quizId:balanced.id,variantSettings:{questionMode:'all',randomForEachStudent:true},maxAttempts:2},token('viewer'),201);
+const allParticipant=await guest(allAssignment.roomCode,'All Questions',token('pupil'));
+const allSessionId=(await call('/game-sessions/by-code/'+allAssignment.roomCode)).id;
+const allSession=await call('/game-sessions/'+allSessionId,'GET',null,token('viewer'));assert.equal(allSession.players[0].questionOrder.length,50);assert.equal(allSession.settings.questionCount,50);
+assert.equal(allSession.settings.questionSelection.easy+allSession.settings.questionSelection.medium+allSession.settings.questionSelection.hard,50);
+const countAssignment=await call('/learning-classes/'+sharedClass.id+'/assignments','POST',{quizId:balanced.id,variantSettings:{questionMode:'count',questionCount:7,randomForEachStudent:true}},token('viewer'),201);
+await guest(countAssignment.roomCode,'Seven Questions',token('pupil'));
+const countSessionId=(await call('/game-sessions/by-code/'+countAssignment.roomCode)).id;
+const countSession=await call('/game-sessions/'+countSessionId,'GET',null,token('viewer'));assert.equal(countSession.players[0].questionOrder.length,7);
+await call('/learning-classes/'+sharedClass.id+'/assignments','POST',{quizId:balanced.id,variantSettings:{questionMode:'count',questionCount:51}},token('viewer'),400);
+await call('/learning-classes/'+sharedClass.id+'/assignments','POST',{quizId:balanced.id,availableFrom:later,dueAt:tomorrow},token('viewer'),400);
+assert.deepEqual((await call('/quizzes/'+balanced.id,'GET',null,token('owner'))).questionSelection,{easy:8,medium:8,hard:8});
+console.log('Class assignments: shared quiz permitted; All overrides quiz subset with all 50; custom 7-question balanced set; original quiz unchanged; invalid count/date rejected');
+
 
 } finally {sockets.forEach(s=>s.disconnect());}
 await call('/account/role','PATCH',{userId:users.editor.user.id,role:'STUDENT'},token('owner'));

@@ -248,7 +248,7 @@ export class GameFlowService {
         const feedbackMode = session.quiz.feedbackMode ?? QuizFeedbackMode.IMMEDIATE;
         this.gateway.server.to(clientId).emit(
             'answer_received',
-            feedbackMode === QuizFeedbackMode.IMMEDIATE ? result : { submitted: true },
+            feedbackMode === QuizFeedbackMode.IMMEDIATE ? result : { submitted: true, timedOut: result.timedOut },
         );
 
         let eliminated = false;

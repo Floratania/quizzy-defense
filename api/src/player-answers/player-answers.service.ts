@@ -133,6 +133,7 @@ export class PlayerAnswersService {
             sessionId: player.session_id,
             playerId: player.id,
             correct: isCorrect,
+            timedOut,
             earnedPoints,
             totalScore: player.totalScore,
             correctness,

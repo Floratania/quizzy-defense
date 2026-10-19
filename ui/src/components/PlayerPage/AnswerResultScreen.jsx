@@ -6,6 +6,7 @@ import { IconCheck, IconX, IconStar } from '@tabler/icons-react';
 import RichText from '../Question/RichText.jsx';
 
 export const AnswerResultScreen = ({ answerResult }) => {
+    if(answerResult.timedOut)return <Box mih="100vh" p="lg" style={{background:'linear-gradient(135deg, #dbeafe, #e9d5ff, #fce7f3)'}}><Paper maw={900} mx="auto" withBorder p="lg" radius="md"><Title order={2}>Час вийшов</Title><Text c="dimmed" mt="xs">Відповідь на це питання більше не приймається. Очікуємо наступне питання.</Text></Paper></Box>;
     if (answerResult.submitted && typeof answerResult.correct !== 'boolean') {
         return (
             <Box mih="100vh" style={{ display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #dbeafe, #e9d5ff)' }}>

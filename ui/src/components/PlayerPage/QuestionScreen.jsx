@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Badge, Box, Button, Grid, Group, Image, Paper, Stack, Text, TextInput } from '@mantine/core';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Badge, Box, Button, Grid, Group, Image, Paper, Stack, Text, TextInput } from '@mantine/core';
 import { IconGripVertical } from '@tabler/icons-react';
 import { usePlayerGameContext } from '../../context/PlayerGameContext.jsx';
 import { PlayerAnswerGrid } from '../../pages/PlayerAnswerGrid.jsx';
@@ -9,6 +9,8 @@ import RichText from '../Question/RichText.jsx';
 export const QuestionScreen = ({ question }) => {
     const { submitAnswer } = usePlayerGameContext();
     const [submitted, setSubmitted] = useState(false);
+    const submittedRef=useRef(false);
+    const [expired,setExpired]=useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [selectedAnswers, setSelectedAnswers] = useState([]);
     const [text, setText] = useState('');
@@ -24,7 +26,8 @@ export const QuestionScreen = ({ question }) => {
     );
 
     const send = (payload) => {
-        if (submitted) return;
+        if (submittedRef.current) return;
+        submittedRef.current=true;
         setSubmitted(true);
         submitAnswer(payload);
     };
@@ -32,13 +35,17 @@ export const QuestionScreen = ({ question }) => {
     useEffect(() => {
         if (question.practice) return;
         const timeout = window.setTimeout(() => {
-            setSubmitted((alreadySubmitted) => {
-                if (!alreadySubmitted) submitAnswer({ response: { timedOut: true } });
-                return true;
-            });
+            if(!submittedRef.current){
+                submittedRef.current=true;
+                setSubmitted(true);
+                setExpired(true);
+                submitAnswer({response:{timedOut:true}});
+            }
         }, question.endsAt ? Math.max(0, question.endsAt - Date.now()) : Math.max(1, Number(question.timeLimit) || 30) * 1000);
         return () => window.clearTimeout(timeout);
     }, [question.id, question.timeLimit, question.endsAt, question.practice, submitAnswer]);
+
+    if(expired)return <InteractiveShell title={question.text} imageUrl={question.mediaUrl} endsAt={question.endsAt} timeLimit={question.timeLimit}><Alert color="orange" title="Час вийшов" role="status">Відповідь більше не приймається. Очікуємо завершення раунду або наступне питання.</Alert></InteractiveShell>;
 
     if (question.type === 'multiple_choice' || question.type === 'true_false') {
         return (
@@ -51,6 +58,7 @@ export const QuestionScreen = ({ question }) => {
                 <Box maw={820} w="100%" mx="auto">
                     <PlayerAnswerGrid
                         compact
+                        disabled={submitted}
                         answers={question.answers}
                         selectedAnswer={selectedAnswer}
                         onSelect={(answerId) => { setSelectedAnswer(answerId); send({ answerId }); }}
@@ -241,7 +249,7 @@ export const QuestionScreen = ({ question }) => {
 
 function InteractiveShell({ title, imageUrl, hint, timeLimit, endsAt, children }) {
     return (
-        <Box p={timeLimit === null ? 0 : { base: "sm", sm: "lg" }} style={{ minHeight: timeLimit === null ? undefined : '100vh', background: timeLimit === null ? 'transparent' : '#f8f9fa' }}>
+        <Box p={timeLimit === null ? 0 : { base: "sm", sm: "lg" }} style={{ minHeight: timeLimit === null ? undefined : '100vh', background: timeLimit === null ? 'transparent' : 'linear-gradient(135deg, #dbeafe 0%, #e9d5ff 55%, #fce7f3 100%)' }}>
             <Paper maw={900} w="100%" mx="auto" p="md" radius="md" withBorder>
                 <Stack gap="sm">
                     <Group justify="space-between"><div style={{flex:1,minWidth:0}}><RichText>{title}</RichText></div>{timeLimit === null ? <Text size="xs" c="dimmed">Без таймера</Text> : <TimerBadge timeLimit={timeLimit} endsAt={endsAt} />}</Group>

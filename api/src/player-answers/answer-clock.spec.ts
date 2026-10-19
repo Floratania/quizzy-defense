@@ -11,16 +11,16 @@ describe('Server answer clock',()=>{
     afterEach(()=>jest.restoreAllMocks());
     it('ignores client zero and applies server penalty',async()=>{
         const result=await service.submitAnswer('socket','q','a',undefined,0);
-        expect(result.earnedPoints).toBe(950);expect(saved.timeTaken).toBe(5000);
+        expect(result.timedOut).toBe(false);expect(result.earnedPoints).toBe(950);expect(saved.timeTaken).toBe(5000);
     });
     it('accepts delayed timeout with zero points',async()=>{
         jest.spyOn(Date,'now').mockReturnValue(106000);
         const result=await service.submitAnswer('socket','q',undefined,{timedOut:true},11000);
-        expect(result.earnedPoints).toBe(0);expect(saved.timeTaken).toBe(10000);
+        expect(result.timedOut).toBe(true);expect(result.earnedPoints).toBe(0);expect(saved.timeTaken).toBe(10000);
     });
     it('late correct answer becomes timeout',async()=>{
         jest.spyOn(Date,'now').mockReturnValue(106000);
         const result=await service.submitAnswer('socket','q','a',undefined,0);
-        expect(result.correct).toBe(false);expect(result.earnedPoints).toBe(0);
+        expect(result.timedOut).toBe(true);expect(result.correct).toBe(false);expect(result.earnedPoints).toBe(0);
     });
 });

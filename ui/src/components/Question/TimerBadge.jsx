@@ -12,7 +12,7 @@ export function TimerBadge({ timeLimit, endsAt }) {
             color={timeLeft > 5 ? 'orange' : timeLeft > 0 ? "red" : "gray"}
             leftSection={<IconClock size={16} />}
         >
-            {timeLeft}s
+            {timeLeft > 0 ? `${timeLeft}s` : 'Час вийшов'}
         </Badge>
     );
 }

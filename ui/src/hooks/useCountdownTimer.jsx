@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export function useCountdownTimer(timeLimit, endsAt) {
-    const [timeLeft, setTimeLeft] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(() => Math.max(0, Math.ceil(((endsAt || Date.now() + (Number(timeLimit) || 0) * 1000) - Date.now()) / 1000)));
     const timerRef = useRef(null);
 
     useEffect(() => {

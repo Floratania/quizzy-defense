@@ -33,6 +33,7 @@ export class Quiz {
 
     @Column({ type: 'varchar', length: 100, default: 'Без теми' })
     topic: string;
+    @Column({ name: 'allow_mistake_practice', default: true }) allowMistakePractice: boolean;
     @Column({ name: 'time_penalty_enabled', default: true }) timePenaltyEnabled: boolean;
     @Column({ name: 'pass_threshold', type: 'int', default: 60 }) passThreshold: number;
     @Column({ name: 'available_from', type: 'timestamp', nullable: true }) availableFrom: Date | null;

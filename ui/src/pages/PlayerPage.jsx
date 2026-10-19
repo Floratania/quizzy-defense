@@ -50,7 +50,7 @@ const PlayerPageContent = () => {
                     <Stack align="center">
                         <ThemeIcon size={90} radius="xl" color="green"><IconCircleCheck size={50}/></ThemeIcon>
                         <Title>Тест завершено!</Title>
-                        <Button component={Link} to="/mistake-practice" variant="light">Робота над помилками</Button>
+                        {player.finalResult?.practiceAllowed && <Button component={Link} to="/mistake-practice" variant="light">Робота над помилками</Button>}
                         <Text size="xl">Дякуємо, {nickname}, за проходження тесту.</Text>
                         <Text c="dimmed">Ваші відповіді збережено. Результати доступні ведучому.</Text>
                         {player.finalResult && <Title order={2}>Ваш результат: {player.finalResult.totalScore} балів</Title>}

@@ -29,6 +29,7 @@ export function MistakePracticeContent({savedResult}) {
             <Text size="sm" c="dimmed">Повторення без таймера. Початкові бали та результати тесту не змінюються.</Text>
             {!sessionId ? <Paper withBorder p="lg"><Text>Спочатку пройди тест на цьому пристрої.</Text><Button component={Link} to="/join" mt="md">Приєднатися до тесту</Button></Paper>
                 : !result ? <Paper withBorder p="lg">{!waitExpired && !player.gameFinished ? <Group><Loader size="sm" /><Text>Відновлюємо результати…</Text></Group> : <><Text>Результати поки недоступні. Дочекайся завершення сеансу або повернися до гри.</Text><Button component={Link} to={returnTo} mt="md">Повернутися до гри</Button></>}</Paper>
+                : result.practiceAllowed === false ? <Alert color="gray">Робота над помилками недоступна за налаштуваннями викладача.</Alert>
                 : !Array.isArray(result.answers) ? <Alert color="blue">Викладач налаштував показ лише підсумкових балів. Детальні відповіді та тренування для цього тесту недоступні.</Alert>
                 : !mistakes.length ? <Paper withBorder p="lg"><Title order={3}>Помилок немає!</Title><Text mt="xs">Усі призначені питання виконано правильно.</Text></Paper>
                 : !current ? <Paper withBorder p="lg"><Title order={3}>Повторення завершено</Title><Text mt="xs">Виправлено питань: {Object.keys(corrected).length} із {mistakes.length}.</Text><Button mt="md" onClick={() => { setIndex(0); setGrade(null); setAttempt(0); setCorrected({}); }}>Повторити ще раз</Button></Paper>

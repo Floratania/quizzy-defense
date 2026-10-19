@@ -40,6 +40,7 @@ export class CreateQuizDto {
     @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxAttempts?: number;
     @IsOptional() @IsBoolean() requireFullscreen?: boolean;
     @IsOptional() @IsBoolean() trackTabSwitches?: boolean;
+    @IsOptional() @IsBoolean() allowMistakePractice?: boolean;
     @IsOptional() @IsBoolean() timePenaltyEnabled?: boolean;
     @IsOptional() @IsBoolean() showQuestionLeaderboard?: boolean;
 

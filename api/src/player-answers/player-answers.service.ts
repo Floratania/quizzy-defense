@@ -296,8 +296,10 @@ export class PlayerAnswersService {
             : [...player.session.quiz.questions].sort((a, b) => a.position - b.position);
         const correctCount = answers.filter((answer) => answer.isCorrect).length;
         const accuracy = questions.length ? Math.round(correctCount / questions.length * 100) : 0;
-        if (!includeAnswers) return { totalScore: player.totalScore, correctCount, totalAnswers: questions.length, accuracy, passThreshold: player.session.quiz.passThreshold, passed: accuracy >= player.session.quiz.passThreshold };
+        const practiceAllowed = includeAnswers && player.session.quiz.allowMistakePractice !== false;
+        if (!includeAnswers) return { practiceAllowed: false, totalScore: player.totalScore, correctCount, totalAnswers: questions.length, accuracy, passThreshold: player.session.quiz.passThreshold, passed: accuracy >= player.session.quiz.passThreshold };
         return {
+            practiceAllowed,
             totalScore: player.totalScore,
             correctCount,
             totalAnswers: questions.length,
@@ -313,12 +315,12 @@ export class PlayerAnswersService {
                     correct: answer?.isCorrect ?? false,
                     earnedPoints: answer?.earnedPoints ?? 0,
                     correctAnswer: this.formatCorrectAnswer(question),
-                    practiceQuestion: {
+                    ...(practiceAllowed ? { practiceQuestion: {
                         id: question.id, text: question.text, type: question.type,
                         mediaUrl: question.mediaUrl, explanation: question.explanation,
                         timeLimit: question.timeLimit, configuration: question.configuration,
                         answers: question.answers.map(({ id, text, mediaUrl, isCorrect }) => ({ id, text, mediaUrl, isCorrect })),
-                    },
+                    } } : {}),
                 };
             }),
         };

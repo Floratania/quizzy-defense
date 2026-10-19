@@ -26,7 +26,7 @@ export class StudentLearningService {
  }
  async summary(userId:number){
   const players=await this.completed(userId);const attempts:any[]=[];
-  for(const p of players){const result=await this.answers.getPlayerFinalResult(p.id,false);attempts.push({playerId:p.id,title:p.session.quiz.title,topic:p.session.quiz.topic||'Без теми',date:p.completedAt||p.joinedAt,reviewAllowed:p.session.quiz.feedbackMode!==QuizFeedbackMode.END_SCORE_ONLY,...result});}
+  for(const p of players){const result=await this.answers.getPlayerFinalResult(p.id,false);attempts.push({playerId:p.id,title:p.session.quiz.title,topic:p.session.quiz.topic||'Без теми',date:p.completedAt||p.joinedAt,reviewAllowed:p.session.quiz.allowMistakePractice!==false&&p.session.quiz.feedbackMode!==QuizFeedbackMode.END_SCORE_ONLY,...result});}
   const groups=new Map<string,any>();
   for(const a of attempts){const t=groups.get(a.topic)||{topic:a.topic,attempts:0,correct:0,questions:0,reviewAvailable:false};t.attempts++;t.correct+=a.correctCount;t.questions+=a.totalAnswers;t.reviewAvailable ||= a.reviewAllowed;groups.set(a.topic,t);}
   const correct=attempts.reduce((n,a)=>n+a.correctCount,0),questions=attempts.reduce((n,a)=>n+a.totalAnswers,0);
@@ -38,7 +38,7 @@ export class StudentLearningService {
   if(playerId){players=players.filter(p=>p.id===playerId);if(!players.length)throw new NotFoundException('Спробу не знайдено');}
   if(topic)players=players.filter(p=>(p.session.quiz.topic||'Без теми')===topic);
   const latest=new Map<string,any>();
-  for(const p of players){if(p.session.quiz.feedbackMode===QuizFeedbackMode.END_SCORE_ONLY){if(playerId)throw new ForbiddenException('Викладач вимкнув перегляд відповідей');continue;}const result=await this.answers.getPlayerFinalResult(p.id,true);for(const a of result.answers||[]){const key=a.practiceQuestion.id;if(!latest.has(key))latest.set(key,a);}}
+  for(const p of players){if(p.session.quiz.allowMistakePractice===false||p.session.quiz.feedbackMode===QuizFeedbackMode.END_SCORE_ONLY){if(playerId)throw new ForbiddenException('Викладач вимкнув роботу над помилками або перегляд відповідей');continue;}const result=await this.answers.getPlayerFinalResult(p.id,true);for(const a of result.answers||[]){if(!a.practiceQuestion)continue;const key=a.practiceQuestion.id;if(!latest.has(key))latest.set(key,a);}}
   return {answers:[...latest.values()].filter(a=>!a.correct)};
  }
 }

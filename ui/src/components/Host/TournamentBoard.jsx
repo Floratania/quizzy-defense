@@ -18,7 +18,7 @@ export default function TournamentBoard({ state, compact = false }) {
                     </ThemeIcon>
                     <div>
                         <Title order={compact ? 4 : 2}>{state.champion ? 'Турнір завершено' : stageNames[state.stage]}</Title>
-                        {!state.champion && <Text size="sm" c="dimmed">Питання {state.questionIndex} із {state.totalQuestions}</Text>}
+                        {!state.champion && <Text size="sm" c="dimmed">Питання етапу {state.stageQuestionIndex} із {state.stageQuestionCount} · Загалом {state.questionIndex} із {state.totalQuestions}</Text>}
                     </div>
                 </Group>
                 <Badge color="violet" size="lg">{state.activeTeamIds?.length || 0} команд</Badge>

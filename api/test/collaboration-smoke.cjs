@@ -308,6 +308,27 @@ console.log('Class statistics: all members including never-started, upcoming/com
 console.log('Class assignments: shared quiz permitted; All overrides quiz subset with all 50; custom 7-question balanced set; original quiz unchanged; invalid count/date rejected');
 
 
+const transferClass=await call('/learning-classes','POST',{name:'Transfer destination'},token('owner'),201);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}/transfer`,'POST',{targetClassId:transferClass.id},token('viewer'),404);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}`,'DELETE',null,token('pupil'),403);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}/transfer`,'POST',{targetClassId:sharedClass.id},token('owner'),404);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}/transfer`,'POST',{targetClassId:cls.id},token('owner'),400);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}/transfer`,'POST',{targetClassId:'bad'},token('owner'),400);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}/transfer`,'POST',{targetClassId:transferClass.id},token('owner'),201);
+let membershipClasses=await call('/learning-classes/my','GET',null,token('pupil'));
+assert(!membershipClasses.some(c=>c.id===cls.id));assert(membershipClasses.some(c=>c.id===transferClass.id));
+assert(!(await call('/account/assignments','GET',null,token('pupil'))).some(a=>a.id===repeatAssignment.id));
+assert((await call('/account/student-summary','GET',null,token('pupil'))).attempts.length>0);
+await call(`/learning-classes/${transferClass.id}/students/${pupil.id}`,'DELETE',null,token('viewer'),404);
+await call(`/learning-classes/${transferClass.id}/students/${pupil.id}`,'DELETE',null,token('owner'),200);
+assert(!(await call('/learning-classes/my','GET',null,token('pupil'))).some(c=>c.id===transferClass.id));
+await call(`/learning-classes/${transferClass.id}/students/${pupil.id}`,'DELETE',null,token('owner'),404);
+await call(`/learning-classes/${cls.id}/students/existing`,'POST',{email:pupilEmail},token('owner'),201);
+await call(`/learning-classes/${transferClass.id}/students/existing`,'POST',{email:pupilEmail},token('owner'),201);
+await call(`/learning-classes/${cls.id}/students/${pupil.id}/transfer`,'POST',{targetClassId:transferClass.id},token('owner'),201);
+assert.equal((await call('/learning-classes','GET',null,token('owner'))).find(c=>c.id===transferClass.id).students.filter(s=>s.id===pupil.id).length,1);
+console.log('Class removal and transfer: ownership, atomic transfer, duplicate membership, account/history preservation and assignment visibility passed');
+
 } finally {sockets.forEach(s=>s.disconnect());}
 await call('/account/role','PATCH',{userId:users.editor.user.id,role:'STUDENT'},token('owner'));
 await call('/question-bank','GET',null,token('editor'),403);

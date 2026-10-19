@@ -1,8 +1,9 @@
-import {IsEmail,IsOptional,Matches} from 'class-validator';
+import {IsEmail,IsOptional,IsUUID,Matches} from 'class-validator';
+class TransferStudentDto { @IsUUID() targetClassId:string; }
 class JoinClassDto { @Matches(/^[A-F0-9]{8}$/i) code:string; }
 class ExistingStudentDto { @IsOptional() @IsEmail() email?:string; @IsOptional() @Matches(/^QZ-[A-F0-9]{12}$/i) studentCode?:string; }
 import {TeacherGuard} from '@/guards/teacher.guard';
-import {Body,Controller,Get,Param,Patch,Post,Req,UseGuards} from '@nestjs/common';
+import {Body,Controller,Delete,Get,Param,ParseIntPipe,Patch,Post,Req,UseGuards} from '@nestjs/common';
 import {AuthGuard} from '@/guards/auth.guard';import {LearningClassesService} from './learning-classes.service';
 @Controller('learning-classes') export class LearningClassesController {constructor(private service:LearningClassesService){}
  @UseGuards(AuthGuard) @Post('join') join(@Body()d:JoinClassDto,@Req()r){return this.service.joinClass(r.user.id,d.code)}
@@ -13,6 +14,8 @@ import {AuthGuard} from '@/guards/auth.guard';import {LearningClassesService} fr
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/students/existing') existing(@Param('id')id:string,@Body()d:ExistingStudentDto,@Req()r){return this.service.addExistingStudent(id,r.user.id,d)}
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/students') student(@Param('id')id:string,@Body()d:{name:string,email:string,password:string},@Req()r){return this.service.addStudent(id,r.user.id,d)}
  @UseGuards(AuthGuard, TeacherGuard) @Patch(':id/students/:studentId') updateStudent(@Param('id')id:string,@Param('studentId')studentId:string,@Body()d:{name?:string,email?:string,password?:string},@Req()r){return this.service.updateStudent(id,Number(studentId),r.user.id,d)}
+ @UseGuards(AuthGuard, TeacherGuard) @Delete(':id/students/:studentId') removeStudent(@Param('id')id:string,@Param('studentId',ParseIntPipe)studentId:number,@Req()r){return this.service.changeMembership(id,studentId,r.user.id)}
+ @UseGuards(AuthGuard, TeacherGuard) @Post(':id/students/:studentId/transfer') transferStudent(@Param('id')id:string,@Param('studentId',ParseIntPipe)studentId:number,@Body()d:TransferStudentDto,@Req()r){return this.service.changeMembership(id,studentId,r.user.id,d.targetClassId)}
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/assignments') assign(@Param('id')id:string,@Body()d:any,@Req()r){return this.service.assign(id,r.user.id,d)}
  @UseGuards(AuthGuard, TeacherGuard) @Get('assignment/:token') assignment(@Param('token')token:string){return this.service.assignment(token)}
 }

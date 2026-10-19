@@ -57,6 +57,18 @@ export class LearningClassesService {
  }
  async addStudent(classId:string,teacherId:number,dto:{name:string,email:string,password:string}){const cls=await this.classes.findOneBy({id:classId,teacherId});if(!cls)throw new NotFoundException('Class not found');let student=await this.users.findOneBy({email:dto.email});if(!student)student=await this.users.save(this.users.create({name:dto.name,email:dto.email,password:await bcrypt.hash(dto.password,10),role:'STUDENT',managedByTeacherId:teacherId}));if(student.role!=='STUDENT')throw new BadRequestException('Цей акаунт не є учнем');if(await this.members.existsBy({classId,studentId:student.id}))throw new BadRequestException('Student already belongs to class');await this.members.save(this.members.create({classId,studentId:student.id}));return {id:student.id,name:student.name,email:student.email};}
  async updateStudent(classId:string,studentId:number,teacherId:number,dto:{name?:string,email?:string,password?:string}){if(!await this.classes.existsBy({id:classId,teacherId})||!await this.members.existsBy({classId,studentId}))throw new NotFoundException('Student not found in class');const student=await this.users.findOneBy({id:studentId});if(!student)throw new NotFoundException('Student not found');if(student.managedByTeacherId!==teacherId)throw new BadRequestException('Особистий акаунт учня не можна змінювати через клас');if(student.role!=='STUDENT')throw new BadRequestException('Цей акаунт не є учнем');if(dto.email&&dto.email!==student.email&&await this.users.existsBy({email:dto.email}))throw new BadRequestException('Email already in use');if(dto.name?.trim())student.name=dto.name.trim();if(dto.email?.trim())student.email=dto.email.trim();if(dto.password?.trim())student.password=await bcrypt.hash(dto.password,10);student.role='STUDENT';await this.users.save(student);return{id:student.id,name:student.name,email:student.email};}
+ async changeMembership(classId:string,studentId:number,teacherId:number,targetClassId?:string){
+  if(targetClassId===classId)throw new BadRequestException('Оберіть інший клас');
+  return this.classes.manager.transaction(async manager=>{
+   const owned=await manager.getRepository(LearningClass).find({where:{id:In(targetClassId?[classId,targetClassId]:[classId]),teacherId},order:{id:'ASC'},lock:{mode:'pessimistic_write'}});
+   if(owned.length!==(targetClassId?2:1))throw new NotFoundException('Клас не знайдено');
+   const members=manager.getRepository(ClassStudent);
+   if(!await members.existsBy({classId,studentId}))throw new NotFoundException('Учня не знайдено в класі');
+   if(targetClassId)await members.upsert({classId:targetClassId,studentId},['classId','studentId']);
+   await members.delete({classId,studentId});
+   return {removedFromClassId:classId,studentId,...(targetClassId?{targetClassId}:{})};
+  });
+ }
  async assign(classId:string,teacherId:number,dto:{quizId:string,dueAt?:string,availableFrom?:string,maxAttempts?:number,variantSettings?:Record<string,unknown>}) {
   if(!await this.classes.existsBy({id:classId,teacherId}))throw new NotFoundException('Клас не знайдено');
   const quiz=await this.quizzes.findOne({where:{id:dto.quizId},relations:['questions']});

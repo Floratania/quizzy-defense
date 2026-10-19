@@ -137,6 +137,16 @@ await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournam
 await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:[{count:0,difficulty:'easy'}]},token('owner'),400);
 await call('/game-sessions/'+manualTournament.id+'/finish','POST',{},token('owner'),201);
 await call('/game-sessions/'+autoTournament.id+'/finish','POST',{},token('owner'),201);
+const mixedStages=[{selection:{easy:4,medium:5,hard:0}},{selection:{easy:1,medium:2,hard:3}},{selection:{easy:0,medium:0,hard:4}}];
+const mixedTournament=await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:mixedStages,tournamentTeamCount:4},token('owner'),201);
+for(let i=0;i<4;i++)await guest(mixedTournament.roomCode,'Mixed '+i);
+const mixedState=await call('/game-sessions/'+mixedTournament.id,'GET',null,token('owner'));
+assert.deepEqual(mixedState.settings.tournamentPlan.stages.map(s=>s.count),[9,6,4]);
+for(const player of mixedState.players){assert.equal(player.questionOrder.length,19);assert.equal(new Set(player.questionOrder).size,19);assert.deepEqual(player.questionOrder.slice(0,9).map(id=>difficultyById.get(id)),[...Array(4).fill('easy'),...Array(5).fill('medium')]);}
+await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:[{selection:{easy:1,medium:1,hard:0}},{selection:{easy:0,medium:16,hard:1}},{selection:{easy:0,medium:0,hard:1}}]},token('owner'),400);
+await call('/game-sessions','POST',{quizId:balanced.id,mode:'TOURNAMENT',tournamentQuestionMode:'MANUAL',tournamentStagePlan:[{selection:{easy:1,medium:1,hard:0}},{selection:{easy:0,medium:0,hard:0}},{selection:{easy:0,medium:0,hard:1}}]},token('owner'),400);
+await call('/game-sessions/'+mixedTournament.id+'/finish','POST',{},token('owner'),201);
+console.log('Mixed tournament: 4 easy + 5 medium in qualification, 9/6/4 stage sizes, no repeated questions, aggregate pool limits and empty-stage validation passed');
 console.log('Tournament plans: automatic quotas, manual 2/3/4, four teams with identical difficulty slots and unique questions, invalid pools rejected');
 
 const game=await call('/game-sessions','POST',{quizId:balanced.id},token('owner'),201);

@@ -20,6 +20,17 @@ describe('Tournament stage plans',()=>{
   expect(sessionQuestionCount({quiz:{questions:pool,questionSelection:{easy:1,medium:1,hard:1}},settings:{tournamentPlan:plan}})).toBe(9);
   expect(tournamentBoundaries({tournamentPlan:plan},9)).toEqual({qualificationEnd:2,semifinalEnd:5});
  });
+ it('supports mixed quotas per stage with the same difficulty slots for all players',()=>{
+  const plan=buildTournamentPlan(pool,'MANUAL',[{selection:{easy:4,medium:5,hard:0}},{selection:{easy:1,medium:2,hard:3}},{selection:{easy:0,medium:0,hard:4}}]);
+  expect(plan.stages.map(s=>s.count)).toEqual([9,6,4]);
+  expect(tournamentBoundaries({tournamentPlan:plan},19)).toEqual({qualificationEnd:9,semifinalEnd:15});
+  for(let i=0;i<10;i++){
+   const ids=tournamentOrder(pool,plan);expect(new Set(ids).size).toBe(19);
+   expect(ids.slice(0,9).map(id=>id.replace(/\d/g,''))).toEqual([...Array(4).fill('easy'),...Array(5).fill('medium')]);
+   expect(ids.slice(9,15).map(id=>id.replace(/\d/g,''))).toEqual(['easy','medium','medium','hard','hard','hard']);
+  }
+  expect(()=>buildTournamentPlan(pool,'MANUAL',[{selection:{easy:4,medium:5,hard:0}},{selection:{easy:0,medium:6,hard:1}},{selection:{easy:0,medium:0,hard:1}}])).toThrow('Недостатньо');
+ });
  it('rejects empty stages, missing levels and cumulative over-allocation',()=>{
   expect(()=>buildTournamentPlan(pool,'MANUAL',[{difficulty:'easy',count:6},{difficulty:'easy',count:5},{difficulty:'hard',count:1}])).toThrow('Недостатньо');
   expect(()=>buildTournamentPlan(pool,'MANUAL',[])).toThrow();

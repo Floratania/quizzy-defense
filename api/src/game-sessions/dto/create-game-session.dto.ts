@@ -4,9 +4,15 @@ import {ValidateNested} from 'class-validator';
 import { IsUUID, IsOptional, IsInt, Min, MaxLength, IsEnum, Max, IsArray, IsString, IsIn } from 'class-validator';
 import { GameMode } from '../entities/game-session.entity';
 
+class TournamentSelectionDto {
+ @IsInt() @Min(0) @Max(1000) easy:number;
+ @IsInt() @Min(0) @Max(1000) medium:number;
+ @IsInt() @Min(0) @Max(1000) hard:number;
+}
 class TournamentStageDto {
- @IsInt() @Min(1) @Max(1000) count:number;
- @IsIn(['easy','medium','hard']) difficulty:'easy'|'medium'|'hard';
+ @IsOptional() @ValidateNested() @Type(()=>TournamentSelectionDto) selection?:TournamentSelectionDto;
+ @IsOptional() @IsInt() @Min(1) @Max(1000) count?:number;
+ @IsOptional() @IsIn(['easy','medium','hard']) difficulty?:'easy'|'medium'|'hard';
 }
 export class CreateGameSessionDto {
  @IsOptional() @IsIn(['AUTO','MANUAL']) tournamentQuestionMode?:'AUTO'|'MANUAL';

@@ -226,6 +226,11 @@ const countSession=await call('/game-sessions/'+countSessionId,'GET',null,token(
 await call('/learning-classes/'+sharedClass.id+'/assignments','POST',{quizId:balanced.id,variantSettings:{questionMode:'count',questionCount:51}},token('viewer'),400);
 await call('/learning-classes/'+sharedClass.id+'/assignments','POST',{quizId:balanced.id,availableFrom:later,dueAt:tomorrow},token('viewer'),400);
 assert.deepEqual((await call('/quizzes/'+balanced.id,'GET',null,token('owner'))).questionSelection,{easy:8,medium:8,hard:8});
+
+const repeatAssignment=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:openQuiz.id,maxAttempts:2,variantSettings:{questionMode:'all'}},token('owner'),201);
+for(let attempt=0;attempt<2;attempt++){const participant=await guest(repeatAssignment.roomCode,'Same Pupil',token('pupil'));const finish=event(participant.socket,'game_finished');participant.socket.emit('resume_session',participant.joined);await finish;}
+assert.equal((await call('/account/assignments','GET',null,token('pupil'))).find(a=>a.id===repeatAssignment.id).status,'COMPLETED');
+assert.match(await rejectedJoin(repeatAssignment.roomCode,token('pupil')),/attempt limit/);
 console.log('Class assignments: shared quiz permitted; All overrides quiz subset with all 50; custom 7-question balanced set; original quiz unchanged; invalid count/date rejected');
 
 

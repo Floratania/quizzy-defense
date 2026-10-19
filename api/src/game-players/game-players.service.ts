@@ -65,7 +65,7 @@ export class GamePlayersService {
             throw new BadRequestException('This session is not open for joining');
 
         // Check duplicates
-        const sameName = session.players.find((p) => p.nickname === nickname);
+        const sameName = session.players.find((p) => p.nickname === nickname && !(session.settings?.classId && p.studentId === studentId && p.completedAt));
         if (sameName) throw new BadRequestException('Nickname already taken');
 
         let team: SessionTeam | null = null;

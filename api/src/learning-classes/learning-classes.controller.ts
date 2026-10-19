@@ -7,6 +7,7 @@ import {AuthGuard} from '@/guards/auth.guard';import {LearningClassesService} fr
 @Controller('learning-classes') export class LearningClassesController {constructor(private service:LearningClassesService){}
  @UseGuards(AuthGuard) @Post('join') join(@Body()d:JoinClassDto,@Req()r){return this.service.joinClass(r.user.id,d.code)}
  @UseGuards(AuthGuard) @Get('my') mine(@Req()r){return this.service.studentClasses(r.user.id)}
+ @UseGuards(AuthGuard, TeacherGuard) @Get(':id/statistics') statistics(@Param('id')id:string,@Req()r){return this.service.statistics(id,r.user.id)}
  @UseGuards(AuthGuard, TeacherGuard) @Get() all(@Req()r){return this.service.all(r.user.id)}
  @UseGuards(AuthGuard, TeacherGuard) @Post() create(@Body()d:{name:string},@Req()r){return this.service.create(d.name,r.user.id)}
  @UseGuards(AuthGuard, TeacherGuard) @Post(':id/students/existing') existing(@Param('id')id:string,@Body()d:ExistingStudentDto,@Req()r){return this.service.addExistingStudent(id,r.user.id,d)}

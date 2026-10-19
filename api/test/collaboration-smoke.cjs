@@ -282,6 +282,27 @@ const repeatAssignment=await call('/learning-classes/'+cls.id+'/assignments','PO
 for(let attempt=0;attempt<2;attempt++){const participant=await guest(repeatAssignment.roomCode,'Same Pupil',token('pupil'));const finish=event(participant.socket,'game_finished');participant.socket.emit('resume_session',participant.joined);await finish;}
 assert.equal((await call('/account/assignments','GET',null,token('pupil'))).find(a=>a.id===repeatAssignment.id).status,'COMPLETED');
 assert.match(await rejectedJoin(repeatAssignment.roomCode,token('pupil')),/attempt limit/);
+const beforeClose=await call('/learning-classes/'+cls.id+'/statistics','GET',null,token('owner'));
+assert.equal(beforeClose.rows.find(r=>r.assignmentId===repeatAssignment.id&&r.studentId===pupil.id).status,'COMPLETED');
+assert.equal(beforeClose.rows.find(r=>r.assignmentId===futureAssignment.id&&r.studentId===pupil.id).status,'UPCOMING');
+await call('/learning-classes/'+cls.id+'/statistics','GET',null,token('viewer'),404);
+await call('/learning-classes/'+cls.id+'/statistics','GET',null,token('pupil'),403);
+const unattempted=await call('/learning-classes/'+cls.id+'/assignments','POST',{quizId:openQuiz.id,maxAttempts:1,variantSettings:{questionMode:'all'}},token('owner'),201);
+let classStats=await call('/learning-classes/'+cls.id+'/statistics','GET',null,token('owner'));
+assert.equal(classStats.rows.find(r=>r.assignmentId===unattempted.id&&r.studentId===pupil.id).status,'NOT_STARTED');
+const unattemptedSession=(await call('/game-sessions/by-code/'+unattempted.roomCode)).id;
+await call('/game-sessions/'+unattemptedSession+'/finish','POST',{},token('owner'),201);
+classStats=await call('/learning-classes/'+cls.id+'/statistics','GET',null,token('owner'));
+assert.equal(classStats.rows.find(r=>r.assignmentId===unattempted.id&&r.studentId===pupil.id).status,'NOT_COMPLETED');
+assert.equal(classStats.assignments.find(a=>a.id===unattempted.id).closed,true);
+assert.equal(classStats.assignments.find(a=>a.id===unattempted.id).questionTypes.open_text,1);
+assert.equal((await call('/quizzes/'+openQuiz.id,'GET',null,token('owner'))).timePenaltyEnabled,false);
+await call('/quizzes/'+openQuiz.id,'PATCH',{title:'Open assigned quiz',questions:[{...question('One second'),timeLimit:1}],timePenaltyEnabled:true},token('owner'));
+assert.equal((await call('/quizzes/'+openQuiz.id,'GET',null,token('owner'))).timePenaltyEnabled,true);
+const timedSession=await call('/game-sessions','POST',{quizId:openQuiz.id},token('owner'),201);assert.equal(timedSession.settings.timePenaltyEnabled,true);
+await call('/quizzes/'+openQuiz.id,'PATCH',{title:'Open assigned quiz',questions:[{...question('One second'),timeLimit:1}],timePenaltyEnabled:false},token('owner'));
+assert.equal((await call('/game-sessions/'+timedSession.id,'GET',null,token('owner'))).settings.timePenaltyEnabled,true);
+console.log('Class statistics: all members including never-started, upcoming/completed/closed status, question types, teacher isolation; time scoring setting persisted and frozen per session');
 console.log('Class assignments: shared quiz permitted; All overrides quiz subset with all 50; custom 7-question balanced set; original quiz unchanged; invalid count/date rejected');
 
 

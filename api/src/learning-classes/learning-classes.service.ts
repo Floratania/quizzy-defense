@@ -1,3 +1,6 @@
+import {In} from 'typeorm';
+import {GameSession} from '../game-sessions/entities/game-session.entity';
+import {classStatistics} from './class-statistics';
 import {BadRequestException,ForbiddenException,HttpException,Injectable,NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
@@ -12,6 +15,13 @@ import {GameSessionsService} from '@/game-sessions/game-sessions.service';
 @Injectable()
 export class LearningClassesService {
  constructor(@InjectRepository(LearningClass)private classes:Repository<LearningClass>,@InjectRepository(ClassStudent)private members:Repository<ClassStudent>,@InjectRepository(QuizAssignment)private assignments:Repository<QuizAssignment>,@InjectRepository(User)private users:Repository<User>,@InjectRepository(Quiz)private quizzes:Repository<Quiz>,private sessions:GameSessionsService){}
+ async statistics(classId:string,teacherId:number){
+  const cls=await this.classes.findOneBy({id:classId,teacherId});if(!cls)throw new NotFoundException('Клас не знайдено');
+  const students=await this.members.query('SELECT u.id,u.name,u.email FROM class_students m JOIN "user" u ON u.id=m.student_id WHERE m.class_id=$1 ORDER BY u.name',[classId]);
+  const assignments=await this.assignments.find({where:{classId},order:{createdAt:'DESC'}});
+  const sessions=assignments.length?await this.assignments.manager.getRepository(GameSession).find({where:{roomCode:In(assignments.map(a=>a.roomCode))},relations:['quiz','quiz.questions','players','players.answers','players.answers.question']}):[];
+  return {classId,className:cls.name,...classStatistics(students,assignments,sessions)};
+ }
  private joinAttempts=new Map<number,{count:number,until:number}>();
  async studentClasses(studentId:number) {
   return this.members.query(`SELECT c.id,c.name,u.name AS "teacherName" FROM class_students m JOIN learning_classes c ON c.id=m.class_id JOIN "user" u ON u.id=c.teacher_id WHERE m.student_id=$1 ORDER BY m."createdAt" DESC`,[studentId]);

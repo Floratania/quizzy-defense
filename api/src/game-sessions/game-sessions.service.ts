@@ -58,7 +58,7 @@ export class GameSessionsService {
                 ...(quiz.questionSelection ? { questionSelection: quiz.questionSelection } : {}),
                 ...(dto.mode === GameMode.SURVIVAL ? { survivalMistakeLimit: dto.survivalMistakeLimit ?? 1 } : {}),
                 showQuestionLeaderboard: quiz.showQuestionLeaderboard,
-                passThreshold: quiz.passThreshold, maxAttempts: quiz.maxAttempts,
+                timePenaltyEnabled: quiz.timePenaltyEnabled, passThreshold: quiz.passThreshold, maxAttempts: quiz.maxAttempts,
                 requireFullscreen: quiz.requireFullscreen, trackTabSwitches: quiz.trackTabSwitches,
                 ...([GameMode.TEAM, GameMode.TOURNAMENT].includes(dto.mode as GameMode) ? {
                     teamCount: dto.mode === GameMode.TOURNAMENT ? (dto.tournamentTeamCount ?? 4) : (dto.teamCount ?? 2),

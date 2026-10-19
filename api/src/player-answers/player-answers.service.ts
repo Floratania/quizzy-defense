@@ -105,7 +105,7 @@ export class PlayerAnswersService {
 
         if (correctness > 0) {
             const base = question.points;
-            const penalty = Math.floor(timeTaken / 100); // 100 ms = -1 point
+            const penalty = player.session.settings?.timePenaltyEnabled === false ? 0 : Math.floor(timeTaken / 100); // 100 ms = -1 point
             earnedPoints = Math.max(Math.round(base * correctness) - penalty, 0);
         }
 

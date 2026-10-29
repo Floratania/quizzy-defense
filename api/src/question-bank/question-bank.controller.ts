@@ -3,11 +3,22 @@ import { Body, Controller, Delete, Get, Param, Post, Patch, Query, Req, UseGuard
 import { AuthGuard } from '@/guards/auth.guard';
 import { CreateQuestionBankItemDto } from './dto/create-question-bank-item.dto';
 import { QuestionBankService } from './question-bank.service';
+import {CreateQuestionBankFolderDto} from './dto/create-question-bank-folder.dto';
 
 @UseGuards(AuthGuard, TeacherGuard)
 @Controller('question-bank')
 export class QuestionBankController {
     constructor(private readonly service: QuestionBankService) {}
+
+    @Get('folders')
+    folders(@Req() req, @Query('ownerId') ownerId?: string) {
+        return this.service.folders(req.user.id, ownerId ? Number(ownerId) : req.user.id);
+    }
+
+    @Post('folders')
+    createFolder(@Req() req, @Body() dto: CreateQuestionBankFolderDto) {
+        return this.service.createFolder(req.user.id, dto.name, dto.ownerId ?? req.user.id);
+    }
 
     @Get('shared-banks') banks(@Req()req) {return this.service.banks(req.user.id);}
     @Get('collaborators') members(@Req()req) {return this.service.collaborators(req.user.id);}
@@ -26,14 +37,14 @@ export class QuestionBankController {
     }
 
     @Get()
-    findAll(@Req() req, @Query('search') search?: string, @Query('topic') topic?: string, @Query('ownerId') ownerId?: string) {
-        return this.service.sharedItems(req.user.id, ownerId ? Number(ownerId) : req.user.id, search, topic);
+    findAll(@Req() req, @Query('search') search?: string, @Query('topic') topic?: string, @Query('ownerId') ownerId?: string, @Query('folder') folder?: string) {
+        return this.service.sharedItems(req.user.id, ownerId ? Number(ownerId) : req.user.id, search, topic, folder);
     }
 
     @Get('pick/automatic')
-    async pick(@Req() req, @Query('topic') topic = '', @Query('easy') easy = '0', @Query('medium') medium = '0', @Query('hard') hard = '0', @Query('ownerId') ownerId?:string) {
+    async pick(@Req() req, @Query('topic') topic = '', @Query('easy') easy = '0', @Query('medium') medium = '0', @Query('hard') hard = '0', @Query('ownerId') ownerId?:string, @Query('folder') folder?: string) {
         const owner=ownerId?Number(ownerId):req.user.id;await this.service.bankRole(req.user.id,owner);
-        return this.service.pick(owner, topic, Number(easy), Number(medium), Number(hard));
+        return this.service.pick(owner, topic, Number(easy), Number(medium), Number(hard), folder);
     }
 
     @Get(':id/usage')

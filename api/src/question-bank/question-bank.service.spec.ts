@@ -35,3 +35,45 @@ describe('Question bank examples', () => {
         expect(repository.save).not.toHaveBeenCalled();
     });
 });
+
+describe('Question bank folders', () => {
+    it('filters questions by the exact folder within the owner bank', async () => {
+        const repository = {find: jest.fn().mockResolvedValue([])};
+        const service = new QuestionBankService(repository as any, {} as any);
+        await service.findAll(42, undefined, undefined, '  Алгебра 7 клас  ');
+        expect(repository.find.mock.calls[0][0].where).toEqual({userId:42,folder:'Алгебра 7 клас'});
+    });
+
+    it('does not disclose folders of a private bank', async () => {
+        const repository = {query: jest.fn().mockResolvedValue([])};
+        const service = new QuestionBankService(repository as any, {} as any);
+        await expect(service.folders(42,99)).rejects.toThrow('Немає доступу');
+        expect(repository.query).toHaveBeenCalledTimes(1);
+        expect(repository.query.mock.calls[0][0]).toContain('question_bank_access');
+    });
+
+    it('allows a shared viewer to read folders but not create them', async () => {
+        const repository = {query:jest.fn().mockResolvedValueOnce([{role:'VIEWER'}]).mockResolvedValueOnce([{name:'Фізика',count:2}]).mockResolvedValueOnce([{role:'VIEWER'}])};
+        const service = new QuestionBankService(repository as any, {} as any);
+        expect(await service.folders(42,99)).toEqual([{name:'Фізика',count:2}]);
+        await expect(service.createFolder(42,'Нова',99)).rejects.toThrow('Немає доступу');
+        expect(repository.query.mock.calls.some(([sql]) => sql.includes('INSERT'))).toBe(false);
+    });
+
+    it('creates a persistent empty folder and trims its name', async () => {
+        const repository = {query:jest.fn().mockResolvedValue([])};
+        const service = new QuestionBankService(repository as any, {} as any);
+        expect(await service.createFolder(42,'  Геометрія  ')).toEqual({name:'Геометрія'});
+        expect(repository.query).toHaveBeenCalledWith(expect.stringContaining('ON CONFLICT'),[42,'Геометрія']);
+        await expect(service.createFolder(42,'   ')).rejects.toThrow('Назва папки');
+    });
+
+    it('uses the folder for automatic selection and rejects invalid counts', async () => {
+        const repository = {find:jest.fn().mockResolvedValue([{id:'q1',difficulty:'easy'}])};
+        const service = new QuestionBankService(repository as any, {} as any);
+        expect(await service.pick(42,'',1,0,0,'Геометрія')).toEqual([{id:'q1',difficulty:'easy'}]);
+        expect(repository.find.mock.calls[0][0].where).toEqual({userId:42,folder:'Геометрія'});
+        await expect(service.pick(42,'',-1)).rejects.toThrow('Кількість питань');
+        await expect(service.pick(42,'',1.5)).rejects.toThrow('Кількість питань');
+    });
+});

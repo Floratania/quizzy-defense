@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Title, Stack, TextInput, Textarea, Text, Select, Checkbox, NumberInput, Paper, SimpleGrid } from "@mantine/core";
 import { useQuizContext } from "../../../../context/QuizContext.jsx";
+import BankFolderSelect from './BankFolderSelect.jsx';
 
 export const QuizBasicInfo = () => {
     const { formData, updateFormData } = useQuizContext();
@@ -65,7 +66,7 @@ export const QuizBasicInfo = () => {
                     maxLength={100}
                 />
 
-                <TextInput label="Папка для банку питань" value={formData.bankFolder || 'Загальна'} onChange={(e) => updateFormData({ bankFolder: e.currentTarget.value })} />
+                <BankFolderSelect label="Папка для нових питань у банку" description="Використовується, якщо під час додавання питання позначено «Також зберегти в банк питань»." value={formData.bankFolder || 'Загальна'} onChange={bankFolder => updateFormData({bankFolder})} />
                 <TextInput label="Теги для банку" description="Через кому" placeholder="формули, 7 клас, контрольна" value={formData.bankTags || ''} onChange={(e) => updateFormData({ bankTags: e.currentTarget.value })} />
 
                 <Select

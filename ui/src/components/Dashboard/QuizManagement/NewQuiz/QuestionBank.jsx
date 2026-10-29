@@ -1,6 +1,7 @@
 import BankItemEditor from './BankItemEditor.jsx';
 import BankAccess from './BankAccess.jsx';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import BankFolderSelect from './BankFolderSelect.jsx';
 import { ActionIcon, Badge, Button, Card, Group, Image, Paper, Select, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import RichText from '../../../Question/RichText.jsx';
 import { notifications } from '@mantine/notifications';
@@ -35,24 +36,28 @@ const QuestionBankContents = () => {
     const [editingItem,setEditingItem]=useState(null);
     const [search, setSearch] = useState('');
     const [topic, setTopic] = useState(null);
+    const [folder, setFolder] = useState(null);
+    const requestId = useRef(0);
+    const invalidateRequests = useCallback(() => {requestId.current++;}, []);
     const [loading, setLoading] = useState(false);
     const [addingExamples, setAddingExamples] = useState(false);
     const [questionsVisible, setQuestionsVisible] = useState(false);
     const [counts, setCounts] = useState({ easy: 0, medium: 0, hard: 0 });
 
-    const load = async () => {
+    const load = useCallback(async () => {
+        const currentRequest = ++requestId.current;
         setLoading(true);
-        try { setItems(await getQuestionBank(search, topic || '',ownerId)); }
-        catch { notifications.show({ color: 'red', message: 'Не вдалося завантажити банк питань' }); }
-        finally { setLoading(false); }
-    };
+        try { const result = await getQuestionBank(search, topic || '',ownerId, folder || '');if (currentRequest === requestId.current) setItems(result); }
+        catch { if (currentRequest === requestId.current) notifications.show({ color: 'red', message: 'Не вдалося завантажити банк питань' }); }
+        finally { if (currentRequest === requestId.current) setLoading(false); }
+    }, [search, topic, ownerId, folder]);
 
     useEffect(() => {
-        load();
+        const timer = setTimeout(load, 200);
         const refresh = () => load();
         window.addEventListener('question-bank-updated', refresh);
-        return () => window.removeEventListener('question-bank-updated', refresh);
-    }, [ownerId]);
+        return () => {clearTimeout(timer);invalidateRequests();window.removeEventListener('question-bank-updated', refresh);};
+    }, [load, invalidateRequests]);
     const topics = useMemo(() => [...new Set(items.map((item) => item.topic))].map((value) => ({ value, label: value })), [items]);
 
     const remove = async (id) => {
@@ -60,15 +65,18 @@ const QuestionBankContents = () => {
         setItems((previous) => previous.filter((item) => item.id !== id)); } catch { notifications.show({color:"red",message:"Немає права видаляти питання з цього банку"}); }
     };
     const autoPick = async () => {
-        const selected = await pickQuestionsFromBank(topic || '', counts,ownerId);
-        selected.forEach((item) => addQuestionFromBank({ ...item.payload, difficulty: item.difficulty }));
-        notifications.show({ color: 'green', message: `Додано питань: ${selected.length}` });
+        try {
+            const selected = await pickQuestionsFromBank(topic || '', counts,ownerId,folder || '');
+            selected.forEach((item) => addQuestionFromBank({ ...item.payload, difficulty: item.difficulty }));
+            notifications.show({ color: 'green', message: `Додано питань: ${selected.length}` });
+        } catch { notifications.show({color:'red',message:'Не вдалося підібрати питання'}); }
     };
     const showUsage = async (id) => { const usage=await getQuestionUsage(id); alert(usage.length ? `Використано у:\n${usage.map((x)=>`• ${x.title}`).join('\n')}` : 'Питання ще не використовувалось у збережених вікторинах'); };
 
     return (
         <Stack gap="md" mt="md">
-            <BankAccess ownerId={ownerId} onChange={setOwnerId}/>
+            <BankAccess ownerId={ownerId} onChange={value => {setOwnerId(value);setFolder(null);setTopic(null);setItems([]);setQuestionsVisible(false);}}/>
+            <BankFolderSelect label="Папка для вибору питань" clearable value={folder} onChange={setFolder} ownerId={ownerId} allowCreate={!ownerId} description="Пошук і автоматичний підбір використовують вибрану папку. Очистіть поле, щоб переглянути всі папки." />
             {editingItem&&<BankItemEditor key={editingItem.id} item={editingItem} onClose={()=>setEditingItem(null)} onSaved={()=>{setEditingItem(null);load();}}/>}
             <Group justify="flex-end">
                 <Button variant="light" color="teal" disabled={Boolean(ownerId)} loading={addingExamples} onClick={async () => {

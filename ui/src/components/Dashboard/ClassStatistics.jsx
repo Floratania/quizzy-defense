@@ -5,9 +5,9 @@ import apiClient from '../../api/apiClient.js';
 const labels={COMPLETED:'Завершено',NOT_COMPLETED:'Не виконано до закриття',IN_PROGRESS:'Розпочато',NOT_STARTED:'Не розпочато',UPCOMING:'Ще не відкрито'};
 const types={multiple_choice:'Одна відповідь',multiple_response:'Кілька відповідей',true_false:'Правда / неправда',open_text:'Відкритий текст',matching:'Відповідності',ordering:'Порядок',fill_blank:'Пропуски'};
 const date=value=>value?new Date(value).toLocaleString('uk-UA'):'—';
-export default function ClassStatistics({classId,initialStudentId,onClose}){
+export default function ClassStatistics({classId,initialStudentId,initialAssignmentId,onClose}){
  const [data,setData]=useState(null),[error,setError]=useState(''),[loading,setLoading]=useState(false);
- const [student,setStudent]=useState(initialStudentId?String(initialStudentId):null),[assignment,setAssignment]=useState(null),[status,setStatus]=useState(null),[passed,setPassed]=useState(null),[search,setSearch]=useState(''),[type,setType]=useState(null),[from,setFrom]=useState(''),[to,setTo]=useState(''),[detail,setDetail]=useState(null);
+ const [student,setStudent]=useState(initialStudentId?String(initialStudentId):null),[assignment,setAssignment]=useState(initialAssignmentId||null),[status,setStatus]=useState(null),[passed,setPassed]=useState(null),[search,setSearch]=useState(''),[type,setType]=useState(null),[from,setFrom]=useState(''),[to,setTo]=useState(''),[detail,setDetail]=useState(null);
  const load=async()=>{setLoading(true);setError('');try{const {data}=await apiClient.get(`/learning-classes/${classId}/statistics`);setData(data);}catch(e){setError(e.response?.data?.message||'Не вдалося завантажити статистику');}finally{setLoading(false);}};
  useEffect(()=>{load();},[classId]);
  const rows=(data?.rows||[]).filter(r=>{

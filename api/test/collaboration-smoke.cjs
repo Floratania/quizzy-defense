@@ -8,13 +8,14 @@ const dbName='quizzy_collaboration_check_'+Date.now();
 const config={host:process.env.DB_HOST||'localhost',port:Number(process.env.DB_PORT||5432),user:process.env.DB_USERNAME||'postgres',password:process.env.DB_PASSWORD||'1111',database:'postgres'};
 const admin=new Client(config); let child; let checks=0;
 const base='http://127.0.0.1:3002';
-async function call(path,method='GET',body,token,status=200){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});const data=await r.json().catch(()=>null);assert.equal(r.status,status,method+' '+path+' '+JSON.stringify(data));checks++;return data;}
+async function call(path,method='GET',body,token,status=200){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(path==='/auth/signup'?{personalDataConsent:true,...body}:body)}:{})});const data=await r.json().catch(()=>null);assert.equal(r.status,status,method+' '+path+' '+JSON.stringify(data));checks++;return data;}
 (async()=>{
 await new Promise((resolve,reject)=>{const server=require('node:net').createServer();server.once('error',reject);server.listen(3002,'127.0.0.1',()=>server.close(resolve));});
 await admin.connect();await admin.query('CREATE DATABASE '+dbName);
 const env={...process.env,DATABASE_URL:'',DB_DATABASE:dbName,PORT:'3002',JWT_SECRET:'isolated-test-secret',NODE_ENV:'development'};
 const log=fs.openSync('.tmp/collaboration-api.log','w'); child=spawn(process.execPath,['dist/main.js'],{env,stdio:['ignore',log,log],windowsHide:true});
 for(let i=0;i<180;i++){try{await fetch(base);break;}catch{if(child.exitCode!==null)throw new Error('API exited during startup; inspect .tmp/collaboration-api.log');await new Promise(r=>setTimeout(r,500));}if(i===179)throw new Error('Server failed to start');}
+await call('/auth/signup','POST',{personalDataConsent:false,email:'no-consent@example.test',name:'No Consent',password:'Quizzy-test-2026!'},null,400);
 const users={};
 for(const role of ['owner','viewer','editor','stranger']){const email=role+'@collaboration.example.test';const password='Quizzy-test-2026!';await call('/auth/signup','POST',{email,password,name:role+' teacher'},null,201);users[role]=await call('/auth/login','POST',{email,password});}
 const token=key=>users[key].accessToken;

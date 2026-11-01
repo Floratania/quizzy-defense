@@ -1,6 +1,10 @@
-import {IsEmail, IsNotEmpty, IsString, MinLength} from "class-validator";
+import {Equals, IsBoolean, IsEmail, IsNotEmpty, IsString, MinLength} from "class-validator";
 
 export class SignupDto {
+    @IsBoolean()
+    @Equals(true, {message: 'Потрібна згода на обробку персональних даних'})
+    personalDataConsent: boolean;
+
     @IsNotEmpty({message: 'Email should not be empty'})
     @IsEmail({}, {message: 'Invalid email format'})
     email: string;

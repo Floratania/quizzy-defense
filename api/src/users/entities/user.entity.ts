@@ -10,6 +10,9 @@ export class User {
     @Column({ name: 'student_code', type: 'varchar', length: 15, unique: true, default: () => "'QZ-' || upper(substr(replace(uuid_generate_v4()::text, '-', ''), 1, 12))" })
     studentCode: string;
 
+    @Column({name: 'personal_data_consent_at', type: 'timestamptz', nullable: true})
+    personalDataConsentAt: Date | null;
+
     @Column()
     name: string;
 

@@ -136,7 +136,7 @@ export class AuthController {
     }
 
     @Get('google')
-    googleLogin(@Res() res: Response, @Query('challenge') challenge?:string) {
+    googleLogin(@Res() res: Response, @Query('challenge') challenge?:string, @Query('personalDataConsent') personalDataConsent?:string) {
         const state = randomBytes(32).toString('hex');
         const url = this.googleOAuthService.getAuthUrl(state);
         res.cookie('googleOAuthState', state, {
@@ -146,6 +146,7 @@ export class AuthController {
             path: '/auth/google/callback',
             maxAge: 10 * 60 * 1000,
         });
+        res.cookie('googleDataConsent', personalDataConsent === 'true' ? state : '', {httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/auth/google/callback',maxAge:600000});
         if(challenge){if(!/^[A-Za-z0-9_-]{43}$/.test(challenge))throw new UnauthorizedException('Invalid browser challenge');res.cookie('googleOAuthChallenge',challenge,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/auth/google/callback',maxAge:600000});}
         return res.redirect(url);
     }
@@ -161,7 +162,15 @@ export class AuthController {
         }
         if (!code) throw new UnauthorizedException('No code provided');
 
-        const { accessToken, refreshToken } = await this.authService.loginWithGoogle(code);
+        const consent = req.cookies?.googleDataConsent === state;
+        res.clearCookie('googleDataConsent',{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/auth/google/callback'});
+        let tokens;
+        try { tokens = await this.authService.loginWithGoogle(code, consent); }
+        catch(error) {
+            if(error instanceof Error && error.message === 'PERSONAL_DATA_CONSENT_REQUIRED') return res.redirect(this.frontend('/auth?consentRequired=1'));
+            throw error;
+        }
+        const { accessToken, refreshToken } = tokens;
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,

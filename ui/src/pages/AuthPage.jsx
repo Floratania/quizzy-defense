@@ -1,6 +1,7 @@
 import {beginGoogleSignIn} from '../auth/browserSession.js';
 import React, { useState } from 'react';
 import {
+    Checkbox,
     Container,
     Paper,
     Title,
@@ -20,12 +21,13 @@ import useAuth from "../hooks/useAuth.js";
 
 
 const AuthPage = () => {
-    const [mode, setMode] = useState('login');
+    const [mode, setMode] = useState(new URLSearchParams(window.location.search).has('consentRequired') ? 'register' : 'login');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
     });
+    const [personalDataConsent,setPersonalDataConsent] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
 
@@ -34,12 +36,14 @@ const AuthPage = () => {
     const { login, register } = useAuth();
 
     const handleSubmit = async () => {
+        if(!isLogin && !personalDataConsent)return;
         setSubmitting(true);
         try {
             if (isLogin) {
                 await login(formData.email, formData.password);
             } else {
                 await register({
+                    personalDataConsent,
                     name: formData.name,
                     email: formData.email,
                     password: formData.password,
@@ -87,9 +91,12 @@ const AuthPage = () => {
                 }}
             >
                 <Stack gap="lg">
+                    {!isLogin && <Checkbox label="Я погоджуюся на обробку моїх персональних даних" checked={personalDataConsent} onChange={e=>setPersonalDataConsent(e.currentTarget.checked)} required />}
+                    {new URLSearchParams(window.location.search).has('consentRequired') && <Text size="sm" c="dimmed">Щоб створити акаунт, підтвердьте згоду та повторіть реєстрацію.</Text>}
                     <Group grow>
                         <Button
-                            onClick={() => (beginGoogleSignIn())}
+                            onClick={() => (beginGoogleSignIn(personalDataConsent))}
+                            disabled={!isLogin && !personalDataConsent}
                             variant="light"
                             color="violet"
                             leftSection={<IconBrandGoogle size={18} />}
@@ -204,7 +211,7 @@ const AuthPage = () => {
 
                         <Button
                             loading={submitting}
-                            disabled={submitting}
+                            disabled={submitting || (!isLogin && !personalDataConsent)}
                             onClick={handleSubmit}
                             fullWidth
                             radius="md"
@@ -239,6 +246,7 @@ const AuthPage = () => {
                             fw={600}
                             underline="never"
                             onClick={() => {
+                                setPersonalDataConsent(false);
                                 setMode(isLogin ? 'register' : 'login');
                                 setFormData({ name: '', email: '', password: '' });
                             }}

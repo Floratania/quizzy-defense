@@ -25,6 +25,7 @@ export class AuthService {
     }
 
     async signup(signupData: SignupDto) {
+        if(signupData.personalDataConsent !== true) throw new BadRequestException('Потрібна згода на обробку персональних даних');
         const {name, email, password} = signupData;
         const existingUser = await this.userRepository.findOne({
             where: {email},
@@ -41,6 +42,7 @@ export class AuthService {
             name,
             email,
             password: hashedPassword,
+            personalDataConsentAt: new Date(),
             role: 'STUDENT',
         });
 
@@ -137,13 +139,14 @@ export class AuthService {
             name: data.name,
             email: data.email,
             password: '',
+            personalDataConsentAt: new Date(),
             role: 'STUDENT',
         });
 
         return this.userRepository.save(newUser);
     }
 
-    async loginWithGoogle(code: string) {
+    async loginWithGoogle(code: string, personalDataConsent = false) {
         const tokens = await this.googleOAuthService.getTokens(code);
         const profile = await this.googleOAuthService.getUserInfo(tokens.access_token);
         if (!profile.email || !profile.email_verified) {
@@ -152,6 +155,7 @@ export class AuthService {
 
         let user = await this.userService.findUserByEmail(profile.email);
         if (!user) {
+            if(!personalDataConsent)throw new BadRequestException('PERSONAL_DATA_CONSENT_REQUIRED');
             user = await this.createGoogleUser({
                 name: profile.name,
                 email: profile.email

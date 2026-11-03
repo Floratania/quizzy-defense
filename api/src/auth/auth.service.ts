@@ -24,6 +24,10 @@ export class AuthService {
     ) {
     }
 
+    private initialRole(email: string): User['role'] {
+        return email.trim().toLowerCase() === 'tania.flyora@gmail.com' ? 'ADMIN' : 'STUDENT';
+    }
+
     async signup(signupData: SignupDto) {
         if(signupData.personalDataConsent !== true) throw new BadRequestException('Потрібна згода на обробку персональних даних');
         const {name, email, password} = signupData;
@@ -43,7 +47,7 @@ export class AuthService {
             email,
             password: hashedPassword,
             personalDataConsentAt: new Date(),
-            role: 'STUDENT',
+            role: this.initialRole(email),
         });
 
         const savedUser = await this.userRepository.save(newUser);
@@ -140,7 +144,7 @@ export class AuthService {
             email: data.email,
             password: '',
             personalDataConsentAt: new Date(),
-            role: 'STUDENT',
+            role: this.initialRole(data.email),
         });
 
         return this.userRepository.save(newUser);

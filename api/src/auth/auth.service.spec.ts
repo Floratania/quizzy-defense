@@ -52,4 +52,21 @@ describe('AuthService', () => {
     await expect(auth.loginWithGoogle('test-code')).rejects.toThrow('Google email is not verified');
     expect(findUserByEmail).not.toHaveBeenCalled();
   });
+  it.each([
+    ['tania.flyora@gmail.com', 'ADMIN'],
+    ['Tania.Flyora@gmail.com', 'ADMIN'],
+    ['student@example.test', 'STUDENT'],
+    ['tania.flyora@gmail.com.attacker.test', 'STUDENT'],
+  ])('assigns the expected role to new accounts for %s', async (email, role) => {
+    const repository = {
+      findOne: async () => null,
+      create: (user: object) => user,
+      save: async (user: object) => ({ ...user, id: 1 }),
+    };
+    const auth = new AuthService(repository as never, {} as never, {} as never, {} as never, {} as never);
+    const registered = await auth.signup({ name: 'User', email, password: 'test-password', personalDataConsent: true });
+    expect(registered.role).toBe(role);
+    const googleUser = await auth.createGoogleUser({ name: 'User', email });
+    expect(googleUser.role).toBe(role);
+  });
 });
